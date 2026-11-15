@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-15.5">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-15.6">
 </head>
 <body>
 <div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
@@ -198,7 +198,7 @@
 <section class="page" id="pg-consigli" data-page="consigli">
   <div class="pg-head">
     <div><h2>Consigli</h2><p>I mazzi in forma migliore, le pick esotiche e quelli adatti al tuo stile, calcolati sulle partite dei tornei online di <a class="link" href="https://play.limitlesstcg.com" target="_blank" rel="noopener">Limitless</a>: <span id="recoWindow"></span>.</p></div>
-    <label class="chk" style="margin-left:auto;color:var(--fg)"><input type="checkbox" id="recoDrag"> Includi Dragapult nei consigli</label>
+    <label class="switch" for="recoDrag" title="Mostra anche Dragapult e le sue varianti tra i mazzi consigliati"><input type="checkbox" id="recoDrag" role="switch"><span class="track" aria-hidden="true"></span><span class="sw-lbl">Includi Dragapult</span></label>
   </div>
   <div class="panel"><h3>Il tuo stile di gioco <span class="meta">le risposte restano salvate nel tuo profilo</span></h3><div id="quiz" class="quiz"></div></div>
   <h3 class="sec-title">Per il tuo stile</h3><div class="recos" id="recoYou"></div>
@@ -271,7 +271,7 @@
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD = '2026-11-15.5';               // bump on every change to assets/ so browsers load the new files
+  const BUILD = '2026-11-15.6';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));
