@@ -104,7 +104,7 @@ function explorer(rs){
   if(!F.arch){
     const faced = groupBy(rs, r=>r.opp);
     return faced.length ? `<p class="src" style="margin:0 0 8px">Gli archetipi che il gruppo incontra di più. Scegline uno qui sopra per i dettagli, o tocca una riga.</p>
-      <div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>Avversario</th>${STAT_HEAD}</tr></thead><tbody>${faced.map(x=>`<tr class="pick" data-arch="${esc(x.k)}"><td><b>${esc(x.k)}</b></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`
+      <div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Avversario</th>${STAT_HEAD}</tr></thead><tbody>${faced.map(x=>`<tr class="pick" data-arch="${esc(x.k)}"><td><b>${esc(x.k)}</b></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`
       : '<p class="src">Nessun round con l’archetipo avversario nei filtri scelti. Nel registro tornei segna l’avversario di ogni round.</p>';
   }
   const A = key(F.arch);
@@ -112,16 +112,16 @@ function explorer(rs){
     const mine = rs.filter(r=>key(r.deck)===A), tot = agg(mine);
     if(!mine.length) return `<p class="src">Nessuno del gruppo ha giocato ${esc(F.arch)} nei filtri scelti.</p>`;
     const vs = groupBy(mine, r=>r.opp||'Avversario non segnato'), by = groupBy(mine, r=>nameOf(r.player));
-    return `<div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>${esc(F.arch)} contro…</th>${STAT_HEAD}</tr></thead><tbody>
+    return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>${esc(F.arch)} contro…</th>${STAT_HEAD}</tr></thead><tbody>
         <tr class="tot"><td>Totale</td>${statCells(tot)}</tr>${vs.map(x=>`<tr><td>${esc(x.k)}</td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>
-      <h4 class="gsub">Chi lo gioca</h4><div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
+      <h4 class="gsub">Chi lo gioca</h4><div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
   }
   const vsIt = rs.filter(r=>key(r.opp)===A), tot = agg(vsIt);
   if(!vsIt.length) return `<p class="src">Nessuno del gruppo ha affrontato ${esc(F.arch)} nei filtri scelti.</p>`;
   const withDeck = groupBy(vsIt, r=>r.deck||'Mazzo non segnato'), by = groupBy(vsIt, r=>nameOf(r.player));
-  return `<div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>Contro ${esc(F.arch)} con…</th>${STAT_HEAD}</tr></thead><tbody>
+  return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Contro ${esc(F.arch)} con…</th>${STAT_HEAD}</tr></thead><tbody>
       <tr class="tot"><td>Totale del gruppo</td>${statCells(tot)}</tr>${withDeck.map(x=>`<tr><td>${esc(x.k)}</td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>
-    <h4 class="gsub">Giocatore per giocatore</h4><div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
+    <h4 class="gsub">Giocatore per giocatore</h4><div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
 }
 function favorite(userId, tournaments){
   const mine = tournaments.filter(t=>t.user_id===userId && (t.deckName||'').trim() && inPeriod(t.date));
@@ -134,14 +134,14 @@ function favorite(userId, tournaments){
 function playersTable(members, tournaments){
   const me = App.Store.user.id;
   const rows = members.map(m=>({m, f:favorite(m.id, tournaments), total:tournaments.filter(t=>t.user_id===m.id && inPeriod(t.date)).length}));
-  return `<div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total})=>`<tr${m.id===me?' class="me"':''}>
+  return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total})=>`<tr${m.id===me?' class="me"':''}>
       <td><span class="arch">${av(m.display_name)}<span class="t">${esc(m.display_name||'Amico')}${m.id===me?' <span class="badge">tu</span>':''}</span></span>${m.share_stats===false?'<div class="src">non condivide i tornei</div>':''}</td>
       <td class="n">${total}</td><td>${f?esc(f.name):'<span class="src">—</span>'}</td><td class="n">${f?f.n+' tornei':'—'}</td>${f?cell(f.a.W,f.a.R,'Round vinti'):'<td class="n muted">—</td>'}
       <td class="n">${f&&f.list?`<button class="btn small" type="button" data-list="${esc(m.id)}">Vedi lista</button>`:f?'<span class="src" title="Nel registro tornei scegli il mazzo salvato usato, così la lista viene condivisa">lista non collegata</span>':''}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function recent(ts){
   const list = ts.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12);
-  return list.length ? `<div class="tbl-wrap"><table class="tbl gtbl"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);
+  return list.length ? `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);
     return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${esc(t.date)} · ${esc(t.type||'')}</div></td><td>${esc(nameOf(t.user_id))}</td><td>${esc(t.deckName||'—')}</td><td class="n">${T.recStr(r)}</td><td class="n">${t.placement?esc(t.placement)+'°':'—'}</td></tr>`; }).join('')}</tbody></table></div>`
     : '<p class="src">Nessun torneo nei filtri scelti.</p>';
 }

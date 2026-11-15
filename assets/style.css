@@ -601,3 +601,41 @@ dialog[open]::backdrop{animation:fadeIn .26s ease}
 .switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:760px){ .switch{margin-left:0} }
 @media (prefers-reduced-motion:reduce){ .switch .track,.switch .track::after{transition:none} }
+.switch.inline{margin-left:0;background:none;border:0;box-shadow:none;padding:2px 0;font-weight:500;font-size:13.5px;justify-self:start;width:auto}
+.switch.inline:hover .track{box-shadow:inset 0 0 0 1px var(--accent)}
+.switch.inline input:checked + .track{box-shadow:none}
+.form .switch,.filters .switch{flex-direction:row;color:var(--fg);font-size:13.5px;font-weight:500}
+.switch .track{pointer-events:none}
+
+/* ---------- phones: wide tables become cards, headers wrap ---------- */
+@media (max-width:760px){
+  .tbl.stack thead{display:none}
+  .tbl.stack,.tbl.stack tbody{display:block;width:100%}
+  .tbl.stack tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px;padding:10px 6px;border-bottom:1px solid var(--line);border-radius:8px}
+  .tbl.stack tr:last-child{border-bottom:0}
+  .tbl.stack td{display:flex;flex-direction:column;gap:1px;align-items:flex-start;justify-content:flex-start;border:0!important;padding:0!important;text-align:left!important;white-space:normal;min-width:0;background:none!important;overflow-wrap:anywhere}
+  .tbl.stack td::before{content:attr(data-l);font:500 10.5px var(--body);color:var(--muted);letter-spacing:.01em}
+  .tbl.stack td:first-child{grid-column:1/-1;font-size:14px}
+  .tbl.stack td:first-child::before,.tbl.stack td[data-l=""]::before{display:none}
+  .tbl.stack td:empty{display:none}
+  .tbl.stack tr.tot,.tbl.stack tr.me{background:var(--sunk)}
+  .tbl.stack tr.pick:hover{background:var(--accent-soft)}
+  .tbl.stack td .btn{margin-top:2px}
+  .tbl-wrap:has(> .tbl.stack){overflow:visible}
+  #metaTable td .bar{display:none}
+  .panel > h3,.widget > header{flex-wrap:wrap;row-gap:2px}
+  .panel > h3 .meta{margin-left:0;flex-basis:100%;font-size:11.5px}
+  #dvStats .decktools{flex-wrap:wrap}
+  #dvStats .st-title{order:3;flex-basis:100%;font-size:22px}
+  #dvStats .decktools .btn.primary{margin-left:auto}
+  .gexp-bar select{flex:1 1 100%}
+}
+@media (max-width:760px){
+  #metaTable th:last-child,#metaTable td:last-child{display:none}
+  .tbl.stack td{overflow-wrap:break-word;font-size:13px}
+  .tbl.stack td:first-child{font-size:14px}
+  #recoTable td:last-child{grid-column:1/-1}
+  .prob td.n .pb{display:none}
+  .prob table{font-size:12px}
+}
+@media (max-width:760px){ .tbl.stack td{font-size:12.5px} .tbl.stack td:first-child{font-size:14px} }

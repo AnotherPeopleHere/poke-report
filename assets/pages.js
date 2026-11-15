@@ -150,7 +150,7 @@ function openTournament(t){
       <label>Posizione finale<input id="fPlace" type="number" min="1" placeholder="es. 5" value="${esc(t.placement)}"></label>
       <label class="full">Formato dei round<span class="seg" id="fBo"><button type="button" data-tbo="bo1" aria-pressed="${t.bo==='bo1'}">Bo1 · partita secca</button><button type="button" data-tbo="bo3" aria-pressed="${t.bo==='bo3'}">Bo3 · al meglio di tre</button></span><small class="src">Vale per i nuovi round; ogni round si può cambiare.</small></label>
       <label>Giocatori<input id="fPlayers" type="number" min="2" placeholder="es. 64" value="${esc(t.players)}"></label>
-      <label class="chk full" style="flex-direction:row;color:var(--fg)"><input type="checkbox" id="fCut" ${t.topcut?'checked':''} style="width:auto"> Ho passato il taglio (top cut)</label>
+      <label class="switch inline full" for="fCut"><input type="checkbox" id="fCut" role="switch"${t.topcut?' checked':''}><span class="track" aria-hidden="true"></span><span>Ho passato il taglio (top cut)</span></label>
       <div class="full"><div class="chips" id="fMode"><button type="button" class="chip-btn" data-mode="rounds" aria-pressed="${mode==='rounds'}">Round per round</button><button type="button" class="chip-btn" data-mode="manual" aria-pressed="${mode==='manual'}">Solo il record</button></div></div>
       <div class="full" id="fRoundsBox"></div>
       <label class="full">Note<textarea id="fNotes" placeholder="Cosa ha funzionato, cosa cambiare…">${esc(t.notes)}</textarea></label>
@@ -250,7 +250,7 @@ const W = {
   reco:{title:'Mazzi consigliati', desc:'I mazzi in forma (Dragapult escluso) e le pick esotiche', go:'#consigli', render:()=>{ const R=J('recoData'), withD=!!App.prefs().withDragapult;
     const P=R.archetypes.filter(a=>a.recommendable&&(withD||!a.excluded)); const form=P.filter(a=>a.games>=300).sort((a,b)=>b.score-a.score).slice(0,3); const ex=P.filter(a=>a.exotic&&!form.includes(a)).sort((a,b)=>b.wrAdj-a.wrAdj).slice(0,2);
     const row=(a,tag)=>`<tr><td>${archLink(a.name,a.url)}${tag?' <span class="badge">'+tag+'</span>':''}</td><td class="n">${pct(a.wrAdj,1)}</td><td class="n src">${pct(a.share,1)}</td></tr>`;
-    return `<table class="tbl" style="table-layout:fixed"><colgroup><col><col style="width:62px"><col style="width:54px"></colgroup><thead><tr><th>Mazzo</th><th class="n">Vittorie</th><th class="n">Giocato</th></tr></thead><tbody>${form.map(a=>row(a,'')).join('')}${ex.map(a=>row(a,'esotica')).join('')}</tbody></table>`; }},
+    return `<table class="tbl" style="table-layout:fixed"><colgroup><col><col style="width:60px"><col style="width:54px"></colgroup><thead><tr><th>Mazzo</th><th class="n">Vince</th><th class="n">Quota</th></tr></thead><tbody>${form.map(a=>row(a,'')).join('')}${ex.map(a=>row(a,'esotica')).join('')}</tbody></table>`; }},
   metafy:{title:'Coach e link', desc:'I tuoi link Metafy salvati', go:'#metafy', render:()=>{ const L=App.prefs().links||[];
     return L.length ? L.slice(0,5).map(l=>`<a class="btn small" style="margin:0 6px 6px 0" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)} ↗</a>`).join('') : `<p class="src">Salva i tuoi coach nella pagina <a class="link" href="#metafy">Metafy</a>.</p>`; }}
 };

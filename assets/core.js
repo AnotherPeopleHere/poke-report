@@ -124,6 +124,16 @@ function route(){
   window.scrollTo({top:0});
 }
 window.addEventListener('hashchange', route);
+// on phones wide tables become one small card per row: give every cell its column title
+function labelTables(){
+  document.querySelectorAll('table.stack').forEach(t=>{
+    const heads=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    if(!heads.length) return;
+    t.querySelectorAll('tbody tr').forEach(tr=>[...tr.children].forEach((td,i)=>{ if(td.dataset.l===undefined) td.dataset.l = td.colSpan>1 ? '' : (heads[i]||''); }));
+  });
+}
+let labelQueued=false;
+new MutationObserver(()=>{ if(labelQueued) return; labelQueued=true; requestAnimationFrame(()=>{ labelQueued=false; labelTables(); }); }).observe(document.body,{childList:true,subtree:true});
 function moveIndicator(scroll){
   const nav=$('#sitenav'); if(!nav) return;
   let ind=nav.querySelector('.ind'); if(!ind){ ind=document.createElement('span'); ind.className='ind'; ind.setAttribute('aria-hidden','true'); nav.prepend(ind); }
@@ -171,7 +181,7 @@ function accountDialog(){
     <div class="form">
       <label class="full">Nome visibile agli amici<input id="pfName" maxlength="40" value="${esc(p.display_name||'')}"></label>
       <label class="full">Codice del gruppo<input id="pfGroup" maxlength="40" placeholder="es. amici-pokemon-torino" value="${esc(p.group_code||'')}"><small class="src">Chi inserisce lo stesso codice entra nel tuo gruppo e vede la classifica. Sceglilo difficile da indovinare e condividilo solo con i tuoi amici.</small></label>
-      <label class="chk full" style="flex-direction:row;color:var(--fg)"><input type="checkbox" id="pfShare" ${p.share_stats!==false?'checked':''} style="width:auto"> Mostra i miei tornei al gruppo</label>
+      <label class="switch inline full" for="pfShare"><input type="checkbox" id="pfShare" role="switch"${p.share_stats!==false?' checked':''}><span class="track" aria-hidden="true"></span><span>Mostra i miei tornei al gruppo</span></label>
     </div>
     <div class="row"><button class="btn" type="button" id="pfOut">Esci</button><span class="hint" id="pfMsg"></span><button class="btn" value="close">Chiudi</button><button class="btn primary" type="button" id="pfSave">Salva</button></div>`;
   d.showModal();
