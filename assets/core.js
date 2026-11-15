@@ -119,10 +119,25 @@ function route(){
   document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on', s.dataset.page===p));
   document.querySelectorAll('#sitenav a').forEach(a=>{ if(a.dataset.p===p) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   document.body.classList.toggle('on-deck', p==='deck');
+  moveIndicator(true);
   App.emit('page');
   window.scrollTo({top:0});
 }
 window.addEventListener('hashchange', route);
+function moveIndicator(scroll){
+  const nav=$('#sitenav'); if(!nav) return;
+  let ind=nav.querySelector('.ind'); if(!ind){ ind=document.createElement('span'); ind.className='ind'; ind.setAttribute('aria-hidden','true'); nav.prepend(ind); }
+  const a=nav.querySelector('a[aria-current="page"]'); if(!a) return;
+  ind.style.width=a.offsetWidth+'px'; ind.style.transform=`translateX(${a.offsetLeft}px)`;
+  if(!nav.classList.contains('ready')) requestAnimationFrame(()=>requestAnimationFrame(()=>nav.classList.add('ready')));
+  if(scroll && nav.scrollWidth>nav.clientWidth){
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    nav.scrollTo({left:a.offsetLeft-(nav.clientWidth-a.offsetWidth)/2, behavior: reduce?'auto':'smooth'});
+  }
+}
+// keep the indicator on its link when the layout changes (window size, web fonts loading)
+window.addEventListener('resize',()=>moveIndicator(false));
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>moveIndicator(false));
 App.route = route;
 
 /* ---------- account UI ---------- */
