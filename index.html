@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Poke Report</title>
+<meta name="description" content="Deck builder, meta report, consigli sui mazzi e registro tornei per il Pokémon TCG Standard.">
+<meta name="theme-color" content="#d3303f" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Poke Report">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></symbol>
+  <symbol id="i-news" viewBox="0 0 24 24"><rect x="3" y="4" width="15" height="16" rx="2"/><path d="M18 8h3v10a2 2 0 0 1-2 2M7 8h7M7 12h7M7 16h4"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8M9 18h6"/></symbol>
+  <symbol id="i-coach" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="m15 4 2-2 2 2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+  <symbol id="i-group" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 6 4.8"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></symbol>
+</svg>
+
+<header class="site">
+  <div class="brand">
+    <div class="logo" aria-hidden="true"></div>
+    <div><h1>Poke Report</h1><small>Pokémon TCG · formato Standard 2026-27</small></div>
+  </div>
+  <nav class="sitenav" id="sitenav" aria-label="Sezioni">
+    <a href="#home" data-p="home"><svg class="i"><use href="#i-home"/></svg><span class="lbl">Home</span></a>
+    <a href="#deck" data-p="deck"><svg class="i"><use href="#i-grid"/></svg><span class="lbl">Deck builder</span></a>
+    <a href="#meta" data-p="meta"><svg class="i"><use href="#i-chart"/></svg><span class="lbl">Meta</span></a>
+    <a href="#consigli" data-p="consigli"><svg class="i"><use href="#i-star"/></svg><span class="lbl">Consigli</span></a>
+    <a href="#news" data-p="news"><svg class="i"><use href="#i-news"/></svg><span class="lbl">Notizie</span></a>
+    <a href="#tornei" data-p="tornei"><svg class="i"><use href="#i-trophy"/></svg><span class="lbl">Tornei</span></a>
+    <a href="#gruppo" data-p="gruppo"><svg class="i"><use href="#i-group"/></svg><span class="lbl">Gruppo</span></a>
+    <a href="#metafy" data-p="metafy"><svg class="i"><use href="#i-coach"/></svg><span class="lbl">Metafy</span></a>
+  </nav>
+  <button class="sync" id="acct" type="button"><i></i><span>Accedi</span></button>
+  <div class="group" role="radiogroup" aria-label="Tema" id="theme">
+    <button class="tb icon" data-theme-set="light" role="radio" title="Tema chiaro" aria-label="Tema chiaro"><svg class="i"><use href="#i-sun"/></svg></button>
+    <button class="tb icon" data-theme-set="system" role="radio" title="Tema di sistema" aria-label="Tema di sistema"><svg class="i"><use href="#i-auto"/></svg></button>
+    <button class="tb icon" data-theme-set="dark" role="radio" title="Tema scuro" aria-label="Tema scuro"><svg class="i"><use href="#i-moon"/></svg></button>
+  </div>
+</header>
+
+<section class="page" id="pg-home" data-page="home">
+  <div class="hero">
+    <div><h2 id="greet">La tua plancia</h2><p id="heroSub">Uno sguardo d'insieme su mazzi, tornei e meta. Con “Personalizza” aggiungi, togli e riordini i widget.</p></div>
+    <div class="acts"><button class="btn" id="bEditHome" type="button"><svg class="i"><use href="#i-edit"/></svg><span>Personalizza</span></button></div>
+  </div>
+  <div class="panel addpanel" id="addPanel">
+    <h3>Aggiungi un widget <span class="meta">Clic per aggiungere · usa ↑ ↓ per riordinare e ⇔ per allargare</span></h3>
+    <div class="wcat" id="wcat"></div>
+  </div>
+  <div class="wgrid" id="wgrid"></div>
+</section>
+
+<section class="page page-deck" data-page="deck" id="pg-deck">
+  <div class="decktools">
+    <div class="deckname">
+      <input id="deckName" aria-label="Nome del mazzo" placeholder="Nome del mazzo">
+      <button class="status" id="status" type="button" title="Vai al mazzo"></button>
+    </div>
+    <div class="group">
+      <button class="tb icon" id="bUndo" title="Annulla (Ctrl+Z)" aria-label="Annulla" disabled><svg class="i"><use href="#i-undo"/></svg></button>
+      <button class="tb" id="bDecks" title="I miei mazzi"><svg class="i"><use href="#i-folder"/></svg><span class="lbl">Mazzi</span></button>
+      <button class="tb" id="bNew" title="Nuovo mazzo"><svg class="i"><use href="#i-plus"/></svg><span class="lbl">Nuovo</span></button>
+      <button class="tb" id="bImport" title="Importa lista"><svg class="i"><use href="#i-in"/></svg><span class="lbl">Importa</span></button>
+      <button class="tb primary" id="bExport" title="Esporta per TCG Live"><svg class="i"><use href="#i-out"/></svg><span class="lbl">Esporta lista</span></button>
+    </div>
+    <span class="src">Regulation mark H, I, J · <span class="num" id="poolCount"></span> carte legali</span>
+  </div>
+  <nav class="tabs" id="tabs">
+  <button data-t="pool" aria-selected="true">Carte</button>
+  <button data-t="deck" aria-selected="false">Mazzo <span class="pill" id="tabCount">0</span></button>
+  <button data-t="inspect" aria-selected="false">Dettagli</button>
+</nav>
+  <main>
+  <section class="pane on" id="pool">
+    <div class="pane-h"><h2>Card pool</h2><span class="meta">Trascina le carte nel mazzo</span></div>
+    <div class="search">
+      <div class="sbox"><svg class="i"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Cerca una carta…" aria-label="Cerca per nome" autocomplete="off"><kbd>/</kbd></div>
+      <div class="chips" id="kindChips">
+        <button class="chip-btn" data-kind="" aria-pressed="true">Tutte</button>
+        <button class="chip-btn" data-kind="P" aria-pressed="false">Pokémon</button>
+        <button class="chip-btn" data-kind="Supporter" aria-pressed="false">Aiuti</button>
+        <button class="chip-btn" data-kind="Item" aria-pressed="false">Strumenti</button>
+        <button class="chip-btn" data-kind="Pokémon Tool" aria-pressed="false">Oggetti Pokémon</button>
+        <button class="chip-btn" data-kind="Stadium" aria-pressed="false">Stadi</button>
+        <button class="chip-btn" data-kind="E" aria-pressed="false">Energie</button>
+      </div>
+      <div class="types" id="typeBtns" aria-label="Filtra per tipo"></div>
+      <button class="adv-toggle" id="advToggle" aria-expanded="false" aria-controls="adv">Filtri avanzati <span class="cnt" id="advCnt" hidden></span><svg class="i"><use href="#i-down"/></svg></button>
+      <div class="filters" id="adv" hidden>
+        <label class="chk full"><input type="checkbox" id="qText"> Cerca anche in abilità, attacchi ed effetti</label>
+        <select id="fStage" aria-label="Fase"><option value="">Ogni fase</option><option>Basic</option><option>Stage 1</option><option>Stage 2</option></select>
+        <select id="fRule" aria-label="Regola speciale"><option value="">Ogni carta</option><option value="ex">Solo Pokémon ex</option><option value="MEGA">Solo Mega</option><option value="Tera">Solo Teracristal</option><option value="ACE SPEC">Solo ACE SPEC</option><option value="Ancient">Antico</option><option value="Future">Futuro</option><option value="ability">Pokémon con abilità</option></select>
+        <select id="fMark" aria-label="Regulation mark"><option value="">Ogni regulation mark</option><option>H</option><option>I</option><option>J</option></select>
+        <select id="fSet" aria-label="Espansione"><option value="">Ogni espansione</option></select>
+        <input id="hpMin" type="number" step="10" min="0" placeholder="PS minimi" aria-label="PS minimi">
+        <input id="rcMax" type="number" min="0" max="5" placeholder="Ritirata massima" aria-label="Costo di ritirata massimo">
+        <button class="reset full" id="resetF" type="button">Azzera tutti i filtri</button>
+      </div>
+    </div>
+    <div class="sortrow"><span>Ordina per</span>
+      <select id="sort" aria-label="Ordina per"><option value="name">Nome</option><option value="hp">PS</option><option value="dex">N° Pokédex</option><option value="date">Uscita</option></select>
+      <span class="num" id="resCount"></span></div>
+    <div class="scroll"><ul class="results" id="results"></ul></div>
+  </section>
+
+  <section class="pane" id="deck">
+    <div class="pane-h"><h2>Mazzo</h2>
+      <div class="group" style="margin-left:auto;box-shadow:none" role="radiogroup" aria-label="Vista del mazzo">
+        <button class="tb icon" data-view="grid" title="Vista a carte" aria-label="Vista a carte"><svg class="i"><use href="#i-grid"/></svg></button>
+        <button class="tb icon" data-view="list" title="Vista a lista" aria-label="Vista a lista"><svg class="i"><use href="#i-list"/></svg></button>
+      </div>
+    </div>
+    <div class="issues" id="issues"></div>
+    <div class="scroll" id="deckScroll"></div>
+  </section>
+
+  <section class="pane" id="inspect">
+    <div class="scroll">
+      <div class="card-detail" id="detail"></div>
+      <div class="stats" id="stats"></div>
+    </div>
+  </section>
+</main>
+</section>
+
+<section class="page" id="pg-meta" data-page="meta">
+  <div class="pg-head">
+    <div><h2>Meta report</h2><p>Formato Standard, dati di <a class="link" href="https://limitlesstcg.com/decks" target="_blank" rel="noopener">Limitless</a>: punti e quota per archetipo nei tornei maggiori (formato TEF–30C). Aggiornato al <b id="metaDate"></b>.</p></div>
+  </div>
+  <div class="kpis" id="metaKpis"></div>
+  <div class="cols-2">
+    <div class="panel"><h3>Archetipi più forti <span class="meta">quota sui punti totali</span></h3><div class="tbl-wrap"><table class="tbl" id="metaTable"></table></div>
+      <button class="btn small" id="metaMore" type="button" style="margin-top:8px">Mostra tutti</button></div>
+    <div class="panel"><h3>Top 8 negli ultimi Regional <span class="meta" id="convMeta"></span></h3><div class="tbl-wrap"><table class="tbl" id="convTable"></table></div>
+      <p class="src" style="margin-top:8px">Nomi delle varianti come li riporta Limitless nelle classifiche dei tornei.</p></div>
+  </div>
+  <h3 style="font-family:var(--display);font-size:20px;margin:6px 0 0">Ultimi tornei Standard</h3>
+  <div class="tcards" id="tcards"></div>
+</section>
+
+<section class="page" id="pg-consigli" data-page="consigli">
+  <div class="pg-head">
+    <div><h2>Consigli</h2><p>I mazzi in forma migliore, le pick esotiche e quelli adatti al tuo stile, calcolati sulle partite dei tornei online di <a class="link" href="https://play.limitlesstcg.com" target="_blank" rel="noopener">Limitless</a>: <span id="recoWindow"></span>.</p></div>
+    <label class="chk" style="margin-left:auto;color:var(--fg)"><input type="checkbox" id="recoDrag"> Includi Dragapult nei consigli</label>
+  </div>
+  <div class="panel"><h3>Il tuo stile di gioco <span class="meta">le risposte restano salvate nel tuo profilo</span></h3><div id="quiz" class="quiz"></div></div>
+  <h3 class="sec-title">Per il tuo stile</h3><div class="recos" id="recoYou"></div>
+  <h3 class="sec-title">In forma adesso</h3><div class="recos" id="recoForm"></div>
+  <h3 class="sec-title">Pick esotiche <span class="src">poco giocati, ma vincono più della media</span></h3><div class="recos" id="recoExotic"></div>
+  <div class="panel"><h3>Tutti gli archetipi <span class="meta">almeno 40 partite · vittorie esclusi i mirror</span></h3><div class="tbl-wrap"><table class="tbl" id="recoTable"></table></div>
+    <p class="src" style="margin-top:8px">“Vittorie” è corretta per il numero di partite: con pochi dati si avvicina al 50%. I pareggi valgono mezza vittoria. Lo stile è ricavato dalle carte della lista più vincente di ogni archetipo.</p></div>
+</section>
+
+
+<section class="page" id="pg-news" data-page="news">
+  <div class="pg-head">
+    <div><h2>Notizie</h2><p>Le novità del gioco di carte: espansioni, tornei, TCG Live e annunci. Raccolte al <b id="newsDate"></b>; ogni notizia apre la fonte originale.</p></div>
+  </div>
+  <div class="chips" id="newsChips"></div>
+  <div class="newsgrid" id="newsGrid"></div>
+</section>
+
+<section class="page" id="pg-tornei" data-page="tornei">
+  <div class="pg-head">
+    <div><h2>I miei tornei</h2><p>Registra i tornei che giochi, round per round: il sito calcola record, percentuale di vittorie, rendimento per mazzo e matchup.</p></div>
+    <div class="acts"><button class="btn primary" id="bAddT" type="button"><svg class="i"><use href="#i-plus"/></svg>Nuovo torneo</button></div>
+  </div>
+  <div class="filterbar"><label class="src" for="tFilter">Mostra</label><select id="tFilter"><option value="">Tutti i mazzi</option></select>
+    <select id="tPeriod" aria-label="Periodo"><option value="">Sempre</option><option value="90">Ultimi 3 mesi</option><option value="365">Ultimi 12 mesi</option><option value="season">Stagione 2026-27</option></select></div>
+  <div class="kpis" id="tKpis"></div>
+  <div class="cols">
+    <div class="panel"><h3>Percentuale di vittorie per torneo</h3><div id="tTrend"></div></div>
+    <div class="panel"><h3>Rendimento per mazzo</h3><div class="tbl-wrap"><table class="tbl" id="tDecks"></table></div></div>
+    <div class="panel"><h3>Matchup <span class="meta">contro gli archetipi avversari</span></h3><div class="tbl-wrap"><table class="tbl" id="tMatch"></table></div></div>
+  </div>
+  <h3 style="font-family:var(--display);font-size:20px;margin:6px 0 0">Storico</h3>
+  <div class="tlist" id="tList"></div>
+</section>
+
+<section class="page" id="pg-gruppo" data-page="gruppo">
+  <div class="pg-head">
+    <div><h2>Il gruppo</h2><p>Classifica e statistiche dei tuoi amici. Ognuno registra i propri tornei; qui li vedi tutti insieme, se hanno scelto di condividerli.</p></div>
+    <div class="acts"><button class="btn" type="button" id="gProfile"><svg class="i"><use href="#i-group"/></svg>Profilo e codice gruppo</button></div>
+  </div>
+  <div id="gBody"></div>
+</section>
+
+<section class="page" id="pg-metafy" data-page="metafy">
+  <div class="pg-head">
+    <div><h2>Metafy</h2><p>Coaching e contenuti dei giocatori competitivi. Metafy è un servizio esterno: i link si aprono sul loro sito.</p></div>
+    <div class="acts"><a class="btn primary" href="https://metafy.gg" target="_blank" rel="noopener">Apri Metafy ↗</a><a class="btn" href="https://limitlesstcg.com/tools/mfy" target="_blank" rel="noopener">Metafy Hub su Limitless ↗</a></div>
+  </div>
+  <div class="cols-2">
+    <div class="panel"><h3>Coach in top 8 negli ultimi Regional <span class="meta">profili Metafy indicati da Limitless</span></h3><div id="coachList"></div></div>
+    <div class="panel"><h3>I miei coach e link</h3>
+      <p class="src" style="margin:0 0 10px">Salva i profili o i contenuti che segui: li ritrovi qui e nel widget della home.</p>
+      <div id="myLinks"></div>
+      <form class="form" id="linkForm" style="margin-top:10px">
+        <label>Nome<input id="lkName" required placeholder="es. Il mio coach"></label>
+        <label>Link<input id="lkUrl" type="url" required placeholder="https://metafy.gg/@…"></label>
+        <div class="full"><button class="btn" type="submit"><svg class="i"><use href="#i-plus"/></svg>Aggiungi link</button></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<dialog id="dlg"><form method="dialog" class="dlg" id="dlgBody"></form></dialog>
+<dialog id="dlg2"><form method="dialog" class="dlg" id="dlg2Body"></form></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script src="assets/vendor/supabase-2.118.0.js"></script>
+<script src="assets/config.js"></script>
+<script>
+/* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
+(async function(){
+  const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json'};
+  const v = Math.floor(Date.now()/36e5);
+  try{
+    const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));
+    Object.keys(files).forEach((id,i)=>{ const s=document.createElement('script'); s.type='application/json'; s.id=id; s.textContent=texts[i]; document.body.appendChild(s); });
+    for(const src of ['assets/core.js','assets/deck.js','assets/consigli.js','assets/pages.js','assets/gruppo.js']){
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src+'?v='+v; s.onload=res; s.onerror=()=>rej(new Error(src)); document.body.appendChild(s); });
+    }
+    App.route(); App.boot();
+    document.getElementById('boot').remove();
+  }catch(e){
+    console.error(e);
+    document.getElementById('bootMsg').textContent='Non riesco a caricare il sito. Controlla la connessione e ricarica la pagina.';
+  }
+})();
+</script>
+</body>
+</html>

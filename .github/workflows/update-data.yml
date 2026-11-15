@@ -1,0 +1,54 @@
+name: Aggiorna dati (meta, consigli, carte)
+
+on:
+  schedule:
+    - cron: "20 4 * * *"      # every day, 05:20 / 06:20 in Italy
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore online tournament cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/online
+          key: online-${{ github.run_id }}
+          restore-keys: online-
+
+      - name: Card pool (Standard-legal cards)
+        run: |
+          git clone --depth 1 https://github.com/PokemonTCG/pokemon-tcg-data.git .cache/ptcg-data
+          python scripts/build_cards.py .cache/ptcg-data data/cards.json
+
+      - name: Meta report and recent Regionals (limitlesstcg.com)
+        run: python scripts/update_meta.py data
+
+      - name: Online tournaments and recommendations (play.limitlesstcg.com)
+        run: |
+          python scripts/fetch_online.py .cache/online
+          python scripts/analyze.py .cache/online data/cards.json data/reco.json
+
+      - name: Commit changes
+        run: |
+          git config user.name "poke-report-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Aggiorna dati $(date -u +%F)"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
