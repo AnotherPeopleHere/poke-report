@@ -519,7 +519,7 @@ mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTa
 let toastT;
 function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>${withUndo&&history.length?'<button type="button" id="tUndo">Annulla</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); const u=$('#tUndo'); if(u) u.addEventListener('click',undo); }
 
-window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, parse:t=>parseList(t),
+window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, CARDS, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';

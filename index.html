@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-15.8">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-15.9">
 </head>
 <body>
 <div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
@@ -221,7 +221,7 @@
 <section class="page" id="pg-tornei" data-page="tornei">
   <div class="pg-head">
     <div><h2>I miei tornei</h2><p>Registra i tornei che giochi, round per round: il sito calcola record, percentuale di vittorie, rendimento per mazzo e matchup.</p></div>
-    <div class="acts"><button class="btn primary" id="bAddT" type="button"><svg class="i"><use href="#i-plus"/></svg>Nuovo torneo</button></div>
+    <div class="acts"><button class="btn" id="bTL" type="button"><svg class="i"><use href="#i-in"/></svg>Importa partita TCG Live</button><button class="btn primary" id="bAddT" type="button"><svg class="i"><use href="#i-plus"/></svg>Nuovo torneo</button></div>
   </div>
   <div class="filterbar"><label class="src" for="tFilter">Mostra</label><select id="tFilter"><option value="">Tutti i mazzi</option></select>
     <select id="tPeriod" aria-label="Periodo"><option value="">Sempre</option><option value="90">Ultimi 3 mesi</option><option value="365">Ultimi 12 mesi</option><option value="season">Stagione 2026-27</option></select></div>
@@ -272,12 +272,12 @@
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD = '2026-11-15.8';               // bump on every change to assets/ so browsers load the new files
+  const BUILD = '2026-11-15.9';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));
     Object.keys(files).forEach((id,i)=>{ const s=document.createElement('script'); s.type='application/json'; s.id=id; s.textContent=texts[i]; document.body.appendChild(s); });
-    for(const src of ['assets/core.js','assets/deck.js','assets/consigli.js','assets/pages.js','assets/gruppo.js']){
+    for(const src of ['assets/core.js','assets/deck.js','assets/consigli.js','assets/pages.js','assets/gruppo.js','assets/tcglive.js']){
       await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src+'?v='+BUILD; s.onload=res; s.onerror=()=>rej(new Error(src)); document.body.appendChild(s); });
     }
     App.route(); App.boot();

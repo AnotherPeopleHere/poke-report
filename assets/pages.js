@@ -57,7 +57,7 @@ function renderNews(){
 $('#newsChips').addEventListener('click',e=>{ const b=e.target.closest('[data-cat]'); if(!b) return; newsCat=b.dataset.cat; renderNews(); });
 
 /* ---------- TOURNAMENTS ---------- */
-const TYPES = ['League Challenge','League Cup','Regional','Special Event','International','Mondiali','Torneo online','Torneo locale / amichevole'];
+const TYPES = ['League Challenge','League Cup','Regional','Special Event','International','Mondiali','Torneo online','TCG Live','Torneo locale / amichevole'];
 function record(t){
   if(t.rounds && t.rounds.length){ const r={W:0,L:0,T:0}; t.rounds.forEach(x=>{ const k=roundRes(x); if(k) r[k]++; }); return r; }
   const m=t.manual||{}; return {W:+m.W||0,L:+m.L||0,T:+m.T||0};
