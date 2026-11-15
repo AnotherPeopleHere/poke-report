@@ -560,3 +560,32 @@ button.sync:hover{border-color:var(--accent)}
 #dvStats .stats > .prob,#dvStats .stats > div:last-child{grid-column:1/-1}
 
 .implist ul{margin:0;padding:8px 12px 8px 26px;background:var(--bad-soft);color:var(--bad);border-radius:8px;font:12.5px var(--mono);max-height:140px;overflow:auto}
+
+/* ---------- gruppo: shared database ---------- */
+.gfilters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.gfilters label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
+.gfilters select,.gexp-bar select{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--fg);min-width:170px;max-width:100%}
+.gcode{margin-left:auto;font:600 12px var(--mono);color:var(--muted);background:var(--sunk);border-radius:999px;padding:5px 10px}
+.gexp-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.gtbl td.good,.kpis b.good{color:var(--ok);font-weight:700}
+.gtbl td.bad,.kpis b.bad{color:var(--bad);font-weight:700}
+.gtbl td.muted{color:var(--muted)}
+.gtbl tr.tot td{font-weight:700;background:var(--sunk)}
+.gtbl tr.pick{cursor:pointer;transition:background .15s}
+.gtbl tr.pick:hover td{background:var(--accent-soft)}
+.gsub{font-family:var(--display);font-size:16px;margin:16px 0 6px}
+#gExpBody{animation:pageIn .3s cubic-bezier(.2,.7,.2,1)}
+.dlg-h{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.glist{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:4px 18px;max-height:62vh;overflow:auto}
+dialog.sheet{width:min(760px,calc(100vw - 32px))}
+dialog[open]{animation:dlgIn .26s cubic-bezier(.2,.8,.2,1)}
+dialog[open]::backdrop{animation:fadeIn .26s ease}
+@keyframes dlgIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+@media (max-width:760px){
+  .gfilters label{flex:1 1 140px} .gfilters select{min-width:0;width:100%} .gcode{margin-left:0}
+  dialog.sheet{margin:auto 0 0;width:100%;max-width:100%;max-height:88vh;border-radius:18px 18px 0 0}
+  dialog.sheet[open]{animation:sheetIn .32s cubic-bezier(.2,.8,.2,1)}
+  @keyframes sheetIn{from{transform:translateY(100%)}to{transform:none}}
+}
+@media (prefers-reduced-motion:reduce){ dialog[open],dialog.sheet[open],#gExpBody{animation:none} }
+.tbl td.n .btn{font-family:var(--body)}

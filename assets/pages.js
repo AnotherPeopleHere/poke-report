@@ -193,6 +193,8 @@ function openTournament(t){
     const deckId=$('#fDeck').value, d=decks.find(x=>x.id===deckId);
     Object.assign(t,{name, date:$('#fDate').value||new Date().toISOString().slice(0,10), type:$('#fType').value, deckId, deckName:$('#fArch').value.trim()||(d?d.name:''),
       placement:$('#fPlace').value, players:$('#fPlayers').value, topcut:$('#fCut').checked, notes:$('#fNotes').value.trim()});
+    // keep a copy of the list played, so friends in the group can see it (saved decks stay private)
+    if(d) t.list = d.cards.slice(); else if(!deckId) delete t.list;
     if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>({opp:(x.opp||'').trim(), bo:x.bo, games:x.games, r:roundRes(x)})); }
     const i=App.data.tournaments.findIndex(x=>x.id===t.id); if(i>=0) App.data.tournaments[i]=t; else App.data.tournaments.push(t);
     dlg2.close(); renderAll(); const ok = await App.Store.put('tournaments', t); if(ok) App.toast(isNew?'Torneo salvato':'Modifiche salvate');
@@ -279,6 +281,14 @@ $('#bEditHome').addEventListener('click',()=>{ const on=document.body.classList.
 function renderAll(){ renderHome(); renderTornei(); renderMetafy(); }
 App.renderAll = renderAll;
 renderMeta(); renderNews();
-App.on(what=>{ if(what==='data'){ renderAll(); DL.onData && DL.onData(); } if(what==='deck' && App.page==='home') renderHome(); if(what==='page' && App.page==='home') renderHome(); });
+// tournaments registered before lists were copied: attach the list of the saved deck they used
+async function attachLists(){
+  for(const t of App.data.tournaments){
+    if(t.list || !t.deckId) continue;
+    const d=App.data.decks.find(x=>x.id===t.deckId); if(!d || !d.cards.length) continue;
+    t.list=d.cards.slice(); await App.Store.put('tournaments', t);
+  }
+}
+App.on(what=>{ if(what==='data'){ renderAll(); DL.onData && DL.onData(); attachLists(); } if(what==='deck' && App.page==='home') renderHome(); if(what==='page' && App.page==='home') renderHome(); });
 App.T = {stats, record, roundRes, wr, games, recStr};
 })();
