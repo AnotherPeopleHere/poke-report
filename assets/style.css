@@ -558,3 +558,5 @@ button.sync:hover{border-color:var(--accent)}
 .dlist .cbar{height:20px;border-radius:2px}
 #dvStats .stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
 #dvStats .stats > .prob,#dvStats .stats > div:last-child{grid-column:1/-1}
+
+.implist ul{margin:0;padding:8px 12px 8px 26px;background:var(--bad-soft);color:var(--bad);border-radius:8px;font:12.5px var(--mono);max-height:140px;overflow:auto}

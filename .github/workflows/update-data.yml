@@ -35,6 +35,12 @@ jobs:
           git clone --depth 1 https://github.com/PokemonTCG/pokemon-tcg-data.git .cache/ptcg-data
           python scripts/build_cards.py .cache/ptcg-data data/cards.json
 
+      - name: Card names in other languages (for importing lists exported in Italian and others)
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/tcgdex/cards-database.git .cache/tcgdex
+          git -C .cache/tcgdex sparse-checkout set data
+          python scripts/build_names.py .cache/tcgdex/data data/cards.json data/names.json
+
       - name: Meta report and recent Regionals (limitlesstcg.com)
         run: python scripts/update_meta.py data
 

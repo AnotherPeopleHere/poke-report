@@ -356,16 +356,44 @@ function toList(){
     return `${label}: ${tot}\n${it.map(({c,q})=>`${q} ${c.name} ${c.prints[0][0]} ${c.prints[0][1]}`).join('\n')}\n\n`; };
   return sec('P','Pokémon')+sec('T','Trainer')+sec('E','Energy')+`Total Cards: ${deck.cards.length}\n`;
 }
+/* Read a deck list: Pokémon TCG Live exports (any language), Limitless lists, "4 Name", "4 Name SET 123", "4 Name SET #123". */
+const NAMES = (()=>{ try{ return JSON.parse(document.getElementById('namesData').textContent); }catch(e){ return {}; } })();
+const ENERGY_WORD = {g:'grass',r:'fire',w:'water',l:'lightning',p:'psychic',f:'fighting',d:'darkness',m:'metal',y:'fairy',
+  grass:'grass',fire:'fire',water:'water',lightning:'lightning',psychic:'psychic',fighting:'fighting',darkness:'darkness',metal:'metal',fairy:'fairy',
+  erba:'grass',fuoco:'fire',acqua:'water',lampo:'lightning',psico:'psychic',lotta:'fighting','oscurità':'darkness',oscurita:'darkness',metallo:'metal',folletto:'fairy',
+  plante:'grass',feu:'fire',eau:'water','électrique':'lightning',electrique:'lightning',psy:'psychic',combat:'fighting','obscurité':'darkness',obscurite:'darkness','métal':'metal',
+  planta:'grass',fuego:'fire',agua:'water','rayo':'lightning','psíquica':'psychic',psiquica:'psychic',lucha:'fighting',oscura:'darkness',
+  pflanze:'grass',feuer:'fire',wasser:'water',elektro:'lightning',kampf:'fighting',finsternis:'darkness',metall:'metal'};
+const norm = s => String(s).toLowerCase().replace(/[’`´]/g,"'").replace(/\s+/g,' ').trim();
+function byAnyName(raw){
+  const n = norm(raw);
+  for(const t of new Set([n, n.replace(/-ex\b/g,' ex'), n.replace(/ ex\b/g,'-ex')])){
+    if(BY_NAME.has(t)) return BY_NAME.get(t);
+    for(const l in NAMES){ const en=NAMES[l][t]; if(en && BY_NAME.has(en.toLowerCase())) return BY_NAME.get(en.toLowerCase()); }
+  }
+  // basic Energy in any common spelling: "Basic {G} Energy", "Energia {G} base", "Energia Erba base", "Grass Energy"
+  if(/energ/.test(n)){
+    const m=n.match(/\{(\w)\}/); const words=n.replace(/[{}]/g,' ').split(/[\s-]+/).filter(w=>!/^(basic|base|di|energy|energia|énergie|energie|energía|de|tipo|type)$/.test(w));
+    const key = m ? ENERGY_WORD[m[1]] : (words.length===1 ? ENERGY_WORD[words[0]] : null);
+    if(key && BY_NAME.has(key+' energy')) return BY_NAME.get(key+' energy');
+  }
+  return null;
+}
 function parseList(text){
   const out=[], unknown=[];
   text.split(/\r?\n/).forEach(line=>{
-    const l=line.trim().replace(/^\*+\s*/,''); if(!l) return;
-    if(/^(pok[eé]mon|trainer|energy|total cards)\s*[:(]/i.test(l)) return;
+    const l=line.trim().replace(/^[*•\-–]+\s*/,''); if(!l) return;
+    if(/^(pok[eé]mon|trainers?|allenatori|allenatore|energ\w*|total cards|carte totali|totale)\s*[:(]?\s*\d*\s*\)?$/i.test(l)) return;
     const m=l.match(/^(\d+)\s*x?\s+(.+?)\s*$/i); if(!m){ unknown.push(l); return; }
-    const q=+m[1]; let rest=m[2], c=null;
-    const pm=rest.match(/^(.+?)\s+([A-Z0-9]{2,6})\s+([A-Za-z0-9-]+)$/);
-    if(pm){ c=PRINT_IDX.get((pm[2]+' '+pm[3]).toUpperCase()); if(c && c.lname!==pm[1].toLowerCase() && !(c.isBasicEnergy)) { const byN=BY_NAME.get(pm[1].toLowerCase()); if(byN) c=byN; } if(!c) c=BY_NAME.get(pm[1].toLowerCase()); }
-    if(!c){ let nm=rest.toLowerCase().replace(/^basic\s+\{?(\w)\}?\s+energy.*/,(_,x)=>({g:'grass',r:'fire',w:'water',l:'lightning',p:'psychic',f:'fighting',d:'darkness',m:'metal'}[x]||x)+' energy').replace(/^basic\s+/,''); c=BY_NAME.get(nm); }
+    const q=+m[1], rest=m[2];
+    let c=null;
+    const pm=rest.match(/^(.+?)\s+\(?([A-Za-z0-9]{2,6}(?:-[A-Za-z0-9]{1,4})?)\s*[\s#-]\s*#?([A-Za-z]{0,4}\d{1,4}[a-z]?|[A-Z]{1,3})\)?$/);
+    if(pm){
+      const byPrint=PRINT_IDX.get((pm[2]+' '+pm[3].replace(/^0+(?=\d)/,'')).toUpperCase()) || PRINT_IDX.get((pm[2]+' '+pm[3]).toUpperCase());
+      const byName=byAnyName(pm[1]);
+      c = (byPrint && (!byName || byName.name===byPrint.name)) ? byPrint : (byName || byPrint);
+    }
+    if(!c) c=byAnyName(rest);
     if(c) for(let i=0;i<q;i++) out.push(c.key); else unknown.push(l);
   });
   return {out,unknown};
@@ -384,17 +412,25 @@ $('#bExport').addEventListener('click',()=>{
 $('#bImport').addEventListener('click',()=>{
   let fname='';
   openDlg(`<h2>Importa lista</h2>
-    <p class="hint">Incolla una lista esportata da Pokémon TCG Live o da un sito di liste (una carta per riga, ad es. “4 Dreepy TWM 128”). Va bene anche solo “4 Dreepy”.</p>
+    <p class="hint">Incolla una lista esportata da Pokémon TCG Live o da un sito di liste (una carta per riga, ad es. “4 Dreepy TWM 128”). Va bene anche solo “4 Dreepy”, e anche con i nomi in italiano (es. “4 Arbitro UL 78”).</p>
     <div class="drop-file" id="dropF">Trascina qui un file .txt oppure <label for="lFile">sceglilo</label><input type="file" id="lFile" accept=".txt" hidden></div>
     <textarea id="lIn" placeholder="Pokémon: 17&#10;4 Dreepy TWM 128&#10;…"></textarea>
+    <div class="implist" id="impList"></div>
     <div class="row"><span class="hint" id="impMsg"></span><button class="btn" value="close">Annulla</button><button type="button" class="btn primary" id="doImp">Importa</button></div>`,
   ()=>{
     const read=f=>{ if(!f) return; fname=f.name.replace(/\.txt$/i,''); const r=new FileReader(); r.onload=()=>{ $('#lIn').value=r.result; }; r.readAsText(f); };
     $('#lFile').addEventListener('change',e=>read(e.target.files[0]));
     const d=$('#dropF'); d.addEventListener('dragover',e=>{ e.preventDefault(); d.classList.add('over'); }); d.addEventListener('dragleave',()=>d.classList.remove('over')); d.addEventListener('drop',e=>{ e.preventDefault(); d.classList.remove('over'); read(e.dataTransfer.files[0]); });
+    let confirmed=false;
+    $('#lIn').addEventListener('input',()=>{ confirmed=false; $('#doImp').textContent='Importa'; $('#impList').innerHTML=''; });
     $('#doImp').addEventListener('click',()=>{
       const {out,unknown}=parseList($('#lIn').value);
       if(!out.length){ $('#impMsg').textContent='Non ho riconosciuto nessuna carta legale in Standard.'; return; }
+      if(unknown.length && !confirmed){
+        confirmed=true; $('#impMsg').textContent='';
+        $('#impList').innerHTML=`<p class="hint" style="margin:0 0 4px">${unknown.length===1?'Non riconosco questa riga: forse la carta non è legale in Standard o è scritta in modo diverso. Puoi correggerla qui sopra, oppure importare il resto.':'Non riconosco queste '+unknown.length+' righe: forse le carte non sono legali in Standard o sono scritte in modo diverso. Puoi correggerle qui sopra, oppure importare il resto.'}</p><ul>${unknown.map(u=>`<li>${esc(u)}</li>`).join('')}</ul>`;
+        $('#doImp').textContent=`Importa le altre ${out.length} carte`; return;
+      }
       dlg.close();
       if(dview==='edit' && deck.id){ snapshot('importazione'); deck.cards=out; if(fname) deck.name=fname; $('#deckName').value=deck.name; changed(); }
       else openDeck({id:App.uid(), name:fname||'Mazzo importato', cards:out}, 'edit', true);
@@ -483,7 +519,7 @@ mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTa
 let toastT;
 function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>${withUndo&&history.length?'<button type="button" id="tUndo">Annulla</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); const u=$('#tUndo'); if(u) u.addEventListener('click',undo); }
 
-window.DeckLab = { getDeck:()=>deck, validate, BY_KEY,
+window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, parse:t=>parseList(t),
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';
