@@ -70,7 +70,11 @@ const BIG_EVENTS = ['League Cup','Regional','Special Event','International','Mon
 function roundRes(x){ const g=(x.games||[]).filter(y=>y&&y.res); if(!g.length) return x.r||null; const w=g.filter(y=>y.res==='W').length, l=g.filter(y=>y.res==='L').length; return w>l?'W':l>w?'L':'T'; }
 function normRound(x){ const bo=x.bo==='bo3'?'bo3':'bo1', n=bo==='bo3'?3:1;
   const games=(x.games&&x.games.length?x.games:(x.r?[{first:null,res:x.r}]:[])).slice(0,n).map(g=>({first:g.first||null,res:g.res||null}));
-  while(games.length<n) games.push({first:null,res:null}); return {opp:x.opp||'', bo, games}; }
+  while(games.length<n) games.push({first:null,res:null}); return {opp:x.opp||'', bo, games, note:x.note||'', src:x.src, h:x.h}; }
+function matchList(t){
+  return `<ul class="mlist">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', g=(x.games||[]).find(y=>y&&y.first), gt=x.bo==='bo3'?gameText(x):'';
+    return `<li><span class="res-pill ${rr}">${GL[rr]}</span><span class="mv">${t.type==='TCG Live'?'':'R'+(i+1)+' · '}vs <b>${esc(x.opp||'avversario non segnato')}</b>${g&&x.bo!=='bo3'?` <span class="src">· ${g.first==='F'?'per primo':'per secondo'}</span>`:''}${gt?` <span class="src">· ${esc(gt)}</span>`:''}</span>${x.note?`<span class="mnote">${esc(x.note)}</span>`:''}</li>`; }).join('')}</ul>`;
+}
 function gameText(x){ return (x.games||[]).map((g,j)=>g.res?`G${j+1} ${GL[g.res]}${g.first?(g.first==='F'?' da primo':' da secondo'):''}`:'').filter(Boolean).join(', '); }
 function tFiltered(){
   const deck = $('#tFilter').value, per = $('#tPeriod').value, now = new Date();
@@ -118,7 +122,7 @@ function renderTornei(){
   $('#tList').innerHTML = list.map(t=>{ const r=record(t), [y,m,d]=t.date.split('-');
     return `<div class="trow"><div class="date"><b>${+d}</b>${MONTHS[+m-1]} ${y.slice(2)}</div>
       <div style="min-width:0"><h4>${esc(t.name)}</h4><div class="sub"><span class="badge">${esc(t.type)}</span>${archLink(t.deckName||'—','')}${t.placement?`<span>${esc(t.placement)}°${t.players?' su '+esc(t.players):''}</span>`:''}${t.topcut?'<span class="badge w">Top cut</span>':''}</div>
-        ${t.rounds&&t.rounds.length?`<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `<span class="res-pill ${rr}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${GL[rr]}${gt?' · '+esc(gt):''}">${GL[rr]}</span>`; }).join('')}</div>`:''}
+        ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `<span class="res-pill ${rr}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${GL[rr]}${gt?' · '+esc(gt):''}">${GL[rr]}</span>`; }).join('')}</div>`) : ''}
         ${t.notes?`<div class="sub" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div>
       <div class="recbox"><div class="rec num">${recStr(r)}<small>${games(r)?pct(wr(r),0)+' vittorie':'nessuna partita'}</small></div>
         <div class="ops"><button class="btn small" type="button" data-edit="${esc(t.id)}">Modifica</button><button class="btn small" type="button" data-del="${esc(t.id)}">Elimina</button></div></div></div>`; }).join('') || '<p class="src">Nessun torneo nel filtro scelto.</p>';
@@ -169,7 +173,8 @@ function openTournament(t){
         ${x.games.map((g,j)=>`<div class="gm"><span class="n">${x.bo==='bo3'?'Game '+(j+1):'Partita'}</span>
           <span class="seg">${[['F','Primo'],['S','Secondo']].map(([k,l])=>`<button type="button" data-first="${i}:${j}:${k}" aria-pressed="${g.first===k}">${l}</button>`).join('')}</span>
           <span class="wlt">${['W','L','T'].map(k=>`<button type="button" class="${k}" data-g="${i}:${j}:${k}" aria-pressed="${g.res===k}" title="${{W:'Vinta',L:'Persa',T:'Pareggio'}[k]}">${GL[k]}</button>`).join('')}</span></div>`).join('')}
-        <div class="rres">${x.bo==='bo3'?'Segna solo i game giocati.':''} Risultato del round: ${rr?`<span class="res-pill ${rr}">${GL[rr]}</span>`:'<span class="src">da segnare</span>'}</div></div>`; }).join('')}</div>
+        <div class="rres">${x.bo==='bo3'?'Segna solo i game giocati.':''} Risultato del round: ${rr?`<span class="res-pill ${rr}">${GL[rr]}</span>`:'<span class="src">da segnare</span>'}</div>
+        <input class="rnote" data-note="${i}" maxlength="300" placeholder="Nota sul round (facoltativa)" value="${esc(x.note||'')}" aria-label="Nota round ${i+1}"></div>`; }).join('')}</div>
       <button type="button" class="btn small" id="addR" style="margin-top:8px"><svg class="i"><use href="#i-plus"/></svg>Aggiungi round</button>
       <span class="src" style="margin-left:8px">${(()=>{ const r=record({rounds:t.rounds}); return t.rounds.length?`Record ${recStr(r)}`:'Primo/Secondo = chi ha iniziato · V vinta, S persa, P pareggio'; })()}</span>`;
   };
@@ -185,6 +190,7 @@ function openTournament(t){
     const rm=e.target.closest('[data-rmr]'); if(rm){ t.rounds.splice(+rm.dataset.rmr,1); drawRounds(); return; }
   };
   body2.oninput = e => { const o=e.target.closest('[data-opp]'); if(o) t.rounds[+o.dataset.opp].opp=o.value;
+    const nt=e.target.closest('[data-note]'); if(nt) t.rounds[+nt.dataset.note].note=nt.value;
     if(['mW','mL','mT'].includes(e.target.id)) t.manual={W:+$('#mW').value||0,L:+$('#mL').value||0,T:+$('#mT').value||0}; };
   $('#fType').addEventListener('change',e=>{ if(!t.rounds.length){ t.bo = BIG_EVENTS.includes(e.target.value)?'bo3':'bo1'; body2.querySelectorAll('[data-tbo]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tbo===t.bo)); } });
   $('#fDeck').addEventListener('change',e=>{ const d=decks.find(x=>x.id===e.target.value); if(d && !$('#fArch').value) $('#fArch').value=d.name; });
@@ -195,7 +201,7 @@ function openTournament(t){
       placement:$('#fPlace').value, players:$('#fPlayers').value, topcut:$('#fCut').checked, notes:$('#fNotes').value.trim()});
     // keep a copy of the list played, so friends in the group can see it (saved decks stay private)
     if(d) t.list = d.cards.slice(); else if(!deckId) delete t.list;
-    if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>({opp:(x.opp||'').trim(), bo:x.bo, games:x.games, r:roundRes(x)})); }
+    if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>{ const o={opp:(x.opp||'').trim(), bo:x.bo, games:x.games, r:roundRes(x)}; if(x.note&&x.note.trim()) o.note=x.note.trim(); if(x.src) o.src=x.src; if(x.h) o.h=x.h; return o; }); }
     const i=App.data.tournaments.findIndex(x=>x.id===t.id); if(i>=0) App.data.tournaments[i]=t; else App.data.tournaments.push(t);
     dlg2.close(); renderAll(); const ok = await App.Store.put('tournaments', t); if(ok) App.toast(isNew?'Torneo salvato':'Modifiche salvate');
   });

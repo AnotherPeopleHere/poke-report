@@ -110,8 +110,27 @@ function guessMyDeck(cards){
 }
 function hashText(t){ let h=2166136261; const s=t.replace(/\s+/g,' ').trim(); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0).toString(36)+s.length.toString(36); }
 
-/* ---------- dialog ---------- */
+/* ---------- save a single match into today's "TCG Live" session (one per day and deck) ---------- */
 const MONTHS=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+async function saveMatch({deck, deckName, opp, first, res, note, src, h}){
+  const today = new Date(), date = today.toISOString().slice(0,10);
+  deckName = (deckName||'').trim() || (deck?deck.name:'');
+  let t = App.data.tournaments.find(x=>x.type==='TCG Live' && x.date===date && (x.deckName||'')===deckName);
+  const isNew = !t;
+  if(!t) t = {id:App.uid(), name:`TCG Live · ${today.getDate()} ${MONTHS[today.getMonth()]}`, date, type:'TCG Live', players:'', deckId:deck?deck.id:'', deckName, placement:'', topcut:false, rounds:[], manual:null, notes:'', created:Date.now()};
+  if(deck){ t.deckId = deck.id; t.list = deck.cards.slice(); }
+  const round = {opp:(opp||'').trim(), bo:'bo1', games:[{first:first||null, res}], r:res, src};
+  if(note && note.trim()) round.note = note.trim();
+  if(h) round.h = h;
+  t.rounds.push(round);
+  if(isNew) App.data.tournaments.push(t);
+  App.prefs().lastDeck = {name:deckName, id:deck?deck.id:''}; App.Store.savePrefs();
+  App.renderAll(); const ok = await App.Store.put('tournaments', t);
+  if(ok) App.toast(`Partita salvata in “${t.name}” (${T.recStr(T.record(t))})`);
+  return t;
+}
+
+/* ---------- dialog ---------- */
 function openImport(){
   const d=$('#dlg2'), body=$('#dlg2Body');
   body.innerHTML = `<div class="dlg-h"><div><h2>Importa partita TCG Live</h2><p class="hint" style="margin:2px 0 0">In TCG Live, a fine partita, esporta il registro della partita e incollalo qui.</p></div>
@@ -184,22 +203,74 @@ function openImport(){
   });
   $('#tlSave').addEventListener('click', async ()=>{
     if(!st || !st.res) return;
-    App.prefs().tlName = st.me; App.Store.savePrefs();
-    const today = new Date(), date = today.toISOString().slice(0,10);
-    const deck = App.data.decks.find(x=>x.id===st.deckId), deckName = (st.myArch||'').trim() || (deck?deck.name:'');
-    // one "TCG Live" session per day and deck: each imported match is a Bo1 round
-    let t = App.data.tournaments.find(x=>x.type==='TCG Live' && x.date===date && (x.deckName||'')===deckName);
-    const isNew = !t;
-    if(!t) t = {id:App.uid(), name:`TCG Live · ${today.getDate()} ${MONTHS[today.getMonth()]}`, date, type:'TCG Live', players:'', deckId:deck?deck.id:'', deckName, placement:'', topcut:false, rounds:[], manual:null, notes:'', created:Date.now()};
-    if(deck) t.list = deck.cards.slice();
-    t.rounds.push({opp:(st.oppArch||'').trim(), bo:'bo1', games:[{first:st.first||null, res:st.res}], r:st.res, src:'tcglive', h:st.hash});
-    if(isNew) App.data.tournaments.push(t);
-    d.close(); App.renderAll(); const ok = await App.Store.put('tournaments', t);
-    if(ok) App.toast(`Partita salvata in “${t.name}” (${T.recStr(T.record(t))})`);
+    App.prefs().tlName = st.me;
+    const deck = App.data.decks.find(x=>x.id===st.deckId);
+    d.close();
+    await saveMatch({deck, deckName:st.myArch, opp:st.oppArch, first:st.first, res:st.res, src:'tcglive', h:st.hash});
   });
   setTimeout(()=>$('#tlIn').focus(), 50);
 }
+/* ---------- quick match: no log needed ---------- */
+function openQuick(){
+  const d=$('#dlg2'), body=$('#dlg2Body');
+  const mine = App.data.tournaments.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)) || (b.created||0)-(a.created||0));
+  const last = App.prefs().lastDeck;
+  const savedByDate = App.data.decks.slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).map(x=>x.name);
+  const recentDecks = [...new Set([last&&last.name, ...mine.map(t=>(t.deckName||'').trim()), ...savedByDate].filter(Boolean))].slice(0,4);
+  const oppCount = new Map(); mine.slice(0,40).forEach(t=>(t.rounds||[]).forEach(r=>{ const o=(r.opp||'').trim(); if(o) oppCount.set(o,(oppCount.get(o)||0)+1); }));
+  const oftenOpp = [...oppCount].sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,5);
+  const metaOpp = RECO.archetypes.filter(a=>a.games>=300).sort((a,b)=>b.share-a.share).map(a=>a.name).filter(n=>!oftenOpp.includes(n)).slice(0,8);
+  const decks = App.data.decks.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const archList = [...new Set([...decks.map(x=>x.name), ...RECO.archetypes.map(a=>a.name), ...META.map(m=>m.name)])];
+  const st = {deck: last&&last.name || recentDecks[0] || '', opp:'', first:null, res:null};
+  const chips = (list, field, cur) => list.map(n=>`<button type="button" class="chip-btn" data-q${field}="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}</button>`).join('');
+  body.innerHTML = `<div class="dlg-h"><div><h2>Partita veloce</h2><p class="hint" style="margin:2px 0 0">Per le partite su TCG Live senza registro: mazzo, avversario, risultato.</p></div>
+      <button class="xclose" type="button" id="qmClose" aria-label="Chiudi">✕</button></div>
+    <div class="qm">
+      <div class="qm-sec"><b>Il tuo mazzo</b>${recentDecks.length?`<div class="chips" id="qmDecks">${chips(recentDecks,'d',st.deck)}</div>`:''}
+        <input id="qmDeck" list="qmArchs" placeholder="Scegli un mazzo salvato o scrivi l’archetipo" value="${esc(st.deck)}"></div>
+      <div class="qm-sec"><b>Mazzo dell’avversario</b>
+        ${oftenOpp.length?`<span class="hint">Incontrati spesso</span><div class="chips" id="qmOftn">${chips(oftenOpp,'o','')}</div>`:''}
+        <span class="hint">Più giocati</span><div class="chips" id="qmMeta">${chips(metaOpp,'o','')}</div>
+        <input id="qmOpp" list="qmArchs" placeholder="…oppure scrivilo"></div>
+      <div class="qm-row">
+        <div class="qm-sec"><b>Hai iniziato</b><span class="seg"><button type="button" data-qf="F" aria-pressed="false">Per primo</button><button type="button" data-qf="S" aria-pressed="false">Per secondo</button></span></div>
+        <div class="qm-sec"><b>Risultato</b><div class="qm-res"><button type="button" class="W" data-qr="W" aria-pressed="false">Vinta</button><button type="button" class="L" data-qr="L" aria-pressed="false">Persa</button><button type="button" class="T" data-qr="T" aria-pressed="false">Pareggio</button></div></div>
+      </div>
+      <div class="qm-sec"><b>Note <span class="hint">(facoltative)</span></b><textarea id="qmNote" maxlength="300" placeholder="Es. ho perso per un brutto inizio, attento a Boss's Orders turno 2…"></textarea></div>
+    </div>
+    <datalist id="qmArchs">${archList.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <div class="row"><span class="hint" id="qmMsg">Scegli il risultato per salvare.</span><button class="btn" type="button" id="qmCancel">Annulla</button><button class="btn primary" type="button" id="qmSave" disabled>Salva partita</button></div>`;
+  d.classList.add('sheet'); d.showModal(); d.addEventListener('close',()=>d.classList.remove('sheet'),{once:true});
+  $('#qmClose').onclick = $('#qmCancel').onclick = () => d.close();
+  const sync = () => {
+    body.querySelectorAll('[data-qd]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.qd===st.deck));
+    body.querySelectorAll('[data-qo]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.qo===st.opp));
+    body.querySelectorAll('[data-qf]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.qf===st.first));
+    body.querySelectorAll('[data-qr]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.qr===st.res));
+    $('#qmSave').disabled = !st.res;
+    $('#qmMsg').textContent = !st.res ? 'Scegli il risultato per salvare.' : !st.opp ? 'Consiglio: segna anche l’avversario, serve per i matchup.' : '';
+  };
+  body.onclick = e => {
+    const dk=e.target.closest('[data-qd]'); if(dk){ st.deck=dk.dataset.qd; $('#qmDeck').value=st.deck; sync(); return; }
+    const op=e.target.closest('[data-qo]'); if(op){ st.opp = st.opp===op.dataset.qo ? '' : op.dataset.qo; $('#qmOpp').value=st.opp; sync(); return; }
+    const f=e.target.closest('[data-qf]'); if(f){ st.first = st.first===f.dataset.qf ? null : f.dataset.qf; sync(); return; }
+    const r=e.target.closest('[data-qr]'); if(r){ st.res=r.dataset.qr; sync(); return; }
+  };
+  $('#qmDeck').addEventListener('input',e=>{ st.deck=e.target.value; sync(); });
+  $('#qmOpp').addEventListener('input',e=>{ st.opp=e.target.value; sync(); });
+  $('#qmSave').addEventListener('click', async ()=>{
+    if(!st.res) return;
+    const name=(st.deck||'').trim(), deck=App.data.decks.find(x=>x.name===name);
+    d.close();
+    await saveMatch({deck, deckName:name, opp:st.opp, first:st.first, res:st.res, note:$('#qmNote').value, src:'quick'});
+  });
+  sync();
+}
 $('#bTL').addEventListener('click', openImport);
+$('#bQuick').addEventListener('click', openQuick);
+$('#fabQuick').addEventListener('click', openQuick);
+App.openQuickMatch = openQuick;
 App.openTcgLiveImport = openImport;
 App.parseTcgLiveLog = parseLog;      // used by tests
 App.guessArchetypes = guessArchetypes;
