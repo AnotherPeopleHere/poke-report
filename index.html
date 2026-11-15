@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-15.2">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-15.3">
 </head>
 <body>
 <div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
@@ -43,6 +43,7 @@
   <symbol id="i-coach" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="m15 4 2-2 2 2"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
   <symbol id="i-group" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 6 4.8"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></symbol>
 </svg>
 
@@ -82,24 +83,37 @@
 </section>
 
 <section class="page page-deck" data-page="deck" id="pg-deck">
+  <div class="dview" id="dvLib">
+    <div class="pg-head">
+      <div><h2>I miei mazzi</h2><p>Crea un mazzo nuovo o apri uno di quelli salvati. Le modifiche si salvano da sole.</p></div>
+      <div class="acts">
+        <button class="btn" type="button" id="libSample">Mazzo di esempio</button>
+        <button class="btn" type="button" id="libImport"><svg class="i"><use href="#i-in"/></svg>Importa lista</button>
+        <button class="btn primary" type="button" id="libNew"><svg class="i"><use href="#i-plus"/></svg>Nuovo mazzo</button>
+      </div>
+    </div>
+    <div class="libgrid" id="libGrid"></div>
+  </div>
+
+  <div class="dview" id="dvEdit" hidden>
   <div class="decktools">
+    <button class="btn back" type="button" data-goto="lib"><svg class="i"><use href="#i-back"/></svg><span class="lbl">I miei mazzi</span></button>
     <div class="deckname">
       <input id="deckName" aria-label="Nome del mazzo" placeholder="Nome del mazzo">
       <button class="status" id="status" type="button" title="Vai al mazzo"></button>
     </div>
     <div class="group">
       <button class="tb icon" id="bUndo" title="Annulla (Ctrl+Z)" aria-label="Annulla" disabled><svg class="i"><use href="#i-undo"/></svg></button>
-      <button class="tb" id="bDecks" title="I miei mazzi"><svg class="i"><use href="#i-folder"/></svg><span class="lbl">Mazzi</span></button>
-      <button class="tb" id="bNew" title="Nuovo mazzo"><svg class="i"><use href="#i-plus"/></svg><span class="lbl">Nuovo</span></button>
+      <button class="tb" id="bStats" title="Statistiche del mazzo"><svg class="i"><use href="#i-chart"/></svg><span class="lbl">Statistiche</span></button>
       <button class="tb" id="bImport" title="Importa lista"><svg class="i"><use href="#i-in"/></svg><span class="lbl">Importa</span></button>
       <button class="tb primary" id="bExport" title="Esporta per TCG Live"><svg class="i"><use href="#i-out"/></svg><span class="lbl">Esporta lista</span></button>
     </div>
+    <span class="saved" id="savedState" aria-live="polite"></span>
     <span class="src">Regulation mark H, I, J · <span class="num" id="poolCount"></span> carte legali</span>
   </div>
   <nav class="tabs" id="tabs">
   <button data-t="pool" aria-selected="true">Carte</button>
   <button data-t="deck" aria-selected="false">Mazzo <span class="pill" id="tabCount">0</span></button>
-  <button data-t="inspect" aria-selected="false">Dettagli</button>
 </nav>
   <main>
   <section class="pane on" id="pool">
@@ -145,13 +159,25 @@
     <div class="scroll" id="deckScroll"></div>
   </section>
 
-  <section class="pane" id="inspect">
-    <div class="scroll">
-      <div class="card-detail" id="detail"></div>
-      <div class="stats" id="stats"></div>
-    </div>
-  </section>
+  <div class="drawer-back" id="drawerBack" hidden></div>
+  <aside class="drawer" id="inspect" aria-label="Dettagli della carta" aria-hidden="true">
+    <div class="drawer-h"><b>Dettagli della carta</b><button class="xclose" type="button" id="drawerClose" aria-label="Chiudi i dettagli">✕</button></div>
+    <div class="scroll"><div class="card-detail" id="detail"></div></div>
+  </aside>
 </main>
+  </div>
+
+  <div class="dview" id="dvStats" hidden>
+    <div class="decktools">
+      <button class="btn back" type="button" data-goto="lib"><svg class="i"><use href="#i-back"/></svg><span class="lbl">I miei mazzi</span></button>
+      <h2 class="st-title" id="stTitle"></h2>
+      <button class="btn primary" type="button" data-goto="edit"><svg class="i"><use href="#i-edit"/></svg>Modifica mazzo</button>
+    </div>
+    <div class="st-grid">
+      <div class="panel"><h3>Lista <span class="meta" id="stCount"></span></h3><div id="stList"></div></div>
+      <div class="panel stats" id="stats"></div>
+    </div>
+  </div>
 </section>
 
 <section class="page" id="pg-meta" data-page="meta">
@@ -245,7 +271,7 @@
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json'};
-  const BUILD = '2026-11-15.2';               // bump on every change to assets/ so browsers load the new files
+  const BUILD = '2026-11-15.3';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));

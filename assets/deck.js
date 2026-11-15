@@ -30,13 +30,13 @@ const BY_NAME = new Map(); CARDS.forEach(c=>{ const l=c.lname; if(!BY_NAME.has(l
 $('#poolCount').textContent = CARDS.length.toLocaleString('it-IT');
 
 /* state */
-const clean = d => ({name:d.name||'Senza nome', cards:(d.cards||[]).filter(k=>BY_KEY.has(k))});
+const clean = d => ({id:d.id||null, name:d.name||'Senza nome', cards:(d.cards||[]).filter(k=>BY_KEY.has(k))});
 const sampleDeck = () => ({name:SAMPLE.name, cards:SAMPLE.cards.slice()});
 let deck = clean(store.get('sdl.current', null) || sampleDeck());
 let selected = BY_KEY.get(deck.cards.find(k=>BY_KEY.get(k).name.endsWith(' ex'))||deck.cards[0]) || CARDS[0];
 let starters = new Set(store.get('sdl.starters', []));
 let view = store.get('sdl.view','grid');
-let kind = '', typeSel = new Set(), shown = 120, lastHand = null;
+let kind = '', typeSel = new Set(), shown = 120, lastHand = null, dview = 'lib', pendingView = null;
 const history = [];
 
 /* filter widgets */
@@ -114,7 +114,7 @@ $('#results').addEventListener('click',e=>{
   if(e.target.closest('[data-reset]')){ resetFilters(); return; }
   if(e.target.closest('#more')){ shown+=120; renderResults(); return; }
   const a=e.target.closest('[data-add]'); if(a){ addCard(a.dataset.add); return; }
-  const li=e.target.closest('.res'); if(li){ select(BY_KEY.get(li.dataset.key)); if(mq.matches) showTab('inspect'); }
+  const li=e.target.closest('.res'); if(li){ select(BY_KEY.get(li.dataset.key)); }
 });
 $('#results').addEventListener('dblclick',e=>{ const li=e.target.closest('.res'); if(li && !e.target.closest('button')) addCard(li.dataset.key); });
 
@@ -148,8 +148,8 @@ function grouped(){
 }
 
 /* validation */
-function validate(){
-  const issues=[], bad=new Set(), cs=deck.cards.map(k=>BY_KEY.get(k)), n=cs.length;
+function validate(cards){
+  const issues=[], bad=new Set(), cs=(cards||deck.cards).map(k=>BY_KEY.get(k)).filter(Boolean), n=cs.length;
   if(n!==60) issues.push(n<60 ? `Il mazzo ha ${n} carte: ne servono esattamente 60 (mancano ${60-n})` : `Il mazzo ha ${n} carte: ne servono esattamente 60`);
   const byName=new Map(); cs.forEach(c=>{ if(!c.isBasicEnergy) byName.set(c.name,(byName.get(c.name)||0)+1); });
   byName.forEach((q,nm)=>{ if(q>4){ issues.push(`${q} carte chiamate “${nm}”: massimo 4`); cs.filter(c=>c.name===nm).forEach(c=>bad.add(c.key)); } });
@@ -202,7 +202,7 @@ function renderDeck(){
     const tot=items.reduce((a,x)=>a+x.q,0);
     let body;
     if(view==='grid') body=`<div class="grid">${items.map(({c,q})=>cardFace(c,`data-key="${esc(c.key)}" tabindex="0" role="button" draggable="true"`,{cls:bad.has(c.key)?'illegal':'',inner:`<span class="q">${q}</span><span class="ctl"><button type="button" data-minus="${esc(c.key)}" aria-label="Togli una copia di ${esc(c.name)}">−</button><button type="button" data-plus="${esc(c.key)}" aria-label="Aggiungi una copia di ${esc(c.name)}">+</button></span>`})).join('')}</div>`;
-    else body=`<ul class="dlist">${items.map(({c,q})=>`<li data-key="${esc(c.key)}" class="${bad.has(c.key)?'illegal':''}" draggable="true"><span class="q">${q}</span><span class="bar ty-${c.color}"></span><span class="nm">${esc(c.name)}<small>${esc(c.prints[0][0]+' '+c.prints[0][1])}</small></span><span class="ctl"><button type="button" data-minus="${esc(c.key)}" aria-label="Togli una copia di ${esc(c.name)}">−</button><button type="button" data-plus="${esc(c.key)}" aria-label="Aggiungi una copia di ${esc(c.name)}">+</button></span></li>`).join('')}</ul>`;
+    else body=`<ul class="dlist">${items.map(({c,q})=>`<li data-key="${esc(c.key)}" class="${bad.has(c.key)?'illegal':''}" draggable="true"><span class="q">${q}</span><span class="cbar ty-${c.color}"></span><span class="nm">${esc(c.name)}<small>${esc(c.prints[0][0]+' '+c.prints[0][1])}</small></span><span class="ctl"><button type="button" data-minus="${esc(c.key)}" aria-label="Togli una copia di ${esc(c.name)}">−</button><button type="button" data-plus="${esc(c.key)}" aria-label="Aggiungi una copia di ${esc(c.name)}">+</button></span></li>`).join('')}</ul>`;
     html += `<div class="section"><div class="sec-h"><h3>${label}</h3><span class="num">${tot}</span></div>${body}</div>`;
   });
   const sc=$('#deckScroll'), top=sc.scrollTop; sc.innerHTML=html; sc.scrollTop=top;
@@ -233,7 +233,11 @@ $('#pool').addEventListener('dragover',e=>{ if(drag&&drag.from==='deck') e.preve
 $('#pool').addEventListener('drop',e=>{ if(drag&&drag.from==='deck'){ e.preventDefault(); removeOne(drag.key); drag=null; } });
 
 /* inspector */
-function select(c){ selected=c; renderDetail(); document.querySelectorAll('.res.sel').forEach(x=>x.classList.remove('sel')); const li=document.querySelector(`.res[data-key="${CSS.escape(c.key)}"]`); if(li) li.classList.add('sel'); }
+function openDrawer(){ const d=$('#inspect'); d.classList.add('open'); d.setAttribute('aria-hidden','false'); $('#drawerBack').hidden=!mq.matches; }
+function closeDrawer(){ const d=$('#inspect'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); $('#drawerBack').hidden=true; document.querySelectorAll('.res.sel').forEach(x=>x.classList.remove('sel')); }
+$('#drawerClose').addEventListener('click',closeDrawer);
+$('#drawerBack').addEventListener('click',closeDrawer);
+function select(c){ selected=c; renderDetail(); openDrawer(); document.querySelectorAll('.res.sel').forEach(x=>x.classList.remove('sel')); const li=document.querySelector(`.res[data-key="${CSS.escape(c.key)}"]`); if(li) li.classList.add('sel'); }
 function wr(list){ return list.length ? list.map(x=>{ const [t,v]=x.split(' '); return `<span class="dot ty-${t}">${TYPE_L[t]||''}</span>${esc(v)}`; }).join(' ') : '—'; }
 const ltUrl = p => `https://limitlesstcg.com/cards/${encodeURIComponent(p[0])}/${encodeURIComponent(p[1])}`;
 function renderDetail(){
@@ -316,16 +320,27 @@ $('#stats').addEventListener('click',e=>{
 });
 
 /* persistence */
+let saveT=null;
+function persist(now){
+  if(!deck.id) return;
+  clearTimeout(saveT); setSaved('saving');
+  saveT=setTimeout(async ()=>{
+    const rec={id:deck.id, name:(deck.name||'Senza nome').trim()||'Senza nome', cards:deck.cards.slice(), updated:Date.now()};
+    const ex=App.data.decks.find(d=>d.id===rec.id); if(ex) Object.assign(ex,rec); else App.data.decks.push(rec);
+    App.emit('decks'); const ok=await App.Store.put('decks',rec); setSaved(ok?'saved':'error');
+  }, now?0:700);
+}
+function setSaved(st){ const el=$('#savedState'); if(!el) return; el.className='saved '+st; el.textContent = st==='saving'?'Salvataggio…':st==='saved'?'✓ Salvato':st==='error'?'Non salvato':''; }
 function changed(){
   if(window.App && App.emit) App.emit('deck');
-  store.set('sdl.current',deck);
+  store.set('sdl.current',deck); persist();
   if(lastHand && !lastHand.hand.concat(lastHand.prizes).every(k=>deck.cards.includes(k))) lastHand=null;
   renderDeck(); renderDetail(); renderStats();
   document.querySelectorAll('.res').forEach(li=>{ const n=countKey(li.dataset.key), acts=li.querySelector('.acts'), o=acts.querySelector('.owned');
     if(n){ if(o) o.textContent='×'+n; else acts.insertAdjacentHTML('afterbegin',`<span class="owned">×${n}</span>`); } else if(o) o.remove(); });
 }
 $('#deckName').value=deck.name;
-$('#deckName').addEventListener('input',e=>{ deck.name=e.target.value; store.set('sdl.current',deck); });
+$('#deckName').addEventListener('input',e=>{ deck.name=e.target.value; store.set('sdl.current',deck); persist(); });
 $('#status').addEventListener('click',()=>{ if(mq.matches) showTab('deck'); $('#issues').scrollIntoView({block:'nearest'}); });
 $('#bUndo').addEventListener('click',undo);
 document.addEventListener('keydown',e=>{
@@ -380,46 +395,100 @@ $('#bImport').addEventListener('click',()=>{
     $('#doImp').addEventListener('click',()=>{
       const {out,unknown}=parseList($('#lIn').value);
       if(!out.length){ $('#impMsg').textContent='Non ho riconosciuto nessuna carta legale in Standard.'; return; }
-      snapshot('importazione'); deck={name:fname||'Mazzo importato',cards:out}; $('#deckName').value=deck.name; dlg.close(); changed();
+      dlg.close();
+      if(dview==='edit' && deck.id){ snapshot('importazione'); deck.cards=out; if(fname) deck.name=fname; $('#deckName').value=deck.name; changed(); }
+      else openDeck({id:App.uid(), name:fname||'Mazzo importato', cards:out}, 'edit', true);
       toast(unknown.length?`Importato. ${unknown.length} righe non riconosciute (carte fuori Standard o scritte diversamente).`:'Mazzo importato', true);
     });
   });
 });
+/* ---------- library: saved decks, new deck, stats view ---------- */
 const savedDecks=()=>App.data.decks;
-function openSaved(x){ snapshot('apertura mazzo'); deck=clean({name:x.name,cards:x.cards.slice()}); $('#deckName').value=deck.name; changed(); }
-$('#bDecks').addEventListener('click',()=>{
-  const render=()=>{ const list=savedDecks().slice().sort((a,b)=>a.name.localeCompare(b.name)); $('#dl').innerHTML = list.length ? list.map(d=>`<li><span><b>${esc(d.name||'Senza nome')}</b> <span class="hint num">${d.cards.length} carte</span></span><button type="button" class="btn small" data-load="${esc(d.id)}">Apri</button><button type="button" class="btn small" data-del="${esc(d.id)}">Elimina</button></li>`).join('') : '<li><span class="hint">Nessun mazzo salvato.</span></li>'; };
-  openDlg(`<h2>I miei mazzi</h2><p class="hint">${App.Store.mode==='cloud'?'I mazzi sono salvati sul tuo account e li ritrovi anche nel registro tornei.':'I mazzi restano in questo browser. Per una copia sicura, esporta anche la lista.'}</p><ul class="decklist" id="dl"></ul>
-    <div class="row"><button class="btn" value="close">Chiudi</button><button type="button" class="btn primary" id="saveCur">Salva “${esc(deck.name||'Senza nome')}”</button></div>`,
-  ()=>{ render();
-    $('#saveCur').addEventListener('click',async ()=>{ const nm=(deck.name||'Senza nome').trim(); const ex=savedDecks().find(d=>d.name===nm);
-      const rec={id:ex?ex.id:App.uid(), name:nm, cards:deck.cards.slice(), updated:Date.now()};
-      if(ex) Object.assign(ex,rec); else App.data.decks.push(rec);
-      render(); App.emit('decks'); const ok=await App.Store.put('decks',rec); if(ok) toast(ex?'Mazzo aggiornato':'Mazzo salvato'); });
-    $('#dl').addEventListener('click',async e=>{ const l=e.target.closest('[data-load]'), d=e.target.closest('[data-del]');
-      if(l){ const x=savedDecks().find(y=>y.id===l.dataset.load); if(x){ dlg.close(); openSaved(x); } }
-      if(d){ if(d.dataset.confirm){ const id=d.dataset.del; App.data.decks=App.data.decks.filter(y=>y.id!==id); render(); App.emit('decks'); await App.Store.del('decks',id); } else { d.dataset.confirm='1'; d.textContent='Conferma'; d.classList.add('primary'); } } });
-  });
+function openDeck(x, v, isNew){
+  history.length=0; $('#bUndo').disabled=true; lastHand=null;
+  deck=clean({id:x.id||App.uid(), name:x.name, cards:(x.cards||[]).slice()});
+  $('#deckName').value=deck.name; closeDrawer();
+  if(isNew) persist(true); else setSaved('saved');
+  changed(); showView(v||'edit');
+}
+function openSaved(x){ openDeck(x,'edit'); }
+function showView(v){
+  dview=v;
+  [['lib','#dvLib'],['edit','#dvEdit'],['stats','#dvStats']].forEach(([k,sel])=>{ const el=$(sel); const on=k===v; el.hidden=!on; if(on){ el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); } });
+  document.body.classList.toggle('deck-editing', v==='edit');
+  if(v==='lib'){ closeDrawer(); renderLib(); }
+  if(v==='stats'){ renderStatsView(); }
+  if(v==='edit'){ syncTabs(); }
+  window.scrollTo({top:0});
+}
+function deckSummary(d){
+  const cs=d.cards.map(k=>BY_KEY.get(k)).filter(Boolean), n=cs.length;
+  const p=cs.filter(c=>c.sup==='P').length, t=cs.filter(c=>c.sup==='T').length, e=n-p-t;
+  const stars=[...new Map(cs.filter(c=>c.sup==='P'&&(c.sub.includes('ex')||c.sub.includes('Stage 2'))).map(c=>[c.name,c])).values()].slice(0,3);
+  return {n,p,t,e,stars,issues:validate(d.cards).issues};
+}
+const fmtDay = ms => ms ? new Date(ms).toLocaleDateString('it-IT',{day:'numeric',month:'short'}) : '';
+function renderLib(){
+  const list=savedDecks().slice().sort((a,b)=>(b.updated||0)-(a.updated||0));
+  $('#libGrid').innerHTML = list.length ? list.map(d=>{ const s=deckSummary(d), ok=!s.issues.length;
+    return `<article class="libcard" data-id="${esc(d.id)}">
+      <div class="lc-top"><h3>${esc(d.name||'Senza nome')}</h3><span class="status ${ok?'ok':'bad'}">${ok?'Legale':s.issues.length+(s.issues.length===1?' problema':' problemi')}</span></div>
+      <div class="lc-sub">${s.n}/60 carte${d.updated?' · modificato il '+fmtDay(d.updated):''}</div>
+      <div class="split" title="Pokémon ${s.p} · Allenatori ${s.t} · Energie ${s.e}">${s.p?`<span style="width:${s.p/Math.max(1,s.n)*100}%;background:var(--t-Fire)"></span>`:''}${s.t?`<span style="width:${s.t/Math.max(1,s.n)*100}%;background:var(--tr-Item)"></span>`:''}${s.e?`<span style="width:${s.e/Math.max(1,s.n)*100}%;background:var(--t-Lightning)"></span>`:''}</div>
+      <div class="lc-mons">${s.stars.length?s.stars.map(c=>`<span class="lc-mon"><span class="dot ty-${c.color}">${TYPE_L[c.color]||''}</span>${esc(c.name)}</span>`).join(''):'<span class="hint">Ancora nessun attaccante</span>'}</div>
+      <div class="lc-acts"><button class="btn small primary" type="button" data-lib="edit">Modifica</button><button class="btn small" type="button" data-lib="stats"><svg class="i"><use href="#i-chart"/></svg>Statistiche</button>
+        <span class="lc-more"><button class="btn small icon" type="button" data-lib="export" title="Esporta lista" aria-label="Esporta la lista di ${esc(d.name)}"><svg class="i"><use href="#i-out"/></svg></button><button class="btn small icon" type="button" data-lib="dup" title="Duplica" aria-label="Duplica ${esc(d.name)}">⧉</button><button class="btn small icon" type="button" data-lib="del" title="Elimina" aria-label="Elimina ${esc(d.name)}">✕</button></span></div>
+    </article>`; }).join('')
+    : `<div class="empty-state lib-empty"><b>Nessun mazzo ancora</b>Crea il tuo primo mazzo, importa una lista da TCG Live oppure parti dal mazzo di esempio.<br><br><button class="btn primary" type="button" id="libNew2">Crea il primo mazzo</button></div>`;
+}
+$('#libGrid').addEventListener('click',async e=>{
+  if(e.target.closest('#libNew2')){ $('#libNew').click(); return; }
+  const b=e.target.closest('[data-lib]'), card=e.target.closest('.libcard'); if(!card) return;
+  const d=savedDecks().find(x=>x.id===card.dataset.id); if(!d) return;
+  const act=b?b.dataset.lib:'edit';
+  if(act==='edit'||act==='stats'){ openDeck(d, act); return; }
+  if(act==='export'){ openDeck(d,'lib'); $('#bExport').click(); return; }
+  if(act==='dup'){ const rec={id:App.uid(), name:d.name+' (copia)', cards:d.cards.slice(), updated:Date.now()}; App.data.decks.push(rec); renderLib(); App.emit('decks'); await App.Store.put('decks',rec); toast('Mazzo duplicato'); return; }
+  if(act==='del'){
+    if(!b.dataset.confirm){ b.dataset.confirm='1'; b.textContent='Elimina?'; b.classList.add('danger'); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.confirm; b.textContent='✕'; b.classList.remove('danger'); } },4000); return; }
+    card.classList.add('leaving'); setTimeout(async ()=>{ App.data.decks=App.data.decks.filter(x=>x.id!==d.id); if(deck.id===d.id) deck.id=null; renderLib(); App.emit('decks'); await App.Store.del('decks',d.id); toast('Mazzo eliminato'); },220);
+  }
 });
-$('#bNew').addEventListener('click',()=>{
-  openDlg(`<h2>Nuovo mazzo</h2><p style="margin:0">Il mazzo attuale verrà svuotato. Potrai recuperarlo con <b>Annulla</b> finché non chiudi la pagina.</p>
-    <div class="row"><button class="btn" value="close">Annulla</button><button type="button" class="btn" id="loadSample">Carica l'esempio</button><button type="button" class="btn primary" id="doNew">Svuota mazzo</button></div>`,
-  ()=>{ $('#doNew').addEventListener('click',()=>{ snapshot('nuovo mazzo'); deck={name:'Nuovo mazzo',cards:[]}; $('#deckName').value=deck.name; dlg.close(); changed(); $('#deckName').select(); });
-    $('#loadSample').addEventListener('click',()=>{ snapshot('caricamento esempio'); deck=sampleDeck(); $('#deckName').value=deck.name; dlg.close(); changed(); }); });
-});
+$('#libNew').addEventListener('click',()=>{ openDeck({id:App.uid(), name:'Nuovo mazzo', cards:[]}, 'edit', true); setTimeout(()=>$('#deckName').select(),50); });
+$('#libSample').addEventListener('click',()=>{ const s=sampleDeck(); openDeck({id:App.uid(), name:s.name, cards:s.cards}, 'edit', true); });
+$('#libImport').addEventListener('click',()=>$('#bImport').click());
+$('#bStats').addEventListener('click',()=>showView('stats'));
+document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.goto)));
+function renderStatsView(){
+  const s=deckSummary(deck); $('#stTitle').textContent=deck.name||'Senza nome'; $('#stCount').textContent=`${s.n}/60 carte`;
+  const g=grouped(), sec=(k,l)=>{ const it=g.filter(x=>x.c.sup===k); if(!it.length) return ''; return `<div class="st-sec"><b>${l} <span class="hint num">${it.reduce((a,x)=>a+x.q,0)}</span></b><ul class="dlist">${it.map(({c,q})=>`<li data-key="${esc(c.key)}"><span class="q">${q}</span><span class="cbar ty-${c.color}"></span><span class="nm">${esc(c.name)}</span><span></span></li>`).join('')}</ul></div>`; };
+  $('#stList').innerHTML = s.n ? sec('P','Pokémon')+sec('T','Allenatori')+sec('E','Energie') : '<p class="hint">Il mazzo è vuoto.</p>';
+  renderStats();
+}
+// keep the library in sync with saved decks (account load, other tabs)
+App.on(w=>{ if(w==='data' && dview==='lib') renderLib(); if(w==='page' && App.page==='deck'){ showView(pendingView||'lib'); pendingView=null; } });
+// an older draft without a saved copy becomes a saved deck, so nothing is lost
+(function migrateDraft(){
+  const d=store.get('sdl.current',null);
+  if(d && !d.id && d.cards && d.cards.length && JSON.stringify(d.cards)!==JSON.stringify(SAMPLE.cards)){ deck=clean({...d, id:App.uid()}); persist(true); }
+})();
 
 /* tabs */
 const mq=window.matchMedia('(max-width:760px)');
-function showTab(t){ document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t)); ['pool','deck','inspect'].forEach(id=>$('#'+id).classList.toggle('on',id===t)); if(mq.matches) window.scrollTo({top:0}); }
+function showTab(t){ document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t)); ['pool','deck'].forEach(id=>$('#'+id).classList.toggle('on',id===t)); if(mq.matches) window.scrollTo({top:0}); }
 $('#tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) showTab(b.dataset.t); });
-function syncTabs(){ if(mq.matches) showTab('pool'); else ['pool','deck','inspect'].forEach(id=>$('#'+id).classList.add('on')); }
+function syncTabs(){ if(mq.matches) showTab(document.querySelector('#tabs [aria-selected="true"]')?.dataset.t||'pool'); else ['pool','deck'].forEach(id=>$('#'+id).classList.add('on')); }
 mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTabs); syncTabs();
 
 let toastT;
 function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>${withUndo&&history.length?'<button type="button" id="tUndo">Annulla</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); const u=$('#tUndo'); if(u) u.addEventListener('click',undo); }
 
-window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, openDeck:x=>{ if(x) openSaved(x); },
-  importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; } snapshot('importazione'); deck={name,cards:out}; $('#deckName').value=name; changed();
-    toast(unknown.length?`Lista caricata: ${unknown.length} carte non riconosciute`:`Lista di ${name} caricata`, true); } };
-renderResults(); changed();
+window.DeckLab = { getDeck:()=>deck, validate, BY_KEY,
+  openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
+  importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
+    openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';
+    toast(unknown.length?`Lista salvata tra i tuoi mazzi: ${unknown.length} carte non riconosciute`:`Lista di ${name} salvata tra i tuoi mazzi`); },
+  onData:()=>{ if(dview==='lib') renderLib(); } };
+renderResults(); changed(); showView('lib');
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && $('#inspect').classList.contains('open') && !document.querySelector('dialog[open]')) closeDrawer(); });
 })();

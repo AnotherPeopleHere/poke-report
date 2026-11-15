@@ -508,3 +508,53 @@ button.sync:hover{border-color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.boot .logo{animation:none}}
 .tbl tr.me td{background:var(--accent-soft)}
 .arch .t .badge{margin-left:4px}
+
+/* ---------- deck builder: library, editor drawer, stats view ---------- */
+.dview{display:flex;flex-direction:column;gap:14px;min-width:0}
+#dvEdit{gap:12px;flex:1;min-height:0}
+.dview.enter{animation:pageIn .32s cubic-bezier(.2,.7,.2,1)}
+.btn.back{padding:6px 10px 6px 6px}
+.btn.icon{padding:4px 8px;min-width:30px;justify-content:center}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.saved{font-size:12.5px;color:var(--muted);transition:color .2s}
+.saved.saved{color:var(--ok)} .saved.error{color:var(--bad)}
+.libgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px;align-items:start}
+.libcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s,border-color .2s,opacity .22s}
+.libcard:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 10px 28px rgba(0,0,0,.14)}
+.libcard.leaving{opacity:0;transform:scale(.96)}
+.lc-top{display:flex;gap:8px;align-items:flex-start}
+.lc-top h3{margin:0;font-family:var(--display);font-size:19px;font-weight:700;flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.2}
+.lc-sub{font-size:12.5px;color:var(--muted)}
+.lc-mons{display:flex;flex-wrap:wrap;gap:6px;min-height:24px}
+.lc-mon{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;background:var(--sunk);border-radius:6px;padding:2px 8px}
+.lc-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lc-more{margin-left:auto;display:flex;gap:4px}
+.lib-empty{grid-column:1/-1}
+#pg-deck main{position:relative;overflow:hidden;grid-template-columns:minmax(300px,1fr) minmax(380px,1.6fr)}
+#pg-deck .drawer{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:-14px 0 40px rgba(0,0,0,.22);display:flex;flex-direction:column;z-index:6;grid-column:auto;
+  transform:translateX(calc(100% + 30px));visibility:hidden;transition:transform .38s cubic-bezier(.65,0,.25,1),visibility 0s linear .38s}
+#pg-deck .drawer.open{transform:none;visibility:visible;transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.drawer-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);font-family:var(--display);font-size:16px}
+.xclose{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:14px;padding:0;display:grid;place-items:center;transition:background .15s,border-color .15s}
+.xclose:hover{border-color:var(--accent);background:var(--sunk)}
+#pg-deck .drawer .scroll{display:block;overflow:auto;flex:1;min-height:0}
+.drawer-back{position:fixed;inset:0;background:rgba(8,10,18,.45);z-index:39;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.st-title{font-family:var(--display);font-size:24px;font-weight:800;margin:0;flex:1;min-width:0;overflow-wrap:anywhere}
+.st-grid{display:grid;grid-template-columns:minmax(260px,.75fr) minmax(0,1.7fr);gap:14px;align-items:start}
+#dvStats .stats{border-top:0;padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;align-items:start}
+.st-sec{margin-bottom:12px}
+.st-sec > b{display:block;font-family:var(--display);font-size:15px;margin-bottom:4px}
+#stList .dlist li{cursor:default}
+@media (max-width:900px){ .st-grid{grid-template-columns:1fr} }
+@media (max-width:760px){
+  #pg-deck .drawer{position:fixed;top:auto;left:0;right:0;bottom:0;width:100%;max-height:86vh;border-radius:18px 18px 0 0;z-index:40;box-shadow:0 -12px 40px rgba(0,0,0,.3);
+    padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(105%)}
+  #pg-deck .drawer.open{transform:none}
+  #pg-deck .drawer .scroll{overflow:auto}
+  .lc-more{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){ .dview.enter{animation:none} #pg-deck .drawer,#pg-deck .drawer.open{transition:none} .libcard{transition:none} }
+.dlist .cbar{height:20px;border-radius:2px}
+#dvStats .stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))}
+#dvStats .stats > .prob,#dvStats .stats > div:last-child{grid-column:1/-1}
