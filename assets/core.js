@@ -125,6 +125,12 @@ function route(){
   window.scrollTo({top:0});
 }
 window.addEventListener('hashchange', route);
+// "Annulla" / "Chiudi" always close a dialog, even when a required field is still empty
+document.addEventListener('click', e=>{
+  const b = e.target.closest('dialog button[value="close"]');
+  if(!b) return;
+  e.preventDefault(); const d = b.closest('dialog'); if(d && d.open) d.close();
+}, true);
 // on phones wide tables become one small card per row: give every cell its column title
 function labelTables(){
   document.querySelectorAll('table.stack').forEach(t=>{
