@@ -32,8 +32,7 @@ svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-widt
 
 header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
 .brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
-.logo{width:38px;height:38px;border-radius:11px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font:800 15px var(--display);letter-spacing:-.02em;flex:none;box-shadow:var(--shadow)}
-.logo::after{content:"PR"}
+.logo{width:56px;height:56px;flex:none;background:url(logo.png) center/contain no-repeat;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
 .brand h1{font-family:var(--display);font-weight:800;font-size:25px;letter-spacing:-.01em;margin:0;line-height:1}
 .brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -98,7 +97,6 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(310px,1fr) mi
 .res:hover{background:var(--sunk)}
 .res.sel{background:var(--accent-soft)}
 .res .mini{grid-row:1/3;width:30px;height:42px;border-radius:4px;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18);display:grid;place-items:center}
-.res .mini::after{content:"";position:absolute;inset:8px 4px 12px;background:rgba(255,255,255,.35);border-radius:2px}
 .res .nm{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .res .sub{color:var(--muted);font-size:12px;grid-column:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;align-items:center}
 .res .acts{grid-row:1/3;grid-column:3;display:flex;gap:5px;align-items:center}
@@ -149,9 +147,6 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(310px,1fr) mi
 .card .c-name{font:700 10px/1.1 var(--display);flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .card .c-hp{font:700 9px var(--mono);white-space:nowrap}
 .card .c-art{flex:1;margin:0 2px;border-radius:3px;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.55),rgba(255,255,255,.08) 65%),rgba(0,0,0,.08);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:0;position:relative;overflow:hidden}
-.card .c-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.res .mini .c-svg{position:absolute;inset:3px 2px 9px;width:calc(100% - 4px);height:calc(100% - 12px);border-radius:2px}
-.res .mini::after{display:none}
 .card .c-sym{position:relative;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:800 15px var(--display);color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.85),0 2px 6px rgba(0,0,0,.3);text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .card .c-stage{z-index:1;position:absolute;top:2px;left:2px;font:700 7.5px var(--body);text-transform:uppercase;background:rgba(255,255,255,.88);border-radius:3px;padding:0 3px;letter-spacing:.03em}
 .card .c-ex{z-index:1;position:absolute;top:2px;right:2px;font:800 8px var(--display);background:#171923;color:#fff;border-radius:3px;padding:0 3px}
@@ -499,7 +494,7 @@ button.sync{border:1px solid var(--line);background:var(--panel);border-radius:9
 button.sync span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button.sync:hover{border-color:var(--accent)}
 .boot{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:var(--bg);color:var(--muted);z-index:100;font-size:14px}
-.boot .logo{width:56px;height:56px;font-size:22px;border-radius:16px;animation:pulse 1.2s ease-in-out infinite}
+.boot .logo{width:96px;height:96px;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(.92);opacity:.8}}
 @media (prefers-reduced-motion:reduce){.boot .logo{animation:none}}
 .tbl tr.me td{background:var(--accent-soft)}

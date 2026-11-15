@@ -95,7 +95,7 @@ function renderResults(){
   const n=advCount(); $('#advCnt').hidden=!n; $('#advCnt').textContent=n;
   $('#results').innerHTML = list.slice(0,shown).map(c=>{ const own=countKey(c.key);
     return `<li class="res${c===selected?' sel':''}" data-key="${esc(c.key)}" draggable="true">
-      <span class="mini ty-${c.color}">${artSvg(c)}</span><span class="nm">${esc(c.name)}</span>
+      <span class="mini ty-${c.color}"></span><span class="nm">${esc(c.name)}</span>
       <span class="acts">${own?`<span class="owned">×${own}</span>`:''}<button class="add" data-add="${esc(c.key)}" title="Aggiungi al mazzo" aria-label="Aggiungi ${esc(c.name)} al mazzo">+</button></span>
       <span class="sub">${subline(c)}</span></li>`; }).join('')
     + (list.length>shown ? `<li><button class="more" id="more">Mostra altre ${Math.min(120,list.length-shown)} carte</button></li>` : '')
@@ -159,168 +159,23 @@ function validate(){
   return {issues,bad};
 }
 
-/* ---------- generated card illustrations (original, procedural; derived from card data) ---------- */
-const ART = new Map();
-function hashStr(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
-function rngFrom(s){ let a=hashStr(s); return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-const HUE={Grass:105,Fire:16,Water:205,Lightning:48,Psychic:285,Fighting:24,Darkness:240,Metal:210,Dragon:42,Colorless:38,Fairy:330};
-const SAT={Grass:55,Fire:80,Water:70,Lightning:90,Psychic:55,Fighting:45,Darkness:25,Metal:12,Dragon:60,Colorless:18,Fairy:65};
-const hsl=(h,s,l,a)=>a==null?`hsl(${h} ${s}% ${l}%)`:`hsl(${h} ${s}% ${l}% / ${a})`;
-const f1=n=>Math.round(n*10)/10;
-function blob(cx,cy,rx,ry,r,pts,wob){
-  const P=[]; for(let i=0;i<pts;i++){ const a=i/pts*Math.PI*2-Math.PI/2, k=1-wob/2+r()*wob; P.push([cx+Math.cos(a)*rx*k, cy+Math.sin(a)*ry*k]); }
-  let d=''; for(let i=0;i<pts;i++){ const p=P[i], q=P[(i+1)%pts], m=[(p[0]+q[0])/2,(p[1]+q[1])/2]; d+= (i===0?`M${f1((P[pts-1][0]+p[0])/2)} ${f1((P[pts-1][1]+p[1])/2)}`:'')+`Q${f1(p[0])} ${f1(p[1])} ${f1(m[0])} ${f1(m[1])}`; }
-  return d+'Z';
-}
-function scene(type, r){
-  const h=HUE[type]??40, s=SAT[type]??30;
-  let g=`<rect width="100" height="72" fill="${hsl(h,s*0.6,type==='Darkness'?22:86)}"/>`;
-  g+=`<rect width="100" height="36" fill="${hsl(h,s*0.5,type==='Darkness'?14:93,.7)}"/>`;
-  const ground=(l,y)=>`<path d="M0 ${y} Q25 ${y-6-r()*5} 50 ${y-1} T100 ${y-2} V72 H0Z" fill="${hsl(h,s*0.7,l)}"/>`;
-  switch(type){
-    case 'Grass': g+=`<ellipse cx="${20+r()*20}" cy="62" rx="40" ry="16" fill="${hsl(h,45,58)}"/><ellipse cx="${70+r()*15}" cy="64" rx="42" ry="15" fill="${hsl(h,48,47)}"/>`;
-      for(let i=0;i<5;i++){ const x=r()*100,y=10+r()*30,a=r()*180; g+=`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="3.2" ry="1.4" transform="rotate(${f1(a)} ${f1(x)} ${f1(y)})" fill="${hsl(h,55,45,.55)}"/>`; } break;
-    case 'Fire': for(let i=0;i<4;i++){ const x=8+i*28+r()*8, ht=18+r()*16; g+=`<path d="M${f1(x-9)} 60 Q${f1(x-8)} ${f1(60-ht*.6)} ${f1(x)} ${f1(60-ht)} Q${f1(x+3)} ${f1(60-ht*.5)} ${f1(x+9)} 60Z" fill="${hsl(28,95,60,.55)}"/>`; }
-      g+=ground(42,62).replace(/hsl\([^)]*\)/,hsl(10,60,32)); break;
-    case 'Water': for(let i=0;i<4;i++){ const y=40+i*8; g+=`<path d="M0 ${y} q6 -4 12.5 0 t12.5 0 t12.5 0 t12.5 0 t12.5 0 t12.5 0 t12.5 0 t12.5 0 V72 H0Z" fill="${hsl(h,70,62-i*7,.75)}" transform="translate(${f1(-r()*12)} 0)"/>`; } break;
-    case 'Lightning': g+=ground(70,60); for(let i=0;i<3;i++){ const x=10+i*35+r()*12; g+=`<path d="M${f1(x)} 4 l-6 14 h5 l-5 13 l12 -17 h-5 l5 -10z" fill="${hsl(52,95,55,.8)}"/>`; } break;
-    case 'Psychic': for(let i=5;i>0;i--) g+=`<circle cx="50" cy="40" r="${i*9}" fill="none" stroke="${hsl(h,55,70,.5)}" stroke-width="2"/>`;
-      for(let i=0;i<7;i++) g+=`<circle cx="${f1(r()*100)}" cy="${f1(r()*45)}" r="${f1(.6+r())}" fill="#fff" opacity=".8"/>`; break;
-    case 'Fighting': g+=`<path d="M0 50 L18 22 L32 44 L50 18 L66 40 L82 24 L100 46 V72 H0Z" fill="${hsl(h,25,62)}"/>`+ground(40,62); break;
-    case 'Darkness': g+=`<circle cx="${f1(70+r()*20)}" cy="14" r="8" fill="${hsl(50,70,85)}"/><circle cx="${f1(74+r()*20)}" cy="11" r="7" fill="${hsl(h,s*0.6,22)}"/>`;
-      for(let i=0;i<9;i++) g+=`<circle cx="${f1(r()*100)}" cy="${f1(r()*36)}" r="${f1(.3+r()*.6)}" fill="#fff" opacity=".85"/>`; g+=ground(14,62); break;
-    case 'Metal': for(let x=-5;x<105;x+=10) g+=`<path d="M${x} 0 V72" stroke="${hsl(h,15,72)}" stroke-width=".6"/>`; for(let y=4;y<72;y+=10) g+=`<path d="M0 ${y} H100" stroke="${hsl(h,15,72)}" stroke-width=".6"/>`; g+=ground(55,62); break;
-    case 'Dragon': for(let i=0;i<3;i++) g+=`<path d="M${f1(-10+r()*20)} ${f1(14+i*12)} q30 -12 60 0 t60 0" fill="none" stroke="${hsl(35,60,70,.6)}" stroke-width="4" stroke-linecap="round"/>`; g+=ground(48,62); break;
-    case 'Fairy': for(let i=0;i<6;i++){ const x=r()*100,y=r()*40; g+=`<path d="M${f1(x)} ${f1(y-2.5)} l1 1.5 l1.5 1 l-1.5 1 l-1 1.5 l-1 -1.5 l-1.5 -1 l1.5 -1z" fill="#fff" opacity=".9"/>`; } g+=ground(78,62); break;
-    default: for(let i=0;i<3;i++){ const x=10+i*35+r()*10,y=10+r()*14; g+=`<g fill="#fff" opacity=".85"><circle cx="${f1(x)}" cy="${f1(y)}" r="5"/><circle cx="${f1(x+6)}" cy="${f1(y-2)}" r="6"/><circle cx="${f1(x+12)}" cy="${f1(y)}" r="5"/></g>`; } g+=ground(68,62);
-  }
-  return g;
-}
-function creature(c){
-  const type=c.types[0]||'Colorless', root=rootOf(c), r=rngFrom('line:'+root), rd=rngFrom('card:'+c.name+c.key);
-  const stage=c.sub.includes('Stage 2')?2:c.sub.includes('Stage 1')?1:0;
-  const sc=[.68,.84,1][stage]*(c.sub.includes('ex')?1.06:1);
-  let h=(HUE[type]??40)+(r()*40-20), s=Math.max(15,(SAT[type]??30)+(r()*20-10));
-  if(type==='Metal'||type==='Colorless') s=10+r()*25;
-  const lMain=type==='Darkness'?32:55+r()*12, body=hsl(f1(h),f1(s),f1(lMain)), dark=hsl(f1(h),f1(s),f1(lMain-18)), light=hsl(f1(h),f1(s*.6),f1(Math.min(92,lMain+28)));
-  const acc=hsl(f1((h+150+r()*60)%360),70,60);
-  const cx=50, cy=44-stage*1.5, rx=20*sc*(0.85+r()*0.3), ry=18.5*sc*(0.85+r()*0.3);
-  const ear=Math.floor(r()*5), eyes=r()<.08?1:r()<.06?3:2, eyeR=1.6+r()*1.6, mouth=Math.floor(r()*3), tail=Math.floor(r()*4), pat=Math.floor(r()*3), wings=stage===2 && r()<.5;
-  let g=`<ellipse cx="50" cy="${f1(cy+ry+3)}" rx="${f1(rx*.9)}" ry="2.6" fill="rgba(0,0,0,.22)"/>`;
-  if(c.sub.includes('ex')||c.sub.includes('MEGA')) g+=`<circle cx="${cx}" cy="${f1(cy)}" r="${f1(Math.max(rx,ry)+7)}" fill="none" stroke="#fff" stroke-width="2.4" stroke-dasharray="2 3" opacity=".75"/><circle cx="${cx}" cy="${f1(cy)}" r="${f1(Math.max(rx,ry)+4)}" fill="${hsl(f1(h),80,80,.35)}"/>`;
-  if(wings) g+=`<path d="M${f1(cx-rx*.6)} ${f1(cy-ry*.2)} Q${f1(cx-rx*2)} ${f1(cy-ry*1.6)} ${f1(cx-rx*1.9)} ${f1(cy+ry*.2)} Q${f1(cx-rx*1.2)} ${f1(cy)} ${f1(cx-rx*.6)} ${f1(cy+ry*.3)}Z" fill="${light}" stroke="${dark}" stroke-width=".8"/>`
-                + `<path d="M${f1(cx+rx*.6)} ${f1(cy-ry*.2)} Q${f1(cx+rx*2)} ${f1(cy-ry*1.6)} ${f1(cx+rx*1.9)} ${f1(cy+ry*.2)} Q${f1(cx+rx*1.2)} ${f1(cy)} ${f1(cx+rx*.6)} ${f1(cy+ry*.3)}Z" fill="${light}" stroke="${dark}" stroke-width=".8"/>`;
-  // tail
-  const tx=cx+rx*.85, ty=cy+ry*.3;
-  if(tail===1) g+=`<path d="M${f1(tx)} ${f1(ty)} l6 -3 l-2 -4 l6 -2 l-1 -5 l5 -1" fill="none" stroke="${dark}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
-  if(tail===2) g+=`<path d="M${f1(tx)} ${f1(ty)} q8 0 9 -9" fill="none" stroke="${body}" stroke-width="3" stroke-linecap="round"/><circle cx="${f1(tx+9)}" cy="${f1(ty-10)}" r="3.2" fill="${type==='Fire'?hsl(30,95,58):acc}"/>`;
-  if(tail===3) g+=`<path d="M${f1(tx-2)} ${f1(ty)} q10 4 12 -6 q-4 3 -9 1" fill="${dark}"/>`;
-  // ears / horns
-  const ex=rx*.55, ey=cy-ry*.75;
-  if(ear===1) g+=`<path d="M${f1(cx-ex-4)} ${f1(ey+3)} L${f1(cx-ex-1)} ${f1(ey-9*sc)} L${f1(cx-ex+5)} ${f1(ey+1)}Z M${f1(cx+ex+4)} ${f1(ey+3)} L${f1(cx+ex+1)} ${f1(ey-9*sc)} L${f1(cx+ex-5)} ${f1(ey+1)}Z" fill="${dark}"/>`;
-  if(ear===2) g+=`<circle cx="${f1(cx-ex)}" cy="${f1(ey)}" r="${f1(4.5*sc)}" fill="${dark}"/><circle cx="${f1(cx+ex)}" cy="${f1(ey)}" r="${f1(4.5*sc)}" fill="${dark}"/>`;
-  if(ear===3) g+=`<ellipse cx="${f1(cx-ex*.7)}" cy="${f1(ey-7*sc)}" rx="2.6" ry="${f1(9*sc)}" fill="${body}" stroke="${dark}" stroke-width=".8" transform="rotate(-12 ${f1(cx-ex*.7)} ${f1(ey)})"/><ellipse cx="${f1(cx+ex*.7)}" cy="${f1(ey-7*sc)}" rx="2.6" ry="${f1(9*sc)}" fill="${body}" stroke="${dark}" stroke-width=".8" transform="rotate(12 ${f1(cx+ex*.7)} ${f1(ey)})"/>`;
-  if(ear===4) g+=`<path d="M${f1(cx-3)} ${f1(cy-ry+2)} q-2 -10 -8 -12 q4 6 2 13Z M${f1(cx+3)} ${f1(cy-ry+2)} q2 -10 8 -12 q-4 6 -2 13Z" fill="${hsl(40,30,88)}" stroke="${dark}" stroke-width=".6"/>`;
-  // feet
-  g+=`<ellipse cx="${f1(cx-rx*.45)}" cy="${f1(cy+ry*.92)}" rx="${f1(3.6*sc+1)}" ry="2.4" fill="${dark}"/><ellipse cx="${f1(cx+rx*.45)}" cy="${f1(cy+ry*.92)}" rx="${f1(3.6*sc+1)}" ry="2.4" fill="${dark}"/>`;
-  // body
-  g+=`<path d="${blob(cx,cy,rx,ry,r,9,.22)}" fill="${body}" stroke="${dark}" stroke-width="1"/>`;
-  if(pat===0) g+=`<ellipse cx="${cx}" cy="${f1(cy+ry*.3)}" rx="${f1(rx*.55)}" ry="${f1(ry*.45)}" fill="${light}"/>`;
-  if(pat===1) for(let i=0;i<3;i++) g+=`<circle cx="${f1(cx-rx*.5+rd()*rx)}" cy="${f1(cy+rd()*ry*.5)}" r="${f1(1.4+rd()*1.6)}" fill="${dark}" opacity=".55"/>`;
-  if(pat===2) g+=`<path d="M${f1(cx-rx*.7)} ${f1(cy+2)} q${f1(rx*.7)} 4 ${f1(rx*1.4)} 0" fill="none" stroke="${dark}" stroke-width="1.6" opacity=".6"/>`;
-  if(c.sub.includes('Tera')) g+=`<path d="M${f1(cx-5)} ${f1(cy-ry+1)} l3 -8 l3 6 l3 -9 l3 11Z" fill="${hsl(190,80,85,.9)}" stroke="#fff" stroke-width=".6"/>`;
-  if(c.sub.includes('MEGA')) g+=`<path d="M${f1(cx-6)} ${f1(cy-ry-1)} l2 -7 l4 4 l4 -4 l2 7Z" fill="${hsl(46,95,58)}" stroke="${hsl(30,80,35)}" stroke-width=".6"/>`;
-  // face
-  const fy=cy-ry*.18, gap=rx*.36;
-  const eyeXs = eyes===1?[cx]:eyes===2?[cx-gap,cx+gap]:[cx-gap*1.2,cx,cx+gap*1.2];
-  const angry = c.sub.includes('ex') && r()<.5;
-  eyeXs.forEach(x=>{ g+=`<ellipse cx="${f1(x)}" cy="${f1(fy)}" rx="${f1(eyeR)}" ry="${f1(eyeR*1.15)}" fill="#fff" stroke="${dark}" stroke-width=".5"/><circle cx="${f1(x+.3)}" cy="${f1(fy+.3)}" r="${f1(eyeR*.55)}" fill="#1b1d26"/><circle cx="${f1(x+.8)}" cy="${f1(fy-.5)}" r="${f1(eyeR*.2)}" fill="#fff"/>`;
-    if(angry) g+=`<path d="M${f1(x-eyeR*1.3)} ${f1(fy-eyeR*1.6)} L${f1(x+eyeR*1.1)} ${f1(fy-eyeR*.9)}" stroke="#1b1d26" stroke-width="1" ${x<cx?'':`transform="scale(-1 1) translate(${f1(-2*x)} 0)"`}/>`; });
-  const my=fy+eyeR*2.3;
-  if(mouth===0) g+=`<path d="M${f1(cx-3)} ${f1(my)} q3 2.6 6 0" fill="none" stroke="#1b1d26" stroke-width=".9" stroke-linecap="round"/>`;
-  if(mouth===1) g+=`<path d="M${f1(cx-2.6)} ${f1(my-.4)} q2.6 4 5.2 0Z" fill="#7a2230"/>`;
-  if(mouth===2) g+=`<path d="M${f1(cx-3)} ${f1(my)} h6" stroke="#1b1d26" stroke-width=".9" stroke-linecap="round"/><path d="M${f1(cx-2)} ${f1(my)} l.7 1.6 l.7 -1.6 M${f1(cx+.6)} ${f1(my)} l.7 1.6 l.7 -1.6" fill="#fff" stroke="#fff" stroke-width=".3"/>`;
-  if(r()<.5) g+=`<ellipse cx="${f1(cx-gap-2.5)}" cy="${f1(my-.6)}" rx="1.8" ry="1" fill="${hsl(350,80,70,.6)}"/><ellipse cx="${f1(cx+gap+2.5)}" cy="${f1(my-.6)}" rx="1.8" ry="1" fill="${hsl(350,80,70,.6)}"/>`;
-  return g;
-}
-function trainerArt(c){
-  const r=rngFrom('tr:'+c.name), k=c.trainerKind, nm=c.lname;
-  const bgH={Supporter:28,Item:215,Tool:275,Stadium:140}[k];
-  let g=`<rect width="100" height="72" fill="${hsl(bgH,55,84)}"/>`;
-  for(let i=0;i<10;i++) g+=`<path d="M50 40 L${f1(50+Math.cos(i/10*Math.PI*2)*90)} ${f1(40+Math.sin(i/10*Math.PI*2)*90)} L${f1(50+Math.cos((i+.5)/10*Math.PI*2)*90)} ${f1(40+Math.sin((i+.5)/10*Math.PI*2)*90)}Z" fill="${hsl(bgH,60,90,.7)}"/>`;
-  if(k==='Supporter'){
-    const skin=hsl(f1(20+r()*15),f1(35+r()*30),f1(45+r()*35)), hair=hsl(f1(r()*360),f1(30+r()*50),f1(18+r()*55)), outfit=hsl(f1(r()*360),55,48), hs=Math.floor(r()*4);
-    g+=`<path d="M26 72 Q30 50 50 48 Q70 50 74 72Z" fill="${outfit}"/><path d="M44 50 L50 58 L56 50" fill="${hsl(0,0,96)}"/>`;
-    if(hs===1) g+=`<path d="M35 32 Q34 56 40 60 L60 60 Q66 56 65 32Z" fill="${hair}"/>`;
-    g+=`<rect x="46" y="42" width="8" height="8" fill="${skin}"/><ellipse cx="50" cy="33" rx="11" ry="12.5" fill="${skin}"/>`;
-    g+=[`<path d="M38.5 31 Q40 18 50 18 Q61 18 61.5 31 Q56 25 50 26 Q43 25 38.5 31Z" fill="${hair}"/>`,
-        `<path d="M38.5 33 Q38 18 50 18 Q62 18 61.5 33 Q58 24 50 24 Q42 24 38.5 33Z" fill="${hair}"/>`,
-        `<path d="M38 30 L40 16 L45 22 L50 13 L55 22 L60 16 L62 30 Q50 22 38 30Z" fill="${hair}"/>`,
-        `<circle cx="50" cy="16" r="5" fill="${hair}"/><path d="M38.5 31 Q40 19 50 19 Q61 19 61.5 31 Q50 24 38.5 31Z" fill="${hair}"/>`][hs];
-    g+=`<circle cx="45.5" cy="34" r="1.3" fill="#1b1d26"/><circle cx="54.5" cy="34" r="1.3" fill="#1b1d26"/><path d="M47 39 q3 2 6 0" fill="none" stroke="#1b1d26" stroke-width=".9" stroke-linecap="round"/>`;
-    if(r()<.3) g+=`<g fill="none" stroke="#1b1d26" stroke-width=".8"><circle cx="45.5" cy="34" r="3"/><circle cx="54.5" cy="34" r="3"/><path d="M48.5 34 h3"/></g>`;
-    if(r()<.25) g+=`<path d="M36 26 Q50 12 64 26 Z" fill="${hsl(f1(r()*360),60,45)}"/><rect x="33" y="25" width="34" height="3" rx="1.5" fill="${hsl(f1(r()*360),60,35)}"/>`;
-  } else if(k==='Item'){
-    const col=hsl(f1(r()*360),70,52), col2=hsl(f1(r()*360),60,40);
-    if(/ball|poffin/.test(nm)){ g+=`<circle cx="50" cy="38" r="17" fill="${col}" stroke="#1b1d26" stroke-width="1.4"/><path d="M36 28 Q50 46 66 44" fill="none" stroke="${hsl(0,0,100,.75)}" stroke-width="5" stroke-linecap="round"/><circle cx="43" cy="31" r="3" fill="#fff" opacity=".85"/>`+(/ultra/.test(nm)?`<path d="M38 52 l6 -8 l6 8 l6 -8 l6 8" fill="none" stroke="${hsl(50,95,55)}" stroke-width="2.4" stroke-linejoin="round"/>`:''); }
-    else if(/candy/.test(nm)) g+=`<path d="M30 30 l8 8 l-8 8 Z M70 30 l-8 8 l8 8Z" fill="${col2}"/><ellipse cx="50" cy="38" rx="13" ry="10" fill="${col}" stroke="#1b1d26" stroke-width="1"/><path d="M42 33 q8 10 16 0" fill="none" stroke="#fff" stroke-width="1.6" opacity=".7"/>`;
-    else if(/switch|cart|cyclone/.test(nm)) g+=`<path d="M28 32 H62 L56 24 M72 46 H38 L44 54" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
-    else if(/rod|stretcher|stick/.test(nm)) g+=`<path d="M30 58 L68 18" stroke="${col2}" stroke-width="4" stroke-linecap="round"/><circle cx="68" cy="18" r="4" fill="${col}"/><path d="M68 18 q8 20 -4 34" fill="none" stroke="#1b1d26" stroke-width=".6" stroke-dasharray="1.5 1.5"/>`;
-    else if(/pad|gear|phone|scope|radar/.test(nm)) g+=`<rect x="36" y="20" width="28" height="38" rx="5" fill="${col2}" stroke="#1b1d26" stroke-width="1"/><rect x="40" y="25" width="20" height="22" rx="2" fill="${hsl(190,70,75)}"/><circle cx="50" cy="52" r="2.4" fill="#f4f4f6"/>`;
-    else if(/energy|retrieval|search/.test(nm)) g+=`<circle cx="50" cy="38" r="15" fill="${col}"/><path d="M50 26 l-6 13 h6 l-3 11 l10 -15 h-6 l3 -9z" fill="#fff"/>`;
-    else if(/potion|heal|vital|spray/.test(nm)) g+=`<rect x="44" y="18" width="12" height="8" rx="2" fill="${col2}"/><path d="M40 30 Q40 26 46 26 H54 Q60 26 60 30 V54 Q60 58 56 58 H44 Q40 58 40 54Z" fill="${col}" stroke="#1b1d26" stroke-width="1"/><rect x="43" y="38" width="14" height="9" rx="2" fill="#fff" opacity=".85"/>`;
-    else { const v=Math.floor(r()*3);
-      g+=[`<path d="M34 30 Q34 22 50 22 Q66 22 66 30 V54 H34Z" fill="${col}" stroke="#1b1d26" stroke-width="1"/><rect x="40" y="36" width="20" height="10" rx="2" fill="${col2}"/><path d="M42 22 q8 -8 16 0" fill="none" stroke="#1b1d26" stroke-width="1.6"/>`,
-          `<rect x="32" y="28" width="36" height="24" rx="3" fill="${col}" stroke="#1b1d26" stroke-width="1"/><path d="M32 36 H68" stroke="${col2}" stroke-width="4"/><rect x="46" y="33" width="8" height="7" fill="${hsl(50,90,60)}"/>`,
-          `<path d="M50 18 L64 40 L50 60 L36 40Z" fill="${col}" stroke="#1b1d26" stroke-width="1"/><path d="M50 18 L50 60 M36 40 H64" stroke="#fff" stroke-width=".8" opacity=".6"/>`][v]; }
-  } else if(k==='Tool'){
-    const gem=hsl(f1(r()*360),75,55);
-    if(/belt/.test(nm)) g+=`<rect x="18" y="32" width="64" height="12" rx="3" fill="${hsl(25,50,35)}"/><rect x="42" y="29" width="16" height="18" rx="3" fill="none" stroke="${hsl(45,80,55)}" stroke-width="3"/>`;
-    else if(/cape|cloak/.test(nm)) g+=`<path d="M38 20 H62 L72 60 Q50 54 28 60Z" fill="${gem}" stroke="#1b1d26" stroke-width="1"/><circle cx="50" cy="22" r="3" fill="${hsl(45,85,55)}"/>`;
-    else g+=`<path d="M38 14 Q50 30 62 14" fill="none" stroke="${hsl(45,70,50)}" stroke-width="1.6"/><path d="M50 26 L62 40 L50 58 L38 40Z" fill="${gem}" stroke="${hsl(45,80,40)}" stroke-width="2"/><path d="M44 38 L50 30 L52 36" fill="none" stroke="#fff" stroke-width="1.2" opacity=".8"/>`;
-  } else {
-    const col=hsl(f1(r()*360),35,55), col2=hsl(f1(r()*360),45,40);
-    g+=`<path d="M0 58 Q50 50 100 58 V72 H0Z" fill="${hsl(120,35,45)}"/>`;
-    if(/tower|watchtower/.test(nm)) g+=`<path d="M42 58 L45 14 H55 L58 58Z" fill="${col}" stroke="#1b1d26" stroke-width=".8"/><path d="M40 14 H60 L56 8 H44Z" fill="${col2}"/><rect x="47.5" y="22" width="5" height="6" fill="${hsl(50,90,70)}"/>`;
-    else if(/depth|cave|ruin|zone|area/.test(nm)) g+=`<path d="M10 58 Q50 4 90 58Z" fill="${col2}"/><path d="M34 58 Q50 30 66 58Z" fill="#1b1d26"/>`;
-    else { const wN=2+Math.floor(r()*3); g+=`<rect x="22" y="30" width="56" height="28" fill="${col}" stroke="#1b1d26" stroke-width=".8"/><path d="M18 30 L50 14 L82 30Z" fill="${col2}"/>`;
-      for(let i=0;i<wN;i++) g+=`<rect x="${f1(28+i*(44/wN))}" y="36" width="7" height="7" fill="${hsl(50,85,72)}"/>`; g+=`<rect x="45" y="46" width="10" height="12" fill="${col2}"/>`; }
-  }
-  return g;
-}
-function energyArt(c){
-  const t=c.isBasicEnergy?c.color:null, h=t?(HUE[t]??40):300;
-  let g=`<rect width="100" height="72" fill="${hsl(h,t?(SAT[t]??30)*.7:30,t==='Darkness'?30:72)}"/>`;
-  for(let i=0;i<14;i++) g+=`<path d="M50 36 L${f1(50+Math.cos(i/14*Math.PI*2)*90)} ${f1(36+Math.sin(i/14*Math.PI*2)*90)} L${f1(50+Math.cos((i+.5)/14*Math.PI*2)*90)} ${f1(36+Math.sin((i+.5)/14*Math.PI*2)*90)}Z" fill="#fff" opacity=".18"/>`;
-  return g;
-}
-function artSvg(c){
-  if(ART.has(c.key)) return ART.get(c.key);
-  let inner;
-  if(c.sup==='P'){ const t=c.types[0]||'Colorless'; inner=scene(t, rngFrom('bg:'+c.key))+creature(c); }
-  else if(c.sup==='T') inner=trainerArt(c);
-  else inner=energyArt(c);
-  const svg=`<svg class="c-svg" viewBox="0 0 100 72" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${inner}</svg>`;
-  ART.set(c.key, svg); return svg;
-}
-
 /* card face (js) */
 function costDots(cost, big){ return cost.map(t=>`<i class="ty-${t}" title="${TYPE_IT[t]||t}"${big?' style="width:14px;height:14px;border-radius:50%;display:inline-block"':''}></i>`).join(''); }
 function cardFace(c, attrs, extra){
   let top, art, mid='', foot;
   if(c.sup==='P'){
     top = `<span class="c-name">${esc(c.name)}</span><span class="c-hp">${c.hp}</span><span class="dot ty-${c.color}">${TYPE_L[c.color]||''}</span>`;
-    art = `${artSvg(c)}<span class="c-stage">${SUB_IT[stageOf(c)]||''}</span>${c.sub.includes('ex')?'<span class="c-ex">ex</span>':''}`;
+    art = `<span class="c-sym ty-${c.color}">${TYPE_L[c.color]||''}</span><span class="c-stage">${SUB_IT[stageOf(c)]||''}</span>${c.sub.includes('ex')?'<span class="c-ex">ex</span>':''}`;
     const rows = [...c.abilities.slice(0,1).map(a=>`<span><em style="font-style:normal;color:#c8343f;font-weight:800">AB</em> ${esc(a[0])}</span>`), ...c.attacks.slice(0,2).map(a=>`<span>${a[1].map(t=>`<i class="ty-${t}"></i>`).join('')} ${esc(a[0])}<b>${esc(a[2])}</b></span>`)];
     mid = rows.length ? `<span class="c-atk">${rows.join('')}</span>` : '';
     foot = `Rit. ${c.retreat}${c.weak.length?' · Deb. '+esc(TYPE_IT[c.weak[0].split(' ')[0]]||''):''}`;
   } else if(c.sup==='T'){
     top = `<span class="c-name">${esc(c.name)}</span>`;
-    art = `${artSvg(c)}${c.isAce?'<span class="c-ace">ACE SPEC</span>':''}`;
+    art = `<span class="c-sym ty-${c.color}" style="font-size:12px">${{Supporter:'AIU',Item:'STR',Tool:'OGG',Stadium:'STA'}[c.trainerKind]}</span>${c.isAce?'<span class="c-ace">ACE SPEC</span>':''}`;
     foot = SUB_IT[c.sub.find(s=>SUB_IT[s])]||'Allenatore';
   } else {
     top = `<span class="c-name">${esc(c.name)}</span>`;
-    art = `${artSvg(c)}<span class="c-sym ty-${c.isBasicEnergy?c.color:'Energy'}">${c.isBasicEnergy?(TYPE_L[c.color]||'E'):'★'}</span>${c.isAce?'<span class="c-ace">ACE SPEC</span>':''}`;
+    art = `<span class="c-sym ty-${c.isBasicEnergy?c.color:'Energy'}">${c.isBasicEnergy?(TYPE_L[c.color]||'E'):'★'}</span>${c.isAce?'<span class="c-ace">ACE SPEC</span>':''}`;
     foot = c.isBasicEnergy?'Energia base':'Energia speciale';
   }
   return `<div class="card ty-${c.color}${c.sup!=='P'?' trainer':''}${extra&&extra.cls?' '+extra.cls:''}" ${attrs||''} title="${esc(c.name)}">
