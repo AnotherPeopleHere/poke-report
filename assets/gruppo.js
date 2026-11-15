@@ -5,7 +5,9 @@ const $ = s => document.querySelector(s);
 const esc = App.esc, T = App.T, DL = window.DeckLab;
 const pct = (p,dec=0) => (p*100).toLocaleString('it-IT',{maximumFractionDigits:dec,minimumFractionDigits:dec})+'%';
 function hue(s){ let h=0; for(const ch of String(s)) h=(h*31+ch.charCodeAt(0))%360; return h; }
-const av = n => `<span class="av" style="background:hsl(${hue(n)} 55% 45%)">${esc(String(n||'?').charAt(0).toUpperCase())}</span>`;
+// photo of a member, looked up by id or by display name
+const memberBy = x => cache && cache.members.find(m=>m.id===x || (m.display_name||'Amico')===x);
+const av = n => { const m=memberBy(n); return App.avatar(m ? (m.display_name||'Amico') : n, m && m.avatar_url); };
 const key = s => String(s||'').trim().toLowerCase();
 let cache = null, loading = false;
 const F = {player:'', deck:'', period:'', bo:'', arch:'', side:'played'};   // filters and explorer state (kept for the visit)
@@ -135,7 +137,7 @@ function playersTable(members, tournaments){
   const me = App.Store.user.id;
   const rows = members.map(m=>({m, f:favorite(m.id, tournaments), total:tournaments.filter(t=>t.user_id===m.id && inPeriod(t.date)).length}));
   return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total})=>`<tr${m.id===me?' class="me"':''}>
-      <td><span class="arch">${av(m.display_name)}<span class="t">${esc(m.display_name||'Amico')}${m.id===me?' <span class="badge">tu</span>':''}</span></span>${m.share_stats===false?'<div class="src">non condivide i tornei</div>':''}</td>
+      <td><span class="arch">${av(m.id)}<span class="t">${esc(m.display_name||'Amico')}${m.id===me?' <span class="badge">tu</span>':''}</span></span>${m.share_stats===false?'<div class="src">non condivide i tornei</div>':''}</td>
       <td class="n">${total}</td><td>${f?esc(f.name):'<span class="src">—</span>'}</td><td class="n">${f?f.n+' tornei':'—'}</td>${f?cell(f.a.W,f.a.R,'Round vinti'):'<td class="n muted">—</td>'}
       <td class="n">${f&&f.list?`<button class="btn small" type="button" data-list="${esc(m.id)}">Vedi lista</button>`:f?'<span class="src" title="Nel registro tornei scegli il mazzo salvato usato, così la lista viene condivisa">lista non collegata</span>':''}</td></tr>`).join('')}</tbody></table></div>`;
 }

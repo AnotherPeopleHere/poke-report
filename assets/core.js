@@ -92,7 +92,8 @@ const Store = {
   /* group: members who share the same group code and their tournaments (row-level security decides what is visible) */
   async group(){
     if(this.mode!=='cloud' || !this.profile || !this.profile.group_code) return null;
-    const m = await sb.from('profiles').select('id,display_name,share_stats').eq('group_code', this.profile.group_code);
+    let m = await sb.from('profiles').select('id,display_name,share_stats,avatar_url').eq('group_code', this.profile.group_code);
+    if(m.error && /avatar_url/.test(m.error.message||'')) m = await sb.from('profiles').select('id,display_name,share_stats').eq('group_code', this.profile.group_code);
     if(m.error) throw m.error;
     const ids = (m.data||[]).map(x=>x.id);
     const t = ids.length ? await sb.from('tournaments').select('user_id,id,data').in('user_id', ids) : {data:[]};
@@ -150,11 +151,52 @@ window.addEventListener('resize',()=>moveIndicator(false));
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>moveIndicator(false));
 App.route = route;
 
+/* ---------- profile photos ---------- */
+function hue(s){ let h=0; for(const ch of String(s||'')) h=(h*31+ch.charCodeAt(0))%360; return h; }
+// a person's photo, or their initial on a colour derived from the name
+App.avatar = (name, url, size) => {
+  const st = size ? `width:${size}px;height:${size}px;font-size:${Math.round(size*.42)}px;` : '';
+  if(url) return `<img class="av av-img" src="${esc(url)}" alt="" loading="lazy" style="${st}">`;
+  return `<span class="av" style="${st}background:hsl(${hue(name)} 55% 45%)">${esc(String(name||'?').trim().charAt(0).toUpperCase()||'?')}</span>`;
+};
+// square-crop and shrink a picture on the device before uploading it (keeps uploads to a few KB)
+async function squareImage(file, side){
+  const bmp = await createImageBitmap(file);
+  const s = Math.min(bmp.width, bmp.height), cv = document.createElement('canvas'); cv.width = cv.height = side;
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bmp, (bmp.width - s)/2, (bmp.height - s)/2, s, s, 0, 0, side, side); if(bmp.close) bmp.close();
+  let blob = await new Promise(r => cv.toBlob(r, 'image/webp', .86));
+  if(!blob || blob.type !== 'image/webp') blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .88));   // Safari without WebP encoding
+  return blob;
+}
+const AVATAR_BUCKET = 'avatars';
+const avatarPath = url => { const m = String(url||'').match(/\/storage\/v1\/object\/public\/avatars\/(.+?)(\?|$)/); return m ? decodeURIComponent(m[1]) : null; };
+async function uploadAvatar(file){
+  if(!/^image\//.test(file.type)) throw new Error('Scegli un file immagine (JPG, PNG, WebP, HEIC…).');
+  const blob = await squareImage(file, 256);
+  const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${Store.user.id}/avatar-${Date.now()}.${ext}`;
+  const up = await sb.storage.from(AVATAR_BUCKET).upload(path, blob, {contentType: blob.type, cacheControl: '31536000', upsert: false});
+  if(up.error) throw up.error;
+  const url = sb.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
+  const old = avatarPath(Store.profile && Store.profile.avatar_url);
+  const ok = await Store.saveProfile({avatar_url: url});
+  if(!ok){ await sb.storage.from(AVATAR_BUCKET).remove([path]); throw new Error('profile'); }
+  if(old && old !== path) sb.storage.from(AVATAR_BUCKET).remove([old]);
+  return url;
+}
+async function removeAvatar(){
+  const old = avatarPath(Store.profile && Store.profile.avatar_url);
+  const ok = await Store.saveProfile({avatar_url: null});
+  if(ok && old) await sb.storage.from(AVATAR_BUCKET).remove([old]);
+  return ok;
+}
+
 /* ---------- account UI ---------- */
 function renderAccount(){
   const b=$('#acct');
   if(!sb){ b.innerHTML='<i></i><span>Dati in questo browser</span>'; b.className='sync'; b.title='Accesso non ancora configurato: i dati restano in questo browser.'; return; }
-  if(Store.user){ const n=(Store.profile&&Store.profile.display_name)||Store.user.email; b.className='sync cloud'; b.innerHTML=`<i></i><span>${esc(n)}</span>`; b.title='Il tuo profilo e il gruppo'; }
+  if(Store.user){ const p=Store.profile||{}, n=p.display_name||Store.user.email; b.className='sync cloud has-av'; b.innerHTML=`${App.avatar(n, p.avatar_url, 26)}<span>${esc(n)}</span>`; b.title='Il tuo profilo e il gruppo'; }
   else { b.className='sync'; b.innerHTML='<i></i><span>Accedi</span>'; b.title='Accedi per salvare i dati sul tuo account e vedere il gruppo'; }
 }
 function accountDialog(){
@@ -178,6 +220,17 @@ function accountDialog(){
   const p=Store.profile||{};
   body.innerHTML=`<h2>Il tuo profilo</h2>
     <p class="hint">Accesso con ${esc(Store.user.email)}. Mazzi, tornei e preferenze sono salvati sul tuo account.</p>
+    <div class="pf-photo">
+      <div class="pf-av" id="pfAv">${App.avatar(p.display_name||Store.user.email, p.avatar_url, 84)}</div>
+      <div class="pf-photo-acts">
+        <b>Foto del profilo</b>
+        <span class="hint">La vedono i tuoi amici nel gruppo. Viene ritagliata al centro in un quadrato.</span>
+        <div class="pf-btns"><label class="btn small" for="pfFile"><svg class="i"><use href="#i-img"/></svg><span id="pfPick">${p.avatar_url?'Cambia foto':'Scegli una foto'}</span></label>
+          <input type="file" id="pfFile" accept="image/*" hidden>
+          <button class="btn small" type="button" id="pfRm"${p.avatar_url?'':' hidden'}>Rimuovi</button></div>
+        <span class="hint" id="pfAvMsg" aria-live="polite"></span>
+      </div>
+    </div>
     <div class="form">
       <label class="full">Nome visibile agli amici<input id="pfName" maxlength="40" value="${esc(p.display_name||'')}"></label>
       <label class="full">Codice del gruppo<input id="pfGroup" maxlength="40" placeholder="es. amici-pokemon-torino" value="${esc(p.group_code||'')}"><small class="src">Chi inserisce lo stesso codice entra nel tuo gruppo e vede la classifica. Sceglilo difficile da indovinare e condividilo solo con i tuoi amici.</small></label>
@@ -191,6 +244,18 @@ function accountDialog(){
     if(ok){ d.close(); renderAccount(); App.toast('Profilo salvato'); App.emit('group'); }
   });
   $('#pfOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); d.close(); });
+  const avMsg = t => { $('#pfAvMsg').textContent = t; };
+  const refreshPhoto = () => { const q=Store.profile||{}; $('#pfAv').innerHTML = App.avatar(q.display_name||Store.user.email, q.avatar_url, 84);
+    $('#pfPick').textContent = q.avatar_url ? 'Cambia foto' : 'Scegli una foto'; $('#pfRm').hidden = !q.avatar_url; renderAccount(); App.emit('group'); };
+  $('#pfFile').addEventListener('change', async e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    if(f.size > 25e6){ avMsg('La foto è troppo grande (massimo 25 MB).'); return; }
+    $('#pfAv').classList.add('busy'); avMsg('Carico la foto…');
+    try{ await uploadAvatar(f); refreshPhoto(); avMsg('Foto aggiornata.'); }
+    catch(err){ console.error(err); avMsg(err && err.message && /immagine/.test(err.message) ? err.message : (err && /bucket|not found|policy|row-level/i.test(err.message||'') ? 'Le foto non sono ancora attive su questo sito.' : 'Non sono riuscito a caricare la foto: riprova.')); }
+    $('#pfAv').classList.remove('busy');
+  });
+  $('#pfRm').addEventListener('click', async ()=>{ avMsg('Rimuovo…'); if(await removeAvatar()){ refreshPhoto(); avMsg('Foto rimossa.'); } else avMsg('Non sono riuscito a rimuoverla: riprova.'); });
 }
 $('#acct').addEventListener('click', accountDialog);
 App.accountDialog = accountDialog;

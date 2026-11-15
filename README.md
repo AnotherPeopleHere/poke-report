@@ -28,6 +28,7 @@ Si usa dal browser o dal telefono, anche aggiunto alla schermata Home come un'ap
 ## Configurazione (una volta sola)
 
 1. **Database** — in Supabase apri *SQL Editor → New query*, incolla il contenuto di `supabase/schema.sql` e premi *Run*.
+   Se avevi già eseguito una versione precedente, per attivare le foto profilo basta eseguire `supabase/avatars.sql`.
 2. **Accesso via email** — in Supabase, *Authentication → URL Configuration*:
    - *Site URL*: `https://anotherpeoplehere.github.io/poke-report/`
    - *Redirect URLs*: aggiungi `https://anotherpeoplehere.github.io/poke-report/**`

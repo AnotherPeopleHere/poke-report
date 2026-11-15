@@ -639,3 +639,21 @@ dialog[open]::backdrop{animation:fadeIn .26s ease}
   .prob table{font-size:12px}
 }
 @media (max-width:760px){ .tbl.stack td{font-size:12.5px} .tbl.stack td:first-child{font-size:14px} }
+
+/* ---------- profile photos ---------- */
+.av{flex:none}
+img.av-img{display:block;object-fit:cover;border-radius:50%;background:var(--sunk);width:26px;height:26px;box-shadow:0 0 0 1px var(--line)}
+.arch img.av-img{width:26px;height:26px}
+.coach img.av-img{width:36px;height:36px}
+button.sync.has-av{padding:3px 12px 3px 3px;gap:8px}
+button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px var(--display)}
+.pf-photo{display:flex;gap:16px;align-items:center;background:var(--sunk);border-radius:12px;padding:12px}
+.pf-av{position:relative;flex:none}
+.pf-av .av{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 34px var(--display)}
+.pf-av img.av-img{width:84px;height:84px;box-shadow:0 0 0 3px var(--panel),0 4px 14px rgba(0,0,0,.2)}
+.pf-av.busy::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:var(--accent);animation:spin .8s linear infinite;background:rgba(0,0,0,.25)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pf-photo-acts{display:flex;flex-direction:column;gap:4px;min-width:0}
+.pf-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.pf-btns label.btn{cursor:pointer}
+@media (max-width:420px){ .pf-photo{flex-direction:column;align-items:flex-start} }
