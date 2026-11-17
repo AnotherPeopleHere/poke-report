@@ -26,11 +26,15 @@ const CARDS = RAW.map(r=>{
 });
 const BY_KEY = new Map(CARDS.map(c=>[c.key,c]));
 const PRINT_IDX = new Map(); CARDS.forEach(c=>c.prints.forEach(p=>PRINT_IDX.set((p[0]+' '+p[1]).toUpperCase(), c)));
+// a card's key is its newest print, so it changes when a card is reprinted: keys saved earlier still resolve through the print index
+const KEY_GET = BY_KEY.get.bind(BY_KEY);
+BY_KEY.get = k => KEY_GET(k) || (m => m ? PRINT_IDX.get((m[1]+' '+m[2]).toUpperCase()) : undefined)(/^(.+)-([^-~]+)(?:~\d+)?$/.exec(String(k)));
+BY_KEY.has = k => !!BY_KEY.get(k);
 const BY_NAME = new Map(); CARDS.forEach(c=>{ const l=c.lname; if(!BY_NAME.has(l)) BY_NAME.set(l,c); });
 $('#poolCount').textContent = CARDS.length.toLocaleString('it-IT');
 
 /* state */
-const clean = d => ({id:d.id||null, name:d.name||'Senza nome', cards:(d.cards||[]).filter(k=>BY_KEY.has(k))});
+const clean = d => ({id:d.id||null, name:d.name||'Senza nome', cards:(d.cards||[]).map(k=>BY_KEY.get(k)).filter(Boolean).map(c=>c.key)});
 const sampleDeck = () => ({name:SAMPLE.name, cards:SAMPLE.cards.slice()});
 let deck = clean(store.get('sdl.current', null) || sampleDeck());
 let selected = BY_KEY.get(deck.cards.find(k=>BY_KEY.get(k).name.endsWith(' ex'))||deck.cards[0]) || CARDS[0];
@@ -136,7 +140,8 @@ function removeOne(key){ const i=deck.cards.lastIndexOf(key); if(i<0) return; co
 function rootOf(c){ let nm=c.name, from=c.from, guard=0; while(from && guard++<3){ nm=from; const p=BY_NAME.get(from.toLowerCase()); from=p?p.from:''; } return nm; }
 function grouped(cards){
   const m=new Map(); (cards||deck.cards).forEach(k=>m.set(k,(m.get(k)||0)+1));
-  const arr=[...m].map(([k,q])=>({c:BY_KEY.get(k),q}));
+  const m2=new Map(); m.forEach((q,k)=>{ const c=BY_KEY.get(k); if(c) m2.set(c,(m2.get(c)||0)+q); });
+  const arr=[...m2].map(([c,q])=>({c,q}));
   // keep evolution lines together; bigger lines first
   const lineSize=new Map(); arr.forEach(({c,q})=>{ if(c.sup==='P'){ const r=rootOf(c); lineSize.set(r,(lineSize.get(r)||0)+q); } });
   const lineRank=new Map([...lineSize].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).map(([r],i)=>[r,i]));
