@@ -384,6 +384,7 @@ function parseList(text){
   text.split(/\r?\n/).forEach(line=>{
     const l=line.trim().replace(/^[*•\-–]+\s*/,''); if(!l) return;
     if(/^(pok[eé]mon|trainers?|allenatori|allenatore|energ\w*|total cards|carte totali|totale)\s*[:(]?\s*\d*\s*\)?$/i.test(l)) return;
+    if(/^\D[^:]*:\s*\d+$/.test(l)) return; // section headers in any language, e.g. "Carte Allenatore: 14", "Totale carte: 60"
     const m=l.match(/^(\d+)\s*x?\s+(.+?)\s*$/i); if(!m){ unknown.push(l); return; }
     const q=+m[1], rest=m[2];
     let c=null;
