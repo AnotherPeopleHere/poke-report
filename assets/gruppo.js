@@ -185,7 +185,7 @@ function showList(userId){
   setView(gv);
   $('#glSeg').addEventListener('click',e=>{ const b=e.target.closest('[data-gv]'); if(b) setView(b.dataset.gv); });
   $('#glCopy').addEventListener('click',()=>{
-    const text = rows.map(({c,q})=>`${q} ${c.name} ${c.prints[0][0]} ${c.prints[0][1]}`).join('\n');
+    const text = rows.map(({c,q})=>`${q} ${c.name} ${DL.artOf(c)[0]} ${DL.artOf(c)[1]}`).join('\n');
     d.close(); DL.importList(text, `${f.name} (di ${nameOf(userId)})`); location.hash='deck';
   });
 }

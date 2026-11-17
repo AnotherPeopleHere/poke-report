@@ -166,9 +166,13 @@ function validate(cards){
 
 /* card face (js) */
 // official card scans from the pokemontcg.io / scrydex CDNs; the drawn template stays underneath as fallback
-function imgUrl(c, big){ const m=c.im; if(!m) return '';
+// chosen version (print) of each card, saved in the user's preferences: {cardKey: "SET NUM"}
+function artOf(c){ const a=(App.prefs().art||{})[c.key]; return (a && c.prints.find(p=>p[0]+' '+p[1]===a)) || c.prints[0]; }
+const imOf = c => artOf(c)[6] || (artOf(c)===c.prints[0] ? c.im : '') || '';
+function setArt(c, p){ const pr=App.prefs(), art=pr.art||(pr.art={}); if(p===c.prints[0]) delete art[c.key]; else art[c.key]=p[0]+' '+p[1]; App.Store.savePrefs(); }
+function imgUrl(c, big){ const m=imOf(c); if(!m) return '';
   return m.startsWith('x:') ? `https://images.scrydex.com/pokemon/${m.slice(2)}/${big?'large':'small'}` : `https://images.pokemontcg.io/${m}${big?'_hires':''}.png`; }
-const scan = (c, big, cls) => c.im ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" crossorigin="anonymous" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
+const scan = (c, big, cls) => imOf(c) ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" crossorigin="anonymous" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
 function costDots(cost, big){ return cost.map(t=>`<i class="ty-${t}" title="${TYPE_IT[t]||t}"${big?' style="width:14px;height:14px;border-radius:50%;display:inline-block"':''}></i>`).join(''); }
 function cardFace(c, attrs, extra){
   let top, art, mid='', foot;
@@ -203,7 +207,7 @@ async function deckImage(cards, title, sub){
   const secs=byKind(cards), COLS=10, CW=175, CH=244, GAP=12, PAD=36, HEAD=96, LAB=46;
   const W=PAD*2+COLS*CW+(COLS-1)*GAP;
   let H=PAD+HEAD; secs.forEach(s=>{ const rows=Math.ceil(s.items.length/COLS); H+=LAB+rows*CH+(rows-1)*GAP+22; }); H+=PAD+10;
-  const load = c => !c.im ? Promise.resolve(null) : fetch(imgUrl(c,false),{mode:'cors',cache:'reload'}).then(r=>{ if(!r.ok) throw 0; return r.blob(); }).then(b=>createImageBitmap(b)).catch(()=>null);
+  const load = c => !imOf(c) ? Promise.resolve(null) : fetch(imgUrl(c,false),{mode:'cors',cache:'reload'}).then(r=>{ if(!r.ok) throw 0; return r.blob(); }).then(b=>createImageBitmap(b)).catch(()=>null);
   const uniq=[...new Set(secs.flatMap(s=>s.items.map(x=>x.c)))], imgs=new Map(await Promise.all(uniq.map(async c=>[c.key, await load(c)])));
   const DISP=getComputedStyle(document.documentElement).getPropertyValue('--display').trim()||'sans-serif', BODY=getComputedStyle(document.documentElement).getPropertyValue('--body').trim()||'sans-serif';
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
@@ -223,7 +227,7 @@ async function deckImage(cards, title, sub){
       if(im) x.drawImage(im,cx,cy,CW,CH);
       else { x.fillStyle='#2a2f3d'; x.fillRect(cx,cy,CW,CH); x.fillStyle='#fff'; x.font=`700 17px ${DISP}`;
         const words=c.name.split(' '); let line='', ly=cy+34; words.forEach(w=>{ if(x.measureText(line+w).width>CW-20 && line){ x.fillText(line.trim(),cx+10,ly); ly+=22; line=''; } line+=w+' '; }); x.fillText(line.trim(),cx+10,ly);
-        x.fillStyle='#9aa3b5'; x.font=`500 14px ${BODY}`; x.fillText(c.prints[0][0]+' '+c.prints[0][1],cx+10,cy+CH-14); }
+        x.fillStyle='#9aa3b5'; x.font=`500 14px ${BODY}`; x.fillText(artOf(c)[0]+' '+artOf(c)[1],cx+10,cy+CH-14); }
       x.restore();
       const bx=cx+CW-30, by=cy+CH-30; x.beginPath(); x.arc(bx,by,21,0,Math.PI*2); x.fillStyle='rgba(12,14,20,.92)'; x.fill(); x.lineWidth=2.5; x.strokeStyle='#ffd34f'; x.stroke();
       x.fillStyle='#fff'; x.font=`800 22px ${DISP}`; x.textAlign='center'; x.fillText(String(q),bx,by+8); x.textAlign='left';
@@ -243,7 +247,7 @@ function imagePanel(el, cards, title, sub){
     const dl=el.querySelector('.ex-dl'); dl.disabled=false;
     dl.addEventListener('click',()=>{ const a=document.createElement('a'); a.href=url; a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); });
     if(navigator.canShare && navigator.canShare({files:[file]})){ const sh=el.querySelector('.ex-share'); sh.hidden=false; sh.addEventListener('click',()=>navigator.share({files:[file],title}).catch(()=>{})); }
-    if(cards.some(k=>{ const c=BY_KEY.get(k); return c && !c.im; })) el.querySelector('.ex-msg').textContent='Alcune carte non hanno la scansione: compaiono con il nome.';
+    if(cards.some(k=>{ const c=BY_KEY.get(k); return c && !imOf(c); })) el.querySelector('.ex-msg').textContent='Alcune carte non hanno la scansione: compaiono con il nome.';
   }).catch(()=>{ el.querySelector('.ex-prev').innerHTML='<span class="hint">Non sono riuscito a creare l’immagine. Controlla la connessione e riprova.</span>'; });
 }
 
@@ -267,7 +271,7 @@ function renderDeck(){
     const tot=items.reduce((a,x)=>a+x.q,0);
     let body;
     if(view==='grid') body=`<div class="grid">${items.map(({c,q})=>cardFace(c,`data-key="${esc(c.key)}" tabindex="0" role="button" draggable="true"`,{cls:bad.has(c.key)?'illegal':'',inner:`<span class="q">${q}</span><span class="ctl"><button type="button" data-minus="${esc(c.key)}" aria-label="Togli una copia di ${esc(c.name)}">−</button><button type="button" data-plus="${esc(c.key)}" aria-label="Aggiungi una copia di ${esc(c.name)}">+</button></span>`})).join('')}</div>`;
-    else body=`<ul class="dlist">${items.map(({c,q})=>`<li data-key="${esc(c.key)}" class="${bad.has(c.key)?'illegal':''}" draggable="true"><span class="q">${q}</span><span class="cbar ty-${c.color}"></span><span class="nm">${esc(c.name)}<small>${esc(c.prints[0][0]+' '+c.prints[0][1])}</small></span><span class="ctl"><button type="button" data-minus="${esc(c.key)}" aria-label="Togli una copia di ${esc(c.name)}">−</button><button type="button" data-plus="${esc(c.key)}" aria-label="Aggiungi una copia di ${esc(c.name)}">+</button></span></li>`).join('')}</ul>`;
+    else body=`<ul class="dlist">${items.map(({c,q})=>`<li data-key="${esc(c.key)}" class="${bad.has(c.key)?'illegal':''}" draggable="true"><span class="q">${q}</span><span class="cbar ty-${c.color}"></span><span class="nm">${esc(c.name)}<small>${esc(artOf(c)[0]+' '+artOf(c)[1])}</small></span><span class="ctl"><button type="button" data-minus="${esc(c.key)}" aria-label="Togli una copia di ${esc(c.name)}">−</button><button type="button" data-plus="${esc(c.key)}" aria-label="Aggiungi una copia di ${esc(c.name)}">+</button></span></li>`).join('')}</ul>`;
     html += `<div class="section"><div class="sec-h"><h3>${label}</h3><span class="num">${tot}</span></div>${body}</div>`;
   });
   const sc=$('#deckScroll'), top=sc.scrollTop; sc.innerHTML=html; sc.scrollTop=top;
@@ -316,18 +320,24 @@ function renderDetail(){
   ].join('');
   const wrrBlock = c.sup==='P' ? `<div class="wrr"><div><span>Debolezza</span><b>${wr(c.weak)}</b></div><div><span>Resistenza</span><b>${wr(c.res)}</b></div><div><span>Ritirata</span><b>${c.retreat?costDots(Array(c.retreat).fill('Colorless'),true):'0'}</b></div></div>` : '';
   const pips = lim ? `<span class="copies">${Array.from({length:4},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}<span class="num" style="margin-left:4px">${n}/4</span></span>` : `<span class="copies num">${n} nel mazzo</span>`;
-  $('#detail').innerHTML = `<div class="big">${cardFace(c,'',{big:true})}<div style="min-width:0">
+  const vers=c.prints.filter(p=>p[6]), cur=artOf(c), vi=vers.indexOf(cur);
+  const picker = vers.length>1 ? `<div class="art-pick"><button type="button" data-art="-1" aria-label="Versione precedente">‹</button><span title="${esc(cur[2]+(cur[4]?' · '+cur[4]:''))}"><b class="num">${esc(cur[0])} ${esc(cur[1])}</b><small>${vi<0?'—':vi+1}/${vers.length}</small></span><button type="button" data-art="1" aria-label="Versione successiva">›</button></div>` : '';
+  $('#detail').innerHTML = `<div class="big"><div class="big-l">${cardFace(c,'',{big:true})}${picker}</div><div style="min-width:0">
       <h2 class="cd-name">${esc(c.name)}</h2><div class="cd-type">${typeLine}</div>
       <div class="cd-stats">${chips}</div>
-      <div class="cd-stats"><span class="chip">Regulation <b>${c.mark||'—'}</b></span><span class="chip"><b class="num">${esc(c.prints[0][0])} ${esc(c.prints[0][1])}</b></span></div>
-      <div class="cd-stats"><a class="lt-link" href="${ltUrl(c.prints[0])}" target="_blank" rel="noopener">Vedi la carta su Limitless ↗</a></div>
+      <div class="cd-stats"><span class="chip">Regulation <b>${c.mark||'—'}</b></span><span class="chip"><b class="num">${esc(artOf(c)[0])} ${esc(artOf(c)[1])}</b></span></div>
+      <div class="cd-stats"><a class="lt-link" href="${ltUrl(artOf(c))}" target="_blank" rel="noopener">Vedi la carta su Limitless ↗</a></div>
     </div></div>
     <div class="blocks">${blocks}</div>${wrrBlock}
     <div class="cd-acts"><button type="button" class="btn small primary" data-d="add">+ Aggiungi</button><button type="button" class="btn small" data-d="rm" ${countKey(c.key)?'':'disabled'}>− Togli</button>${pips}</div>
     ${c.sup==='P' && count(c)!==countKey(c.key) ? `<p class="hint">Il limite di 4 copie vale per il nome: conta anche altre versioni di “${esc(c.name)}” nel mazzo.</p>` : ''}
     <details class="prints"><summary>${c.prints.length} ${c.prints.length===1?'stampa':'stampe'} di questa carta</summary><table>${c.prints.map(p=>`<tr><td class="c"><a href="${ltUrl(p)}" target="_blank" rel="noopener" title="Apri su Limitless">${esc(p[0])} ${esc(p[1])} ↗</a></td><td>${esc(p[2])}</td><td>${esc(p[4]||'')}</td><td class="c">${esc(p[5]||'—')}</td></tr>`).join('')}</table></details>`;
 }
-$('#detail').addEventListener('click',e=>{ const b=e.target.closest('[data-d]'); if(!b) return; if(b.dataset.d==='add') addCard(selected.key); else removeOne(selected.key); });
+$('#detail').addEventListener('click',e=>{
+  const ar=e.target.closest('[data-art]'); if(ar){ const c=selected, vers=c.prints.filter(p=>p[6]); if(vers.length<2) return;
+    const i=vers.indexOf(artOf(c)), n=vers.length; setArt(c, vers[((i<0?0:i)+(+ar.dataset.art)+n)%n]);
+    renderDetail(); renderDeck(); const y=$('#results').parentElement.scrollTop; renderResults(); $('#results').parentElement.scrollTop=y; return; }
+  const b=e.target.closest('[data-d]'); if(!b) return; if(b.dataset.d==='add') addCard(selected.key); else removeOne(selected.key); });
 
 /* stats */
 function choose(n,k){ if(k<0||k>n) return 0; k=Math.min(k,n-k); let r=1; for(let i=1;i<=k;i++) r=r*(n-k+i)/i; return r; }
@@ -418,7 +428,7 @@ document.addEventListener('keydown',e=>{
 /* export / import (Pokémon TCG Live text format) */
 function toList(){
   const g=grouped(), sec=(s,label)=>{ const it=g.filter(x=>x.c.sup===s); if(!it.length) return ''; const tot=it.reduce((a,x)=>a+x.q,0);
-    return `${label}: ${tot}\n${it.map(({c,q})=>`${q} ${c.name} ${c.prints[0][0]} ${c.prints[0][1]}`).join('\n')}\n\n`; };
+    return `${label}: ${tot}\n${it.map(({c,q})=>`${q} ${c.name} ${artOf(c)[0]} ${artOf(c)[1]}`).join('\n')}\n\n`; };
   return sec('P','Pokémon')+sec('T','Trainer')+sec('E','Energy')+`Total Cards: ${deck.cards.length}\n`;
 }
 /* Read a deck list: Pokémon TCG Live exports (any language), Limitless lists, "4 Name", "4 Name SET 123", "4 Name SET #123". */
@@ -591,7 +601,7 @@ mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTa
 let toastT;
 function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>${withUndo&&history.length?'<button type="button" id="tUndo">Annulla</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); const u=$('#tUndo'); if(u) u.addEventListener('click',undo); }
 
-window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, parse:t=>parseList(t), byName:byAnyName,
+window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';

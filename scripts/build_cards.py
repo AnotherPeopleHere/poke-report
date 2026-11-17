@@ -49,7 +49,7 @@ for k, prints in groups.items():
         'w': [w['type'] + ' ' + w['value'] for w in c.get('weaknesses', [])],
         'r': [w['type'] + ' ' + w['value'] for w in c.get('resistances', [])],
         'rc': c.get('convertedRetreatCost', 0), 'ru': c.get('rules', []), 'rm': c.get('regulationMark', ''),
-        'dex': (c.get('nationalPokedexNumbers') or [0])[0], 'im': img(c),
-        'p': [[sets[p['_set']].get('ptcgoCode') or p['_set'].upper(), p['number'], sets[p['_set']]['name'], sets[p['_set']]['releaseDate'][:10], p.get('rarity', ''), p.get('regulationMark') or ''] for p in prints]})
+        'dex': (c.get('nationalPokedexNumbers') or [0])[0],
+        'p': [[sets[p['_set']].get('ptcgoCode') or p['_set'].upper(), p['number'], sets[p['_set']]['name'], sets[p['_set']]['releaseDate'][:10], p.get('rarity', ''), p.get('regulationMark') or '', img(p)] for p in prints]})
 json.dump(out, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'))
 print(len(out), 'cards', dict(collections.Counter(o['s'] for o in out)))

@@ -749,3 +749,12 @@ body:not(.on-deck){padding-bottom:max(90px,calc(16px + env(safe-area-inset-botto
 .gimg .card:hover{transform:none}
 [hidden]{display:none !important}
 @media (max-width:760px){ .gimg .kgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px} }
+
+/* version picker under the card in the detail panel */
+.big-l{display:flex;flex-direction:column;gap:6px;min-width:0}
+.art-pick{display:grid;grid-template-columns:24px 1fr 24px;align-items:center;gap:2px;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:2px}
+.art-pick button{width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:var(--fg);font:700 17px/1 var(--body);padding:0;cursor:pointer}
+.art-pick button:hover{background:var(--panel)}
+.art-pick span{display:flex;flex-direction:column;align-items:center;line-height:1.15;min-width:0}
+.art-pick b{font-size:11.5px;white-space:nowrap}
+.art-pick small{font-size:10px;color:var(--muted)}
