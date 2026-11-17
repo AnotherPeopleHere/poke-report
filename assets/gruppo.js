@@ -166,13 +166,24 @@ function showList(userId){
   const sec = (sup,label) => { const it=rows.filter(x=>x.c.sup===sup).sort((a,b)=>b.q-a.q||a.c.name.localeCompare(b.c.name)); if(!it.length) return '';
     return `<div class="st-sec"><b>${label} <span class="hint num">${it.reduce((a,x)=>a+x.q,0)}</span></b><ul class="dlist">${it.map(({c,q})=>`<li><span class="q">${q}</span><span class="cbar ty-${c.color}"></span><span class="nm">${esc(c.name)}</span><span></span></li>`).join('')}</ul></div>`; };
   const d=$('#dlg2'), body=$('#dlg2Body');
+  let gv = App.ls.get('pr.glView','img'); if(!['img','list','png'].includes(gv)) gv='img';
   body.innerHTML = `<div class="dlg-h"><div><h2>${esc(f.name)}</h2><p class="hint" style="margin:2px 0 0">Lista di ${esc(nameOf(userId))} · ${cards.length} carte${f.from?` · usata a ${esc(f.from.name)} (${esc(f.from.date)})`:''}</p></div>
       <button class="xclose" type="button" id="glClose" aria-label="Chiudi la lista">✕</button></div>
-    <div class="glist">${sec('P','Pokémon')}${sec('T','Allenatori')}${sec('E','Energie')}</div>
+    <div class="seg" id="glSeg" role="group" aria-label="Visualizzazione"><button type="button" data-gv="img">Carte</button><button type="button" data-gv="list">Lista</button><button type="button" data-gv="png">Immagine da scaricare</button></div>
+    <div class="gimg" id="glImg">${DL.kindGrid(f.list)}</div>
+    <div class="glist" id="glList">${sec('P','Pokémon')}${sec('T','Allenatori')}${sec('E','Energie')}</div>
+    <div id="glPng"></div>
     <div class="row"><span class="hint">La copia finisce tra i tuoi mazzi: puoi modificarla senza toccare la sua.</span><button class="btn primary" type="button" id="glCopy">Copia nel mio deck builder</button></div>`;
   d.classList.add('sheet'); d.showModal();
   d.addEventListener('close',()=>d.classList.remove('sheet'),{once:true});
   $('#glClose').addEventListener('click',()=>d.close());
+  let made=false;
+  const setView = v => { gv=v; App.ls.set('pr.glView',v);
+    document.querySelectorAll('#glSeg [data-gv]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.gv===v));
+    $('#glImg').hidden=v!=='img'; $('#glList').hidden=v!=='list'; $('#glPng').hidden=v!=='png';
+    if(v==='png' && !made){ made=true; DL.imagePanel($('#glPng'), f.list, f.name, `${cards.length} carte · lista di ${nameOf(userId)}`); } };
+  setView(gv);
+  $('#glSeg').addEventListener('click',e=>{ const b=e.target.closest('[data-gv]'); if(b) setView(b.dataset.gv); });
   $('#glCopy').addEventListener('click',()=>{
     const text = rows.map(({c,q})=>`${q} ${c.name} ${c.prints[0][0]} ${c.prints[0][1]}`).join('\n');
     d.close(); DL.importList(text, `${f.name} (di ${nameOf(userId)})`); location.hash='deck';

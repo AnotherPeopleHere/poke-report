@@ -737,3 +737,15 @@ body:not(.on-deck){padding-bottom:max(90px,calc(16px + env(safe-area-inset-botto
   #pg-gruppo .pg-head .acts{margin-left:auto}
   #pg-gruppo .lbl-x{display:none}
 }
+
+/* deck as cards / image (export dialog, group list pop-up) */
+#exSeg,#glSeg{margin:2px 0 12px}
+.ex-prev{max-height:58vh;overflow:auto;border-radius:10px;background:var(--sunk);min-height:160px;display:grid;place-items:center;margin-bottom:10px}
+.ex-prev img{width:100%;display:block}
+.ex-prev .hint{padding:20px;text-align:center}
+.gimg{max-height:62vh;overflow:auto;padding-right:4px}
+.gimg .kgrid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.gimg .card{cursor:default}
+.gimg .card:hover{transform:none}
+[hidden]{display:none !important}
+@media (max-width:760px){ .gimg .kgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px} }

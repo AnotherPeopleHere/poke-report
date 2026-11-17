@@ -134,8 +134,8 @@ function addCard(key){
 }
 function removeOne(key){ const i=deck.cards.lastIndexOf(key); if(i<0) return; const c=BY_KEY.get(key); snapshot(`rimozione di ${c.name}`); deck.cards.splice(i,1); changed(); toast(`${c.name} tolta`, true); }
 function rootOf(c){ let nm=c.name, from=c.from, guard=0; while(from && guard++<3){ nm=from; const p=BY_NAME.get(from.toLowerCase()); from=p?p.from:''; } return nm; }
-function grouped(){
-  const m=new Map(); deck.cards.forEach(k=>m.set(k,(m.get(k)||0)+1));
+function grouped(cards){
+  const m=new Map(); (cards||deck.cards).forEach(k=>m.set(k,(m.get(k)||0)+1));
   const arr=[...m].map(([k,q])=>({c:BY_KEY.get(k),q}));
   // keep evolution lines together; bigger lines first
   const lineSize=new Map(); arr.forEach(({c,q})=>{ if(c.sup==='P'){ const r=rootOf(c); lineSize.set(r,(lineSize.get(r)||0)+q); } });
@@ -163,7 +163,7 @@ function validate(cards){
 // official card scans from the pokemontcg.io / scrydex CDNs; the drawn template stays underneath as fallback
 function imgUrl(c, big){ const m=c.im; if(!m) return '';
   return m.startsWith('x:') ? `https://images.scrydex.com/pokemon/${m.slice(2)}/${big?'large':'small'}` : `https://images.pokemontcg.io/${m}${big?'_hires':''}.png`; }
-const scan = (c, big, cls) => c.im ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
+const scan = (c, big, cls) => c.im ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" crossorigin="anonymous" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
 function costDots(cost, big){ return cost.map(t=>`<i class="ty-${t}" title="${TYPE_IT[t]||t}"${big?' style="width:14px;height:14px;border-radius:50%;display:inline-block"':''}></i>`).join(''); }
 function cardFace(c, attrs, extra){
   let top, art, mid='', foot;
@@ -184,6 +184,62 @@ function cardFace(c, attrs, extra){
   }
   return `<div class="card ty-${c.color}${c.sup!=='P'?' trainer':''}${extra&&extra.cls?' '+extra.cls:''}" ${attrs||''} title="${esc(c.name)}">
     <span class="c-top">${top}</span><span class="c-art">${art}</span>${mid}<span class="c-foot">${foot}</span>${scan(c,extra&&extra.big,'c-img')}${extra&&extra.inner||''}</div>`;
+}
+
+/* deck sorted by card kind: Pokémon, Supporters, Items, Tools, Stadiums, Energy */
+const KINDS=[['P','Pokémon'],['Supporter','Aiuti'],['Item','Strumenti'],['Tool','Oggetti Pokémon'],['Stadium','Stadi'],['E','Energie']];
+const kindOf = c => c.sup==='T' ? (c.trainerKind||'Item') : c.sup;
+function byKind(cards){ const g=grouped(cards); return KINDS.map(([k,label])=>{ const items=g.filter(x=>kindOf(x.c)===k); return {k,label,items,n:items.reduce((a,x)=>a+x.q,0)}; }).filter(x=>x.items.length); }
+function kindGrid(cards){
+  return byKind(cards).map(s=>`<div class="st-sec"><b>${s.label} <span class="hint num">${s.n}</span></b><div class="grid kgrid">${s.items.map(({c,q})=>cardFace(c,'',{inner:`<span class="q">${q}</span>`})).join('')}</div></div>`).join('');
+}
+/* PNG of the deck: card scans in sections, with the number of copies on each card */
+async function deckImage(cards, title, sub){
+  const secs=byKind(cards), COLS=10, CW=175, CH=244, GAP=12, PAD=36, HEAD=96, LAB=46;
+  const W=PAD*2+COLS*CW+(COLS-1)*GAP;
+  let H=PAD+HEAD; secs.forEach(s=>{ const rows=Math.ceil(s.items.length/COLS); H+=LAB+rows*CH+(rows-1)*GAP+22; }); H+=PAD+10;
+  const load = c => !c.im ? Promise.resolve(null) : fetch(imgUrl(c,false),{mode:'cors',cache:'reload'}).then(r=>{ if(!r.ok) throw 0; return r.blob(); }).then(b=>createImageBitmap(b)).catch(()=>null);
+  const uniq=[...new Set(secs.flatMap(s=>s.items.map(x=>x.c)))], imgs=new Map(await Promise.all(uniq.map(async c=>[c.key, await load(c)])));
+  const DISP=getComputedStyle(document.documentElement).getPropertyValue('--display').trim()||'sans-serif', BODY=getComputedStyle(document.documentElement).getPropertyValue('--body').trim()||'sans-serif';
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+  const rr=(px,py,w,h,r)=>{ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); };
+  x.fillStyle='#11131b'; x.fillRect(0,0,W,H);
+  x.fillStyle='#ffffff'; x.font=`800 40px ${DISP}`; x.textBaseline='alphabetic'; x.fillText(title||'Mazzo',PAD,PAD+42);
+  x.fillStyle='#9aa3b5'; x.font=`500 20px ${BODY}`; x.fillText(sub||'',PAD,PAD+76);
+  x.textAlign='right'; x.fillStyle='#ffd34f'; x.font=`800 22px ${DISP}`; x.fillText('Poke Report',W-PAD,PAD+42); x.textAlign='left';
+  let y=PAD+HEAD;
+  secs.forEach(s=>{
+    x.fillStyle='#ffffff'; x.font=`700 24px ${DISP}`; x.fillText(s.label,PAD,y+28);
+    const lw=x.measureText(s.label).width; x.fillStyle='#9aa3b5'; x.font=`600 20px ${BODY}`; x.fillText(String(s.n),PAD+lw+12,y+28);
+    y+=LAB;
+    s.items.forEach(({c,q},i)=>{
+      const cx=PAD+(i%COLS)*(CW+GAP), cy=y+Math.floor(i/COLS)*(CH+GAP), im=imgs.get(c.key);
+      x.save(); rr(cx,cy,CW,CH,9); x.clip();
+      if(im) x.drawImage(im,cx,cy,CW,CH);
+      else { x.fillStyle='#2a2f3d'; x.fillRect(cx,cy,CW,CH); x.fillStyle='#fff'; x.font=`700 17px ${DISP}`;
+        const words=c.name.split(' '); let line='', ly=cy+34; words.forEach(w=>{ if(x.measureText(line+w).width>CW-20 && line){ x.fillText(line.trim(),cx+10,ly); ly+=22; line=''; } line+=w+' '; }); x.fillText(line.trim(),cx+10,ly);
+        x.fillStyle='#9aa3b5'; x.font=`500 14px ${BODY}`; x.fillText(c.prints[0][0]+' '+c.prints[0][1],cx+10,cy+CH-14); }
+      x.restore();
+      const bx=cx+CW-30, by=cy+CH-30; x.beginPath(); x.arc(bx,by,21,0,Math.PI*2); x.fillStyle='rgba(12,14,20,.92)'; x.fill(); x.lineWidth=2.5; x.strokeStyle='#ffd34f'; x.stroke();
+      x.fillStyle='#fff'; x.font=`800 22px ${DISP}`; x.textAlign='center'; x.fillText(String(q),bx,by+8); x.textAlign='left';
+    });
+    const rows=Math.ceil(s.items.length/COLS); y+=rows*CH+(rows-1)*GAP+22;
+  });
+  return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('png')),'image/png'));
+}
+const fileName = n => (String(n||'mazzo').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-').replace(/^-+|-+$/g,'')||'mazzo')+'.png';
+/* image tab used by the export dialog and the group's list pop-up */
+function imagePanel(el, cards, title, sub){
+  el.innerHTML=`<div class="ex-prev"><span class="hint">Preparo l'immagine…</span></div>
+    <div class="row"><span class="hint ex-msg"></span><button type="button" class="btn ex-share" hidden>Condividi</button><button type="button" class="btn primary ex-dl" disabled>Scarica immagine</button></div>`;
+  deckImage(cards,title,sub).then(blob=>{
+    const url=URL.createObjectURL(blob), file=new File([blob],fileName(title),{type:'image/png'});
+    el.querySelector('.ex-prev').innerHTML=`<img src="${url}" alt="Immagine del mazzo ${esc(title)}">`;
+    const dl=el.querySelector('.ex-dl'); dl.disabled=false;
+    dl.addEventListener('click',()=>{ const a=document.createElement('a'); a.href=url; a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); });
+    if(navigator.canShare && navigator.canShare({files:[file]})){ const sh=el.querySelector('.ex-share'); sh.hidden=false; sh.addEventListener('click',()=>navigator.share({files:[file],title}).catch(()=>{})); }
+    if(cards.some(k=>{ const c=BY_KEY.get(k); return c && !c.im; })) el.querySelector('.ex-msg').textContent='Alcune carte non hanno la scansione: compaiono con il nome.';
+  }).catch(()=>{ el.querySelector('.ex-prev').innerHTML='<span class="hint">Non sono riuscito a creare l’immagine. Controlla la connessione e riprova.</span>'; });
 }
 
 /* render deck */
@@ -408,11 +464,17 @@ function openDlg(html,bind){ body.innerHTML=html; bind&&bind(); dlg.showModal();
 $('#bExport').addEventListener('click',()=>{
   const {issues}=validate();
   openDlg(`<h2>Esporta lista</h2>
+    <div class="seg" id="exSeg" role="group" aria-label="Formato"><button type="button" data-ex="text" aria-pressed="true">Testo</button><button type="button" data-ex="img" aria-pressed="false">Immagine</button></div>
     ${issues.length?`<div class="issues bad" style="border-radius:9px;border:0"><div><svg class="i"><use href="#i-warn"/></svg>Il mazzo ha ${issues.length} ${issues.length===1?'problema':'problemi'}: puoi esportarlo comunque.</div></div>`:''}
-    <p class="hint">Formato di Pokémon TCG Live: copia il testo e in TCG Live usa “Importa” nel Deck Manager. Va bene anche per iscrizioni ai tornei e siti di liste.</p>
+ <div id="exText"><p class="hint">Formato di Pokémon TCG Live: copia il testo e in TCG Live usa “Importa” nel Deck Manager. Va bene anche per iscrizioni ai tornei e siti di liste.</p>
     <textarea id="lOut" readonly>${esc(toList())}</textarea>
-    <div class="row"><span class="hint" id="copyMsg"></span><button class="btn" value="close">Chiudi</button><button type="button" class="btn primary" id="copyL">Copia testo</button></div>`,
-  ()=>{ $('#copyL').addEventListener('click',()=>{ const ta=$('#lOut'); navigator.clipboard.writeText(ta.value).then(()=>{ $('#copyMsg').textContent='Copiato negli appunti'; }).catch(()=>{ ta.focus(); ta.select(); $('#copyMsg').textContent='Testo selezionato: premi Ctrl+C / ⌘C'; }); }); });
+    <div class="row"><span class="hint" id="copyMsg"></span><button class="btn" value="close">Chiudi</button><button type="button" class="btn primary" id="copyL">Copia testo</button></div></div>
+    <div id="exImg" hidden></div>`,
+  ()=>{ let made=false;
+    $('#exSeg').addEventListener('click',e=>{ const b=e.target.closest('[data-ex]'); if(!b) return; const img=b.dataset.ex==='img';
+      document.querySelectorAll('#exSeg [data-ex]').forEach(x=>x.setAttribute('aria-pressed',x===b)); $('#exText').hidden=img; $('#exImg').hidden=!img;
+      if(img && !made){ made=true; imagePanel($('#exImg'), deck.cards.slice(), deck.name||'Mazzo', `${deck.cards.length} carte · formato Standard`); } });
+    $('#copyL').addEventListener('click',()=>{ const ta=$('#lOut'); navigator.clipboard.writeText(ta.value).then(()=>{ $('#copyMsg').textContent='Copiato negli appunti'; }).catch(()=>{ ta.focus(); ta.select(); $('#copyMsg').textContent='Testo selezionato: premi Ctrl+C / ⌘C'; }); }); });
 });
 $('#bImport').addEventListener('click',()=>{
   let fname='';
@@ -524,7 +586,7 @@ mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTa
 let toastT;
 function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>${withUndo&&history.length?'<button type="button" id="tUndo">Annulla</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); const u=$('#tUndo'); if(u) u.addEventListener('click',undo); }
 
-window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, CARDS, parse:t=>parseList(t), byName:byAnyName,
+window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';
