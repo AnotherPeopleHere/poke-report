@@ -52,5 +52,5 @@ Poi apri http://localhost:8000.
 ## Fonti e note
 
 Dati di gioco © The Pokémon Company, Nintendo, Game Freak, Creatures. Questo sito non è affiliato né approvato da loro.
-Dati dei tornei da Limitless TCG; testi delle carte da PokemonTCG/pokemon-tcg-data. Le illustrazioni delle carte sono generate dal sito e non sono quelle ufficiali.
+Dati dei tornei da Limitless TCG; testi delle carte da PokemonTCG/pokemon-tcg-data. Le scansioni delle carte sono caricate dai server di immagini di pokemontcg.io (images.pokemontcg.io e images.scrydex.com) e non sono salvate nel repository; se un’immagine non è disponibile il sito mostra una carta disegnata al suo posto.
 `assets/vendor/supabase-2.118.0.js` è la libreria @supabase/supabase-js (licenza MIT, vedi `assets/vendor/supabase-LICENSE.txt`).

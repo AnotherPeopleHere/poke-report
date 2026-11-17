@@ -31,6 +31,12 @@ for c in allc:
         if sig(c) not in legal_sigs: continue
         k = sig(c)
     groups.setdefault(k, []).append(c)
+def img(c):
+    # compact image reference, expanded in assets/deck.js (imgUrl)
+    u = (c.get('images') or {}).get('small', '')
+    if u.startswith('https://images.pokemontcg.io/') and u.endswith('.png'): return u[29:-4]
+    if u.startswith('https://images.scrydex.com/pokemon/') and u.endswith('/small'): return 'x:' + u[35:-6]
+    return ''
 out = []
 for k, prints in groups.items():
     prints.sort(key=lambda c: (c.get('regulationMark') in LEGAL_MARKS, sets[c['_set']]['releaseDate']), reverse=True)
@@ -43,7 +49,7 @@ for k, prints in groups.items():
         'w': [w['type'] + ' ' + w['value'] for w in c.get('weaknesses', [])],
         'r': [w['type'] + ' ' + w['value'] for w in c.get('resistances', [])],
         'rc': c.get('convertedRetreatCost', 0), 'ru': c.get('rules', []), 'rm': c.get('regulationMark', ''),
-        'dex': (c.get('nationalPokedexNumbers') or [0])[0],
+        'dex': (c.get('nationalPokedexNumbers') or [0])[0], 'im': img(c),
         'p': [[sets[p['_set']].get('ptcgoCode') or p['_set'].upper(), p['number'], sets[p['_set']]['name'], sets[p['_set']]['releaseDate'][:10], p.get('rarity', ''), p.get('regulationMark') or ''] for p in prints]})
 json.dump(out, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'))
 print(len(out), 'cards', dict(collections.Counter(o['s'] for o in out)))

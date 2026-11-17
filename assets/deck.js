@@ -14,7 +14,7 @@ const SUB_IT = {'Supporter':'Aiuto','Item':'Strumento','Pokémon Tool':'Oggetto 
 const keyCount = new Map();
 const CARDS = RAW.map(r=>{
   let k = r.p[0][0]+'-'+r.p[0][1]; const n = (keyCount.get(k)||0)+1; keyCount.set(k,n); if(n>1) k += '~'+n;
-  const c = {key:k, name:r.n, sup:r.s, sub:r.st, hp:r.hp, types:r.t, from:r.ef, abilities:r.ab, attacks:r.at, weak:r.w, res:r.r, retreat:r.rc, rules:r.ru, mark:r.rm, dex:r.dex, prints:r.p};
+  const c = {key:k, name:r.n, sup:r.s, sub:r.st, hp:r.hp, types:r.t, from:r.ef, abilities:r.ab, attacks:r.at, weak:r.w, res:r.r, retreat:r.rc, rules:r.ru, mark:r.rm, dex:r.dex, prints:r.p, im:r.im||''};
   c.lname = c.name.toLowerCase();
   c.ltext = [...c.abilities.map(a=>a[0]+' '+a[1]), ...c.attacks.map(a=>a[0]+' '+a[3]), ...c.rules].join(' ').toLowerCase();
   c.isBasicEnergy = c.sup==='E' && c.sub.includes('Basic');
@@ -95,7 +95,7 @@ function renderResults(){
   const n=advCount(); $('#advCnt').hidden=!n; $('#advCnt').textContent=n;
   $('#results').innerHTML = list.slice(0,shown).map(c=>{ const own=countKey(c.key);
     return `<li class="res${c===selected?' sel':''}" data-key="${esc(c.key)}" draggable="true">
-      <span class="mini ty-${c.color}"></span><span class="nm">${esc(c.name)}</span>
+      <span class="mini ty-${c.color}">${scan(c,false,'m-img')}</span><span class="nm">${esc(c.name)}</span>
       <span class="acts">${own?`<span class="owned">×${own}</span>`:''}<button class="add" data-add="${esc(c.key)}" title="Aggiungi al mazzo" aria-label="Aggiungi ${esc(c.name)} al mazzo">+</button></span>
       <span class="sub">${subline(c)}</span></li>`; }).join('')
     + (list.length>shown ? `<li><button class="more" id="more">Mostra altre ${Math.min(120,list.length-shown)} carte</button></li>` : '')
@@ -160,6 +160,10 @@ function validate(cards){
 }
 
 /* card face (js) */
+// official card scans from the pokemontcg.io / scrydex CDNs; the drawn template stays underneath as fallback
+function imgUrl(c, big){ const m=c.im; if(!m) return '';
+  return m.startsWith('x:') ? `https://images.scrydex.com/pokemon/${m.slice(2)}/${big?'large':'small'}` : `https://images.pokemontcg.io/${m}${big?'_hires':''}.png`; }
+const scan = (c, big, cls) => c.im ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
 function costDots(cost, big){ return cost.map(t=>`<i class="ty-${t}" title="${TYPE_IT[t]||t}"${big?' style="width:14px;height:14px;border-radius:50%;display:inline-block"':''}></i>`).join(''); }
 function cardFace(c, attrs, extra){
   let top, art, mid='', foot;
@@ -179,7 +183,7 @@ function cardFace(c, attrs, extra){
     foot = c.isBasicEnergy?'Energia base':'Energia speciale';
   }
   return `<div class="card ty-${c.color}${c.sup!=='P'?' trainer':''}${extra&&extra.cls?' '+extra.cls:''}" ${attrs||''} title="${esc(c.name)}">
-    <span class="c-top">${top}</span><span class="c-art">${art}</span>${mid}<span class="c-foot">${foot}</span>${extra&&extra.inner||''}</div>`;
+    <span class="c-top">${top}</span><span class="c-art">${art}</span>${mid}<span class="c-foot">${foot}</span>${scan(c,extra&&extra.big,'c-img')}${extra&&extra.inner||''}</div>`;
 }
 
 /* render deck */
@@ -251,7 +255,7 @@ function renderDetail(){
   ].join('');
   const wrrBlock = c.sup==='P' ? `<div class="wrr"><div><span>Debolezza</span><b>${wr(c.weak)}</b></div><div><span>Resistenza</span><b>${wr(c.res)}</b></div><div><span>Ritirata</span><b>${c.retreat?costDots(Array(c.retreat).fill('Colorless'),true):'0'}</b></div></div>` : '';
   const pips = lim ? `<span class="copies">${Array.from({length:4},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}<span class="num" style="margin-left:4px">${n}/4</span></span>` : `<span class="copies num">${n} nel mazzo</span>`;
-  $('#detail').innerHTML = `<div class="big">${cardFace(c,'')}<div style="min-width:0">
+  $('#detail').innerHTML = `<div class="big">${cardFace(c,'',{big:true})}<div style="min-width:0">
       <h2 class="cd-name">${esc(c.name)}</h2><div class="cd-type">${typeLine}</div>
       <div class="cd-stats">${chips}</div>
       <div class="cd-stats"><span class="chip">Regulation <b>${c.mark||'—'}</b></span><span class="chip"><b class="num">${esc(c.prints[0][0])} ${esc(c.prints[0][1])}</b></span></div>
