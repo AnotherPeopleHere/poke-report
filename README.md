@@ -23,7 +23,7 @@ Si usa dal browser o dal telefono, anche aggiunto alla schermata Home come un'ap
   - `scripts/build_names.py` — nomi delle carte in italiano, francese, spagnolo, tedesco e portoghese da [tcgdex/cards-database](https://github.com/tcgdex/cards-database), per importare liste esportate da TCG Live in altre lingue
   - `scripts/update_meta.py` — meta report e Regional recenti da limitlesstcg.com
   - `scripts/fetch_online.py` + `scripts/analyze.py` — tornei online delle ultime 3 settimane e calcolo dei consigli
-- **Notizie**: aggiornate ogni giorno da un'attività programmata di Claude che modifica `data/news.json`.
+- **Notizie**: aggiornate ogni giorno da un'attività programmata di Claude che modifica `data/news.json`, usando solo tre fonti: [PokéBeach](https://www.pokebeach.com/), [Limitless](https://limitlesstcg.com/) e il [sito ufficiale italiano del GCC](https://tcg.pokemon.com/it-it/).
 
 ## Configurazione (una volta sola)
 
