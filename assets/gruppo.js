@@ -10,7 +10,7 @@ const memberBy = x => cache && cache.members.find(m=>m.id===x || (m.display_name
 const av = n => { const m=memberBy(n); return App.avatar(m ? (m.display_name||'Amico') : n, m && m.avatar_url); };
 const key = s => String(s||'').trim().toLowerCase();
 let cache = null, loading = false;
-const F = {player:'', deck:'', period:'', bo:'', arch:'', side:'played'};   // filters and explorer state (kept for the visit)
+const F = {player:'', deck:'', period:'', bo:'', arch:'', side:'played', tab:'over', fopen:false};   // filters and explorer state (kept for the visit)
 
 function state(html){ $('#gBody').innerHTML = html; }
 async function load(){
@@ -72,23 +72,31 @@ function render(){
   if(F.arch && !archs.some(a=>key(a)===key(F.arch))) F.arch='';
   const ts = filteredTournaments(), rs = filteredRounds(), a = agg(rs);
   const players = members.map(m=>[m.id, m.display_name||'Amico']);
+  const nf = ['player','deck','period','bo'].filter(k=>F[k]).length;
+  const TABS = [['over','Panoramica'],['match','Matchup'],['players','Giocatori'],['tours','Tornei']];
+  const sec = (k, html) => `<section class="gsec${F.tab===k?' on':''}" data-gsec="${k}" role="tabpanel">${html}</section>`;
   state(`
-    <div class="gfilters panel">
+    <div class="gtop">
+      <span class="gcode">${esc(code)} · ${members.length} ${members.length===1?'membro':'membri'}</span>
+      <button class="btn small gfbtn" type="button" data-gfilters aria-expanded="${F.fopen}"><svg class="i"><use href="#i-filter"/></svg>Filtri${nf?` <span class="cnt">${nf}</span>`:''}</button>
+    </div>
+    <div class="gfilters panel${F.fopen?' open':''}">
       <label>Giocatore<select data-f="player">${options(players, F.player, 'Tutto il gruppo')}</select></label>
       <label>Mazzo giocato<select data-f="deck">${options(decks.map(d=>[d,d]), F.deck, 'Tutti i mazzi')}</select></label>
       <label>Periodo<select data-f="period">${options([['90','Ultimi 3 mesi'],['365','Ultimi 12 mesi'],['season','Stagione 2026-27']], F.period, 'Sempre')}</select></label>
       <label>Formato<select data-f="bo">${options([['bo1','Solo Bo1'],['bo3','Solo Bo3']], F.bo, 'Bo1 e Bo3')}</select></label>
       <span class="gcode" title="Codice del gruppo">${esc(code)} · ${members.length} ${members.length===1?'membro':'membri'}</span>
     </div>
-    <div class="kpis">
+    <nav class="gtabs" id="gTabs" role="tablist" aria-label="Sezioni del gruppo">${TABS.map(([k,l])=>`<button type="button" role="tab" data-gtab="${k}" aria-selected="${F.tab===k}">${l}</button>`).join('')}</nav>
+    ${sec('over', `<div class="kpis">
       <div><span>Tornei</span><b>${ts.length}</b><small>${a.R} round registrati</small></div>
       <div><span>Round vinti</span><b class="${rateCls(a.W,a.R)}">${rate(a.W,a.R)}</b><small>record ${a.W}-${a.L}-${a.T}</small></div>
       <div><span>Game vinti</span><b class="${rateCls(a.gW,a.gW+a.gL+a.gT)}">${rate(a.gW,a.gW+a.gL+a.gT)}</b><small>${a.gW}-${a.gL}${a.gT?'-'+a.gT:''} nei game</small></div>
       <div><span>Andando primo</span><b class="${rateCls(a.fW,a.fN)}">${rate(a.fW,a.fN)}</b><small>${a.fN} game</small></div>
       <div><span>Andando secondo</span><b class="${rateCls(a.sW,a.sN)}">${rate(a.sW,a.sN)}</b><small>${a.sN} game</small></div>
       <div><span>Bo1 · Bo3</span><b>${rate(a.b1W,a.b1N)} · ${rate(a.b3W,a.b3N)}</b><small>round vinti per formato</small></div>
-    </div>
-    <div class="panel" id="gExplorer">
+    </div>`)}
+    ${sec('match', `<div class="panel" id="gExplorer">
       <h3>Esplora un archetipo <span class="meta">i filtri qui sopra valgono anche qui</span></h3>
       <div class="gexp-bar">
         <select data-f="arch" aria-label="Archetipo da esplorare">${options(archs.map(x=>[x,x]), F.arch, 'Scegli un archetipo…')}</select>
@@ -98,9 +106,10 @@ function render(){
         </div>
       </div>
       <div id="gExpBody">${explorer(rs)}</div>
-    </div>
-    <div class="panel"><h3>Giocatori e liste <span class="meta">mazzo più giocato da ognuno, nel periodo scelto</span></h3>${playersTable(members, tournaments)}</div>
-    <div class="panel"><h3>Tornei del gruppo <span class="meta">${ts.length} nei filtri scelti</span></h3>${recent(ts)}</div>`);
+    </div>`)}
+    ${sec('players', `<div class="panel"><h3>Giocatori e liste <span class="meta">mazzo più giocato da ognuno, nel periodo scelto</span></h3>${playersTable(members, tournaments)}</div>`)}
+    ${sec('tours', `<div class="panel"><h3>Tornei del gruppo <span class="meta">${ts.length} nei filtri scelti</span></h3>${recent(ts)}</div>`)}`);
+  moveTabInd(false);
 }
 function explorer(rs){
   if(!F.arch){
@@ -170,9 +179,29 @@ function showList(userId){
   });
 }
 
+/* ---------- phone layout: one section at a time ---------- */
+function moveTabInd(animate){
+  const nav=$('#gTabs'); if(!nav) return;
+  let ind=nav.querySelector('.ind'); if(!ind){ ind=document.createElement('span'); ind.className='ind'; ind.setAttribute('aria-hidden','true'); nav.prepend(ind); }
+  const a=nav.querySelector('[aria-selected="true"]'); if(!a || !a.offsetWidth) return;
+  if(!animate) nav.classList.remove('ready');
+  ind.style.width=a.offsetWidth+'px'; ind.style.transform=`translateX(${a.offsetLeft}px)`;
+  if(!animate) requestAnimationFrame(()=>requestAnimationFrame(()=>nav.classList.add('ready')));
+}
+function showTab(k){
+  F.tab=k;
+  document.querySelectorAll('#gTabs [data-gtab]').forEach(b=>b.setAttribute('aria-selected', b.dataset.gtab===k));
+  document.querySelectorAll('#gBody .gsec').forEach(sct=>sct.classList.toggle('on', sct.dataset.gsec===k));
+  moveTabInd(true);
+  const top=$('#gTabs'); if(top && top.getBoundingClientRect().top < 0) top.scrollIntoView({block:'start', behavior:'smooth'});
+}
+window.addEventListener('resize',()=>moveTabInd(false));
+
 /* ---------- events ---------- */
 $('#pg-gruppo').addEventListener('click',e=>{
   if(e.target.closest('[data-acct]')){ App.accountDialog(); return; }
+  const tb=e.target.closest('[data-gtab]'); if(tb){ showTab(tb.dataset.gtab); return; }
+  const fb=e.target.closest('[data-gfilters]'); if(fb){ F.fopen=!F.fopen; fb.setAttribute('aria-expanded',F.fopen); $('#gBody .gfilters').classList.toggle('open',F.fopen); return; }
   const sd=e.target.closest('[data-side]'); if(sd){ F.side=sd.dataset.side; render(); return; }
   const pk=e.target.closest('tr.pick[data-arch]'); if(pk){ F.arch=pk.dataset.arch; render(); $('#gExplorer').scrollIntoView({behavior:'smooth',block:'start'}); return; }
   const ls=e.target.closest('[data-list]'); if(ls){ showList(ls.dataset.list); return; }
