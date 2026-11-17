@@ -20,10 +20,21 @@ const sb = (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase)
   ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {auth:{flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}})
   : null;
 
+/* ---------- archetype names ----------
+   The same deck can be typed in many ways ("N's Zoroark", "N’s Zoroark ex", "n's zoroark EX"): compare names by a key
+   without case, accents, apostrophe style, punctuation and the "ex" suffix, and show the name used by the meta report. */
+const archKey = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[’‘`´]/g,"'")
+  .replace(/[-_/.,;:+&()]+/g,' ').split(/\s+/).filter(w=>w && w!=='ex').join(' ');
+const ARCH = new Map();
+['metaData','recoData'].forEach(id=>{ try{ const d=JSON.parse(document.getElementById(id).textContent);
+  (Array.isArray(d)?d:d.archetypes||[]).forEach(a=>{ const k=archKey(a.name); if(k && !ARCH.has(k)) ARCH.set(k,a.name); }); }catch(e){} });
+const archCanon = s => { const t=String(s||'').trim().replace(/\s+/g,' '); return ARCH.get(archKey(t)) || t; };
+const canonT = t => { if(!t) return t; if(t.deckName) t.deckName=archCanon(t.deckName); (t.rounds||[]).forEach(r=>{ if(r && r.opp) r.opp=archCanon(r.opp); }); return t; };
+
 /* ---------- storage ---------- */
 const Store = {
   mode:'local', user:null, profile:null,
-  local(){ return {prefs:ls.get('hub.prefs',null), decks:ls.get('hub.decks',[]), tournaments:ls.get('hub.tournaments',[])}; },
+  local(){ return {prefs:ls.get('hub.prefs',null), decks:ls.get('hub.decks',[]), tournaments:ls.get('hub.tournaments',[]).map(canonT)}; },
   async load(){
     if(!sb || !this.user) { this.mode='local'; return this.local(); }
     const uid = this.user.id;
@@ -37,7 +48,7 @@ const Store = {
       this.profile = p.data || null;
       const out = {prefs: (p.data && p.data.prefs) || null,
         decks: (d.data||[]).map(r=>({id:r.id, name:r.name, cards:r.cards||[], updated:Date.parse(r.updated_at)||0})),
-        tournaments: (t.data||[]).map(r=>({...r.data, id:r.id}))};
+        tournaments: (t.data||[]).map(r=>canonT({...r.data, id:r.id}))};
       if(!this.profile) await this.saveProfile({display_name: (this.user.email||'').split('@')[0], prefs: out.prefs||{}});
       // first sign-in on this browser: move what was stored locally into the account
       const loc = this.local();
@@ -98,12 +109,12 @@ const Store = {
     const ids = (m.data||[]).map(x=>x.id);
     const t = ids.length ? await sb.from('tournaments').select('user_id,id,data').in('user_id', ids) : {data:[]};
     if(t.error) throw t.error;
-    return {members:m.data||[], tournaments:(t.data||[]).map(r=>({...r.data, id:r.id, user_id:r.user_id}))};
+    return {members:m.data||[], tournaments:(t.data||[]).map(r=>canonT({...r.data, id:r.id, user_id:r.user_id}))};
   }
 };
 
 const App = window.App = {
-  ls, Store, sb, data:{prefs:null, decks:[], tournaments:[]}, page:'home', ready:false,
+  ls, Store, sb, archKey, archCanon, canonT, data:{prefs:null, decks:[], tournaments:[]}, page:'home', ready:false,
   _subs:[], on(fn){ this._subs.push(fn); }, emit(what){ this._subs.forEach(f=>{ try{ f(what); }catch(e){ console.error(e); } }); },
   uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); },
   toast(msg){ const t=$('#toast'); if(!t) return; t.innerHTML=''; const s=document.createElement('span'); s.textContent=msg; t.appendChild(s); t.hidden=false; clearTimeout(App._tt); App._tt=setTimeout(()=>t.hidden=true,3600); },

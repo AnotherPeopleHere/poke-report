@@ -114,12 +114,12 @@ function hashText(t){ let h=2166136261; const s=t.replace(/\s+/g,' ').trim(); fo
 const MONTHS=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 async function saveMatch({deck, deckName, opp, first, res, note, src, h}){
   const today = new Date(), date = today.toISOString().slice(0,10);
-  deckName = (deckName||'').trim() || (deck?deck.name:'');
+  deckName = App.archCanon((deckName||'').trim() || (deck?deck.name:''));
   let t = App.data.tournaments.find(x=>x.type==='TCG Live' && x.date===date && (x.deckName||'')===deckName);
   const isNew = !t;
   if(!t) t = {id:App.uid(), name:`TCG Live · ${today.getDate()} ${MONTHS[today.getMonth()]}`, date, type:'TCG Live', players:'', deckId:deck?deck.id:'', deckName, placement:'', topcut:false, rounds:[], manual:null, notes:'', created:Date.now()};
   if(deck){ t.deckId = deck.id; t.list = deck.cards.slice(); }
-  const round = {opp:(opp||'').trim(), bo:'bo1', games:[{first:first||null, res}], r:res, src};
+  const round = {opp:App.archCanon(opp), bo:'bo1', games:[{first:first||null, res}], r:res, src};
   if(note && note.trim()) round.note = note.trim();
   if(h) round.h = h;
   t.rounds.push(round);

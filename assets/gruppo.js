@@ -8,7 +8,7 @@ function hue(s){ let h=0; for(const ch of String(s)) h=(h*31+ch.charCodeAt(0))%3
 // photo of a member, looked up by id or by display name
 const memberBy = x => cache && cache.members.find(m=>m.id===x || (m.display_name||'Amico')===x);
 const av = n => { const m=memberBy(n); return App.avatar(m ? (m.display_name||'Amico') : n, m && m.avatar_url); };
-const key = s => String(s||'').trim().toLowerCase();
+const key = s => App.archKey(s);
 let cache = null, loading = false;
 const F = {player:'', deck:'', period:'', bo:'', arch:'', side:'played', tab:'over', fopen:false};   // filters and explorer state (kept for the visit)
 

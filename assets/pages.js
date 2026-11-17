@@ -202,6 +202,7 @@ function openTournament(t){
     // keep a copy of the list played, so friends in the group can see it (saved decks stay private)
     if(d) t.list = d.cards.slice(); else if(!deckId) delete t.list;
     if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>{ const o={opp:(x.opp||'').trim(), bo:x.bo, games:x.games, r:roundRes(x)}; if(x.note&&x.note.trim()) o.note=x.note.trim(); if(x.src) o.src=x.src; if(x.h) o.h=x.h; return o; }); }
+    App.canonT(t);
     const i=App.data.tournaments.findIndex(x=>x.id===t.id); if(i>=0) App.data.tournaments[i]=t; else App.data.tournaments.push(t);
     dlg2.close(); renderAll(); const ok = await App.Store.put('tournaments', t); if(ok) App.toast(isNew?'Torneo salvato':'Modifiche salvate');
   });
