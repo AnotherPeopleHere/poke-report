@@ -762,3 +762,18 @@ body:not(.on-deck){padding-bottom:max(90px,calc(16px + env(safe-area-inset-botto
 .art-pick span{display:flex;flex-direction:column;align-items:center;line-height:1.15;min-width:0}
 .art-pick b{font-size:11.5px;white-space:nowrap}
 .art-pick small{font-size:10px;color:var(--muted)}
+
+/* deck cards: pixel sprites and card counts */
+.lc-top{align-items:center}
+.lc-spr{display:flex;align-items:center;flex:none;min-width:44px;height:48px;padding:0 2px;margin:-6px 0 -6px -4px;border:1px dashed transparent;border-radius:10px;background:transparent;cursor:pointer}
+.lc-spr:hover{border-color:var(--line);background:var(--sunk)}
+.lc-spr .spr{width:52px;height:52px;object-fit:contain;image-rendering:pixelated;margin:0 -6px}
+.lc-spr-add{width:40px;height:40px;display:grid;place-items:center;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:20px}
+.lc-counts{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12.5px;color:var(--muted)}
+.lc-counts span{display:inline-flex;align-items:center;gap:6px}
+.lc-counts i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.lc-counts b{color:var(--fg);font-family:var(--mono)}
+.spr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:56vh;overflow:auto;margin:6px 0 12px}
+.spr-opt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);cursor:pointer;font-size:11.5px;text-align:center;min-height:96px}
+.spr-opt .spr{width:64px;height:64px;object-fit:contain;image-rendering:pixelated}
+.spr-opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}

@@ -31,6 +31,8 @@ const KEY_GET = BY_KEY.get.bind(BY_KEY);
 BY_KEY.get = k => KEY_GET(k) || (m => m ? PRINT_IDX.get((m[1]+' '+m[2]).toUpperCase()) : undefined)(/^(.+)-([^-~]+)(?:~\d+)?$/.exec(String(k)));
 BY_KEY.has = k => !!BY_KEY.get(k);
 const BY_NAME = new Map(); CARDS.forEach(c=>{ const l=c.lname; if(!BY_NAME.has(l)) BY_NAME.set(l,c); });
+const ARCHS = (()=>{ try{ return JSON.parse(document.getElementById('recoData').textContent).archetypes||[]; }catch(e){ return []; } })();
+const nameWords = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(Boolean);
 $('#poolCount').textContent = CARDS.length.toLocaleString('it-IT');
 
 /* state */
@@ -547,15 +549,50 @@ function deckSummary(d){
   const stars=[...new Map(cs.filter(c=>c.sup==='P'&&(c.sub.includes('ex')||c.sub.includes('Stage 2'))).map(c=>[c.name,c])).values()].slice(0,3);
   return {n,p,t,e,stars,issues:validate(d.cards).issues};
 }
+/* pixel sprites on the deck cards: up to 2 per deck, chosen by the user (saved in the preferences) or taken from the archetype */
+function spriteUrls(c){
+  const w=nameWords(c.name), dex=c.dex||0, fb=dex?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`:'';
+  if(w.includes('mega')){ const base=w.filter(x=>!['mega','ex','x','y'].includes(x)).pop(), xy=w.includes('x')?'x':w.includes('y')?'y':'';
+    if(base) return [`https://play.pokemonshowdown.com/sprites/gen5/${base}-mega${xy}.png`, fb]; }
+  return [fb, ''];
+}
+const spriteImg = c => { const [u,fb]=spriteUrls(c); return u ? `<img class="spr" src="${u}" alt="${esc(c.name)}" title="${esc(c.name)}" loading="lazy" ${fb?`data-fb="${fb}" `:''}onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb');}else this.remove()">` : ''; };
+function autoSprites(cards){
+  const cs=cards.map(k=>BY_KEY.get(k)).filter(c=>c && c.sup==='P'), cnt=new Map(); cs.forEach(c=>cnt.set(c.name,(cnt.get(c.name)||0)+1));
+  const arch=ARCHS.find(a=>a.name===archOf(cards)), out=[];
+  (arch&&arch.icons||[]).forEach(ic=>{ const [base,...mods]=ic.split('-'), mega=mods.includes('mega');
+    const hit=[...cnt.keys()].filter(n=>{ const w=nameWords(n); return w.includes(base) && mega===w.includes('mega'); }).sort((a,b)=>cnt.get(b)-cnt.get(a))[0];
+    if(hit && !out.includes(hit)) out.push(hit); });
+  if(!out.length){ const top=[...cnt.keys()].map(n=>BY_NAME.get(n.toLowerCase())).filter(Boolean)
+      .sort((a,b)=>((b.sub.includes('ex')||b.sub.includes('Stage 2'))-(a.sub.includes('ex')||a.sub.includes('Stage 2'))) || cnt.get(b.name)-cnt.get(a.name))[0];
+    if(top) out.push(top.name); }
+  return out.slice(0,2);
+}
+const chosenSprites = d => { const v=((App.prefs().sprites)||{})[d.id]; return Array.isArray(v) ? v : null; };
+function deckSprites(d){ return (chosenSprites(d) || autoSprites(d.cards)).map(n=>BY_NAME.get(String(n).toLowerCase())).filter(Boolean).slice(0,2); }
+function pickSprites(d){
+  const mons=[...new Map(d.cards.map(k=>BY_KEY.get(k)).filter(c=>c&&c.sup==='P').map(c=>[c.name,c])).values()];
+  let sel=(chosenSprites(d)||deckSprites(d).map(c=>c.name)).slice(0,2);
+  const draw=()=>{ $('#sprGrid').innerHTML = mons.map(c=>`<button type="button" class="spr-opt" data-spr="${esc(c.name)}" aria-pressed="${sel.includes(c.name)}">${spriteImg(c)}<span>${esc(c.name)}</span></button>`).join('');
+    $('#sprMsg').textContent = sel.length ? `Scelti: ${sel.join(' e ')}` : 'Nessuno scelto: il mazzo resta senza sprite'; };
+  openDlg(`<h2>Sprite del mazzo</h2><p class="hint">Scegli fino a due Pokémon da mostrare sulla scheda di “${esc(d.name)}”.</p>
+    <div class="spr-grid" id="sprGrid"></div>
+    <div class="row"><span class="hint" id="sprMsg"></span><button type="button" class="btn" id="sprAuto">Automatico</button><button type="button" class="btn primary" id="sprOk">Salva</button></div>`,
+  ()=>{ draw();
+    $('#sprGrid').addEventListener('click',e=>{ const b=e.target.closest('[data-spr]'); if(!b) return; const n=b.dataset.spr;
+      sel = sel.includes(n) ? sel.filter(x=>x!==n) : [...sel, n].slice(-2); draw(); });
+    const save=v=>{ const pr=App.prefs(), m=pr.sprites||(pr.sprites={}); if(v) m[d.id]=v; else delete m[d.id]; App.Store.savePrefs(); dlg.close(); renderLib(); };
+    $('#sprAuto').addEventListener('click',()=>save(null)); $('#sprOk').addEventListener('click',()=>save(sel)); });
+}
 const fmtDay = ms => ms ? new Date(ms).toLocaleDateString('it-IT',{day:'numeric',month:'short'}) : '';
 function renderLib(){
   const list=savedDecks().slice().sort((a,b)=>(b.updated||0)-(a.updated||0));
   $('#libGrid').innerHTML = list.length ? list.map(d=>{ const s=deckSummary(d), ok=!s.issues.length;
     return `<article class="libcard" data-id="${esc(d.id)}">
-      <div class="lc-top"><h3>${esc(d.name||'Senza nome')}</h3><span class="status ${ok?'ok':'bad'}">${ok?'Legale':s.issues.length+(s.issues.length===1?' problema':' problemi')}</span></div>
+      <div class="lc-top"><button type="button" class="lc-spr" data-lib="sprite" title="Scegli gli sprite del mazzo" aria-label="Scegli gli sprite di ${esc(d.name)}">${deckSprites(d).map(spriteImg).join('')||'<span class="lc-spr-add">+</span>'}</button><h3>${esc(d.name||'Senza nome')}</h3><span class="status ${ok?'ok':'bad'}">${ok?'Legale':s.issues.length+(s.issues.length===1?' problema':' problemi')}</span></div>
       <div class="lc-sub">${s.n}/60 carte${d.updated?' · modificato il '+fmtDay(d.updated):''}</div>
       <div class="split" title="Pokémon ${s.p} · Allenatori ${s.t} · Energie ${s.e}">${s.p?`<span style="width:${s.p/Math.max(1,s.n)*100}%;background:var(--t-Fire)"></span>`:''}${s.t?`<span style="width:${s.t/Math.max(1,s.n)*100}%;background:var(--tr-Item)"></span>`:''}${s.e?`<span style="width:${s.e/Math.max(1,s.n)*100}%;background:var(--t-Lightning)"></span>`:''}</div>
-      <div class="lc-mons">${s.stars.length?s.stars.map(c=>`<span class="lc-mon"><span class="dot ty-${c.color}">${TYPE_L[c.color]||''}</span>${esc(c.name)}</span>`).join(''):'<span class="hint">Ancora nessun attaccante</span>'}</div>
+      <div class="lc-counts"><span><i style="background:var(--t-Fire)"></i>Pokémon <b>${s.p}</b></span><span><i style="background:var(--tr-Item)"></i>Allenatori <b>${s.t}</b></span><span><i style="background:var(--t-Lightning)"></i>Energie <b>${s.e}</b></span></div>
       <div class="lc-acts"><button class="btn small primary" type="button" data-lib="edit">Modifica</button><button class="btn small" type="button" data-lib="stats"><svg class="i"><use href="#i-chart"/></svg>Statistiche</button>
         <span class="lc-more"><button class="btn small icon" type="button" data-lib="export" title="Esporta lista" aria-label="Esporta la lista di ${esc(d.name)}"><svg class="i"><use href="#i-out"/></svg></button><button class="btn small icon" type="button" data-lib="dup" title="Duplica" aria-label="Duplica ${esc(d.name)}">⧉</button><button class="btn small icon" type="button" data-lib="del" title="Elimina" aria-label="Elimina ${esc(d.name)}">✕</button></span></div>
     </article>`; }).join('')
@@ -566,6 +603,7 @@ $('#libGrid').addEventListener('click',async e=>{
   const b=e.target.closest('[data-lib]'), card=e.target.closest('.libcard'); if(!card) return;
   const d=savedDecks().find(x=>x.id===card.dataset.id); if(!d) return;
   const act=b?b.dataset.lib:'edit';
+  if(act==='sprite'){ pickSprites(d); return; }
   if(act==='edit'||act==='stats'){ openDeck(d, act); return; }
   if(act==='export'){ openDeck(d,'lib'); $('#bExport').click(); return; }
   if(act==='dup'){ const rec={id:App.uid(), name:d.name+' (copia)', cards:d.cards.slice(), updated:Date.now()}; App.data.decks.push(rec); renderLib(); App.emit('decks'); await App.Store.put('decks',rec); toast('Mazzo duplicato'); return; }
@@ -605,8 +643,6 @@ function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)
 
 /* archetype of a list, the Limitless way: the archetype's key Pokémon (its icons) must all be in the list;
    among those that fit, the most specific one wins, then the one whose sample list looks most like this one */
-const ARCHS = (()=>{ try{ return JSON.parse(document.getElementById('recoData').textContent).archetypes||[]; }catch(e){ return []; } })();
-const nameWords = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(Boolean);
 function iconHits(icon, mons, lenient){
   const [base,...mods] = icon.split('-'), mega = mods.includes('mega'), extra = mods.filter(m=>m!=='mega');
   // the key Pokémon (a plain icon does not match its Mega form), plus the earlier stages of its line
