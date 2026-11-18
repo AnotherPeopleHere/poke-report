@@ -913,6 +913,7 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .cp-form label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:500}
 .cp-form input{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--fg);font-size:15px;width:100%;min-width:0}
 .cp-form input:focus{outline:none;border-color:var(--accent)}
+.cp-form label:first-child{grid-column:1/-1}
 .cp-acts{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}
 .cp-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .cp-n{font:800 40px/1 var(--display);letter-spacing:-.02em}
@@ -926,3 +927,4 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .cp-spark{display:flex;align-items:flex-end;gap:4px;height:36px;margin-top:10px}
 .cp-spark i{flex:1;max-width:22px;border-radius:3px 3px 0 0;background:var(--accent);opacity:.55}
 .cp-spark i:last-child{opacity:1}
+.cp-rank{margin-top:8px;font-size:13px;color:var(--muted)} .cp-rank b{color:var(--fg);font-size:15px}

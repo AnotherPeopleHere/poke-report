@@ -331,27 +331,30 @@ $('#myLinks').addEventListener('click',e=>{ const b=e.target.closest('[data-rml]
 /* ---------- HOME WIDGETS ---------- */
 /* Championship Points: typed in by the user (Play! Pokémon has no public API), kept in the preferences with a short history */
 const cpData = () => App.prefs().cp || null;
+const LB = 'https://championships.pokemon.com/it-it/competitors/leaderboards?pillar=tcg&division=masters&region=global';
 let cpEditing = false;
 function cpWidget(){
   const d=cpData();
   const form = (d) => `<form class="cp-form" id="cpForm">
       <label>Punti TCG attuali<input id="cpTotal" type="number" min="0" inputmode="numeric" required placeholder="es. 245" value="${d?d.total:''}"></label>
+      <label>Posizione in classifica<input id="cpRank" type="number" min="1" inputmode="numeric" placeholder="facoltativa, es. 1520" value="${d&&d.rank||''}"></label>
       <label>Obiettivo<input id="cpGoal" type="number" min="1" inputmode="numeric" placeholder="facoltativo, es. 500" value="${d&&d.goal||''}"></label>
       <div class="cp-acts">${d?'<button type="button" class="btn small" data-cp="cancel">Annulla</button>':''}<button class="btn small primary" type="submit">Salva</button></div></form>
-    <p class="src" style="margin:6px 0 0">Li trovi nell’app o sul sito Play! Pokémon, nella sezione Championship Points del GCC.</p>`;
+    <p class="src" style="margin:6px 0 0">Li trovi nell’app Play! Pokémon o nella <a class="link" href="${LB}" target="_blank" rel="noopener">classifica ufficiale ↗</a>, cercando il tuo nome.</p>`;
   if(!d || cpEditing) return form(d);
   const h=d.history||[], prev=h.length>1?h[h.length-2]:null, diff=prev?d.total-prev.total:0, goal=+d.goal||0, pr=goal?Math.min(1,d.total/goal):0;
   return `<div class="cp-top"><div><span class="cp-n num">${d.total.toLocaleString('it-IT')}</span><span class="cp-u">CP</span></div>
       ${diff?`<span class="cp-diff ${diff>0?'up':'down'}">${diff>0?'+':''}${diff} dall’ultima volta</span>`:''}
       <button type="button" class="btn small" data-cp="edit" style="margin-left:auto">Aggiorna</button></div>
+    ${d.rank?`<div class="cp-rank">Posizione in classifica <b class="num">${(+d.rank).toLocaleString('it-IT')}°</b>${(()=>{ const pr=(d.history||[]).filter(x=>x.rank).slice(-2); if(pr.length<2) return ''; const dd=pr[0].rank-pr[1].rank; return dd? ` <span class="cp-diff ${dd>0?'up':'down'}">${dd>0?'↑ '+dd:'↓ '+(-dd)}</span>`:''; })()}</div>`:''}
     ${goal?`<div class="cp-bar" title="${Math.round(pr*100)}% dell’obiettivo"><b style="width:${pr*100}%"></b></div>
       <div class="cp-goal src">${d.total>=goal?'<b style="color:var(--ok)">Obiettivo raggiunto!</b>':`Mancano <b>${(goal-d.total).toLocaleString('it-IT')}</b> punti all’obiettivo di ${goal.toLocaleString('it-IT')}`}</div>`:''}
     ${h.length>1?`<div class="cp-spark">${(()=>{ const pts=h.slice(-8), mx=Math.max(...pts.map(x=>x.total),1); return pts.map(x=>`<i style="height:${Math.max(6,x.total/mx*100)}%" title="${fmtDate(x.date)}: ${x.total} CP"></i>`).join(''); })()}</div>`:''}
-    <p class="src" style="margin:4px 0 0">Aggiornati al ${fmtDate(d.updated)}</p>`;
+    <p class="src" style="margin:4px 0 0">Aggiornati al ${fmtDate(d.updated)} · <a class="link" href="${LB}" target="_blank" rel="noopener">classifica ufficiale ↗</a></p>`;
 }
-function cpSave(total, goal){
+function cpSave(total, goal, rank){
   const p=App.prefs(), today=new Date().toISOString().slice(0,10), d=p.cp||{history:[]};
-  d.total=total; d.goal=goal||null; d.updated=today; d.history=(d.history||[]).filter(x=>x.date!==today).concat([{date:today,total}]).slice(-24);
+  d.total=total; d.goal=goal||null; d.rank=rank||null; d.updated=today; d.history=(d.history||[]).filter(x=>x.date!==today).concat([rank?{date:today,total,rank}:{date:today,total}]).slice(-24);
   p.cp=d; App.Store.savePrefs(); cpEditing=false; renderHome(); App.toast('Championship Points salvati');
 }
 const W = {
@@ -404,7 +407,7 @@ function renderHome(){
   $('#wcat').innerHTML = Object.entries(W).filter(([id])=>!used.has(id)).map(([id,d])=>`<button type="button" data-addw="${id}"><b>+ ${esc(d.title)}</b><span>${esc(d.desc)}</span></button>`).join('') || '<p class="src">Hai già aggiunto tutti i widget.</p>';
 }
 $('#wgrid').addEventListener('submit',e=>{ if(e.target.id!=='cpForm') return; e.preventDefault();
-  const t=Math.max(0,Math.round(+$('#cpTotal').value||0)), g=Math.round(+$('#cpGoal').value||0); cpSave(t, g>0?g:null); });
+  const t=Math.max(0,Math.round(+$('#cpTotal').value||0)), g=Math.round(+$('#cpGoal').value||0), r=Math.round(+$('#cpRank').value||0); cpSave(t, g>0?g:null, r>0?r:null); });
 $('#wgrid').addEventListener('click',e=>{
   const cp=e.target.closest('[data-cp]'); if(cp){ cpEditing = cp.dataset.cp==='edit'; renderHome(); if(cpEditing) setTimeout(()=>{ const i=$('#cpTotal'); if(i){ i.focus(); i.select(); } },30); return; }
   const od=e.target.closest('[data-opendeck]'); if(od){ DL.openDeck(App.data.decks.find(d=>d.id===od.dataset.opendeck)); location.hash='deck'; return; }
