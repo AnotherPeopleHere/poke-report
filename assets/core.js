@@ -39,6 +39,10 @@ const canonT = t => { if(!t) return t;
   if(fromList){ if(t.deckName && archCanon(t.deckName)!==archCanon(fromList)) t.deckTyped=t.deckName; t.deckName=archCanon(fromList); }
   else if(t.deckName) t.deckName=archCanon(t.deckName); (t.rounds||[]).forEach(r=>{ if(r && r.opp) r.opp=archCanon(r.opp); }); return t; };
 
+// save pending preferences when the page is hidden or closed
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Store.flushPrefs(); });
+addEventListener('pagehide',()=>Store.flushPrefs());
+
 /* ---------- phone bottom navigation: "Altro" sheet ---------- */
 function bmoreOpen(open){ const m=document.getElementById('bmore'), b=document.getElementById('bnMore'); if(!m) return;
   if(open){ m.hidden=false; requestAnimationFrame(()=>m.classList.add('open')); } else { m.classList.remove('open'); setTimeout(()=>{ if(!m.classList.contains('open')) m.hidden=true; },220); }
@@ -113,11 +117,11 @@ const Store = {
   _pt:null,
   savePrefs(){
     clearTimeout(this._pt);
-    this._pt = setTimeout(()=>{
-      const snap = clone(App.data.prefs||{});
-      if(this.mode==='cloud') this.saveProfile({prefs:snap}); else ls.set('hub.prefs', snap);
-    }, 600);
+    this._pf = () => { this._pf=null; const snap = clone(App.data.prefs||{});
+      if(this.mode==='cloud') this.saveProfile({prefs:snap}); else ls.set('hub.prefs', snap); };
+    this._pt = setTimeout(()=>this._pf && this._pf(), 600);
   },
+  flushPrefs(){ clearTimeout(this._pt); if(this._pf) this._pf(); },
   /* group: members who share the same group code and their tournaments (row-level security decides what is visible) */
   async group(){
     if(this.mode!=='cloud' || !this.profile || !this.profile.group_code) return null;

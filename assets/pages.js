@@ -329,7 +329,33 @@ $('#linkForm').addEventListener('submit',e=>{ e.preventDefault(); const name=$('
 $('#myLinks').addEventListener('click',e=>{ const b=e.target.closest('[data-rml]'); if(!b) return; const p=App.prefs(); p.links.splice(+b.dataset.rml,1); App.Store.savePrefs(); renderAll(); });
 
 /* ---------- HOME WIDGETS ---------- */
+/* Championship Points: typed in by the user (Play! Pokémon has no public API), kept in the preferences with a short history */
+const cpData = () => App.prefs().cp || null;
+let cpEditing = false;
+function cpWidget(){
+  const d=cpData();
+  const form = (d) => `<form class="cp-form" id="cpForm">
+      <label>Punti TCG attuali<input id="cpTotal" type="number" min="0" inputmode="numeric" required placeholder="es. 245" value="${d?d.total:''}"></label>
+      <label>Obiettivo<input id="cpGoal" type="number" min="1" inputmode="numeric" placeholder="facoltativo, es. 500" value="${d&&d.goal||''}"></label>
+      <div class="cp-acts">${d?'<button type="button" class="btn small" data-cp="cancel">Annulla</button>':''}<button class="btn small primary" type="submit">Salva</button></div></form>
+    <p class="src" style="margin:6px 0 0">Li trovi nell’app o sul sito Play! Pokémon, nella sezione Championship Points del GCC.</p>`;
+  if(!d || cpEditing) return form(d);
+  const h=d.history||[], prev=h.length>1?h[h.length-2]:null, diff=prev?d.total-prev.total:0, goal=+d.goal||0, pr=goal?Math.min(1,d.total/goal):0;
+  return `<div class="cp-top"><div><span class="cp-n num">${d.total.toLocaleString('it-IT')}</span><span class="cp-u">CP</span></div>
+      ${diff?`<span class="cp-diff ${diff>0?'up':'down'}">${diff>0?'+':''}${diff} dall’ultima volta</span>`:''}
+      <button type="button" class="btn small" data-cp="edit" style="margin-left:auto">Aggiorna</button></div>
+    ${goal?`<div class="cp-bar" title="${Math.round(pr*100)}% dell’obiettivo"><b style="width:${pr*100}%"></b></div>
+      <div class="cp-goal src">${d.total>=goal?'<b style="color:var(--ok)">Obiettivo raggiunto!</b>':`Mancano <b>${(goal-d.total).toLocaleString('it-IT')}</b> punti all’obiettivo di ${goal.toLocaleString('it-IT')}`}</div>`:''}
+    ${h.length>1?`<div class="cp-spark">${(()=>{ const pts=h.slice(-8), mx=Math.max(...pts.map(x=>x.total),1); return pts.map(x=>`<i style="height:${Math.max(6,x.total/mx*100)}%" title="${fmtDate(x.date)}: ${x.total} CP"></i>`).join(''); })()}</div>`:''}
+    <p class="src" style="margin:4px 0 0">Aggiornati al ${fmtDate(d.updated)}</p>`;
+}
+function cpSave(total, goal){
+  const p=App.prefs(), today=new Date().toISOString().slice(0,10), d=p.cp||{history:[]};
+  d.total=total; d.goal=goal||null; d.updated=today; d.history=(d.history||[]).filter(x=>x.date!==today).concat([{date:today,total}]).slice(-24);
+  p.cp=d; App.Store.savePrefs(); cpEditing=false; renderHome(); App.toast('Championship Points salvati');
+}
 const W = {
+  cp:{title:'Championship Points', desc:'I tuoi punti Play! Pokémon del GCC e l’obiettivo', go:null, render:cpWidget},
   quick:{title:'Accesso rapido', desc:'Scorciatoie alle sezioni del sito', go:null, render:()=>`<div class="qlinks">
     <a href="#deck"><svg class="i"><use href="#i-grid"/></svg>Deck builder</a><a href="#tornei"><svg class="i"><use href="#i-trophy"/></svg>Registra un torneo</a>
     <a href="#meta"><svg class="i"><use href="#i-chart"/></svg>Meta report</a><a href="#news"><svg class="i"><use href="#i-news"/></svg>Notizie</a></div>`},
@@ -364,8 +390,10 @@ const W = {
   metafy:{title:'Coach e link', desc:'I tuoi link Metafy salvati', go:'#metafy', render:()=>{ const L=App.prefs().links||[];
     return L.length ? L.slice(0,5).map(l=>`<a class="btn small" style="margin:0 6px 6px 0" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)} ↗</a>`).join('') : `<p class="src">Salva i tuoi coach nella pagina <a class="link" href="#metafy">Metafy</a>.</p>`; }}
 };
-const DEFAULT = [{id:'quick'},{id:'deck'},{id:'perf'},{id:'reco'},{id:'meta'},{id:'news'},{id:'regionals'},{id:'recent'}];
-const layout = () => { const p=App.prefs(); if(!Array.isArray(p.widgets)) p.widgets = DEFAULT.map(x=>({...x})); p.widgets = p.widgets.filter(w=>W[w.id]); return p.widgets; };
+const DEFAULT = [{id:'quick'},{id:'cp'},{id:'deck'},{id:'perf'},{id:'reco'},{id:'meta'},{id:'news'},{id:'regionals'},{id:'recent'}];
+const layout = () => { const p=App.prefs(); if(!Array.isArray(p.widgets)) p.widgets = DEFAULT.map(x=>({...x}));
+  if(!p.cpOffered){ p.cpOffered=true; if(!p.widgets.some(w=>w.id==='cp')) p.widgets.splice(1,0,{id:'cp'}); }   // new widget: shown once to existing users too
+  p.widgets = p.widgets.filter(w=>W[w.id]); return p.widgets; };
 function renderHome(){
   const L = layout();
   $('#wgrid').innerHTML = L.map((w,i)=>{ const def=W[w.id]; let inner; try{ inner=def.render(); }catch(e){ inner='<p class="src">Contenuto non disponibile.</p>'; }
@@ -375,7 +403,10 @@ function renderHome(){
   const used = new Set(L.map(w=>w.id));
   $('#wcat').innerHTML = Object.entries(W).filter(([id])=>!used.has(id)).map(([id,d])=>`<button type="button" data-addw="${id}"><b>+ ${esc(d.title)}</b><span>${esc(d.desc)}</span></button>`).join('') || '<p class="src">Hai già aggiunto tutti i widget.</p>';
 }
+$('#wgrid').addEventListener('submit',e=>{ if(e.target.id!=='cpForm') return; e.preventDefault();
+  const t=Math.max(0,Math.round(+$('#cpTotal').value||0)), g=Math.round(+$('#cpGoal').value||0); cpSave(t, g>0?g:null); });
 $('#wgrid').addEventListener('click',e=>{
+  const cp=e.target.closest('[data-cp]'); if(cp){ cpEditing = cp.dataset.cp==='edit'; renderHome(); if(cpEditing) setTimeout(()=>{ const i=$('#cpTotal'); if(i){ i.focus(); i.select(); } },30); return; }
   const od=e.target.closest('[data-opendeck]'); if(od){ DL.openDeck(App.data.decks.find(d=>d.id===od.dataset.opendeck)); location.hash='deck'; return; }
   const b=e.target.closest('[data-wa]'); if(!b) return; const i=+b.closest('[data-w]').dataset.w, L=layout();
   if(b.dataset.wa==='up' && i>0) [L[i-1],L[i]]=[L[i],L[i-1]];
