@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-18.13">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-18.14">
 </head>
 <body>
 <div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
@@ -25,6 +25,7 @@
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
   <symbol id="i-auto" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 21h16"/></symbol>
@@ -268,7 +269,22 @@
 <dialog id="dlg"><form method="dialog" class="dlg" id="dlgBody"></form></dialog>
 <dialog id="dlg2"><form method="dialog" class="dlg" id="dlg2Body"></form></dialog>
 <div class="toast" id="toast" hidden></div>
-<button class="fab" id="fabQuick" type="button" aria-label="Registra una partita veloce" title="Partita veloce"><svg class="i"><use href="#i-plus"/></svg><span>Partita</span></button>
+<!-- phone: bottom navigation, like an app (Home in the middle, the other pages under "Altro") -->
+<nav class="bnav" id="bnav" aria-label="Sezioni">
+  <a href="#deck" data-p="deck"><svg class="i"><use href="#i-grid"/></svg><span>Mazzi</span></a>
+  <a href="#meta" data-p="meta"><svg class="i"><use href="#i-chart"/></svg><span>Meta</span></a>
+  <a href="#home" data-p="home" class="bn-home"><span class="bn-dot"><svg class="i"><use href="#i-home"/></svg></span><span>Home</span></a>
+  <a href="#tornei" data-p="tornei"><svg class="i"><use href="#i-trophy"/></svg><span>Tornei</span></a>
+  <button type="button" id="bnMore" aria-expanded="false" aria-controls="bmore"><svg class="i"><use href="#i-more"/></svg><span>Altro</span></button>
+</nav>
+<div class="bmore" id="bmore" hidden>
+  <div class="bmore-sheet" role="dialog" aria-label="Altre sezioni">
+    <a href="#gruppo" data-p="gruppo"><svg class="i"><use href="#i-group"/></svg><span>Gruppo</span><small>Partite e liste degli amici</small></a>
+    <a href="#news" data-p="news"><svg class="i"><use href="#i-news"/></svg><span>Notizie</span><small>Novità sul gioco</small></a>
+    <a href="#consigli" data-p="consigli"><svg class="i"><use href="#i-star"/></svg><span>Consigli</span><small>Mazzi in forma e pick esotiche</small></a>
+    <a href="#metafy" data-p="metafy"><svg class="i"><use href="#i-coach"/></svg><span>Metafy</span><small>Coach e link salvati</small></a>
+  </div>
+</div>
 
 <script src="assets/vendor/supabase-2.118.0.js"></script>
 <script src="assets/config.js"></script>
@@ -276,7 +292,7 @@
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD='2026-11-18.13';               // bump on every change to assets/ so browsers load the new files
+  const BUILD='2026-11-18.14';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));

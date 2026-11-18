@@ -269,7 +269,7 @@ function openQuick(){
 }
 $('#bTL').addEventListener('click', openImport);
 $('#bQuick').addEventListener('click', openQuick);
-$('#fabQuick').addEventListener('click', openQuick);
+
 App.openQuickMatch = openQuick;
 App.openTcgLiveImport = openImport;
 App.parseTcgLiveLog = parseLog;      // used by tests

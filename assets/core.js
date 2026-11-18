@@ -39,6 +39,16 @@ const canonT = t => { if(!t) return t;
   if(fromList){ if(t.deckName && archCanon(t.deckName)!==archCanon(fromList)) t.deckTyped=t.deckName; t.deckName=archCanon(fromList); }
   else if(t.deckName) t.deckName=archCanon(t.deckName); (t.rounds||[]).forEach(r=>{ if(r && r.opp) r.opp=archCanon(r.opp); }); return t; };
 
+/* ---------- phone bottom navigation: "Altro" sheet ---------- */
+function bmoreOpen(open){ const m=document.getElementById('bmore'), b=document.getElementById('bnMore'); if(!m) return;
+  if(open){ m.hidden=false; requestAnimationFrame(()=>m.classList.add('open')); } else { m.classList.remove('open'); setTimeout(()=>{ if(!m.classList.contains('open')) m.hidden=true; },220); }
+  if(b) b.setAttribute('aria-expanded', open); }
+document.addEventListener('click',e=>{
+  if(e.target.closest('#bnMore')){ bmoreOpen(document.getElementById('bmore').hidden); return; }
+  const m=document.getElementById('bmore'); if(m && !m.hidden && (e.target===m || e.target.closest('#bmore a'))) bmoreOpen(false);
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') bmoreOpen(false); });
+
 /* ---------- storage ---------- */
 const Store = {
   mode:'local', user:null, profile:null,
@@ -137,7 +147,9 @@ function route(){
   if(!PAGES.includes(p)) p='home';
   App.page = p;
   document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on', s.dataset.page===p));
-  document.querySelectorAll('#sitenav a').forEach(a=>{ if(a.dataset.p===p) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('#sitenav a, #bnav a, #bmore a').forEach(a=>{ if(a.dataset.p===p) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  const more=document.getElementById('bnMore'); if(more){ more.classList.toggle('on', ['gruppo','news','consigli','metafy'].includes(p)); }
+  bmoreOpen(false);
   document.body.classList.toggle('on-deck', p==='deck');
   moveIndicator(true);
   App.emit('page');
