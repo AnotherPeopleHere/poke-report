@@ -869,3 +869,4 @@ body:not(.on-deck){padding-bottom:max(90px,calc(16px + env(safe-area-inset-botto
 .trow.flash{animation:trowFlash 1.6s ease-out}
 @keyframes trowFlash{0%,30%{box-shadow:0 0 0 2px var(--accent);background:var(--accent-soft)}100%{box-shadow:none}}
 @media (prefers-reduced-motion:reduce){ .trow.flash{animation:none;box-shadow:0 0 0 2px var(--accent)} }
+.gtbl td .arch{display:flex;align-items:center}
