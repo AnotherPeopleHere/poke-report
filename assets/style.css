@@ -572,7 +572,8 @@ button.sync:hover{border-color:var(--accent)}
 .gtbl td.good,.kpis b.good{color:var(--ok);font-weight:700}
 .gtbl td.bad,.kpis b.bad{color:var(--bad);font-weight:700}
 .gtbl td.muted{color:var(--muted)}
-.gtbl tr.tot td{font-weight:700;background:var(--sunk)}
+.gtbl tr.tot td{font-weight:700;background:var(--accent-soft);border-bottom:2px solid var(--accent)}
+.gtbl tr.tot td:first-child{box-shadow:inset 3px 0 0 var(--accent);text-transform:uppercase;letter-spacing:.05em;font-size:.86em}
 .gtbl tr.pick{cursor:pointer;transition:background .15s}
 .gtbl tr.pick:hover td{background:var(--accent-soft)}
 .gsub{font-family:var(--display);font-size:16px;margin:16px 0 6px}
@@ -620,7 +621,10 @@ dialog[open]::backdrop{animation:fadeIn .26s ease}
   .tbl.stack td:first-child{grid-column:1/-1;font-size:14px}
   .tbl.stack td:first-child::before,.tbl.stack td[data-l=""]::before{display:none}
   .tbl.stack td:empty{display:none}
-  .tbl.stack tr.tot,.tbl.stack tr.me{background:var(--sunk)}
+  .tbl.stack tr.me{background:var(--sunk)}
+  .tbl.stack tr.tot{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+  .tbl.stack tr.tot td{background:transparent;border-bottom:0}
+  .tbl.stack tr.tot td:first-child{box-shadow:none}
   .tbl.stack tr.pick:hover{background:var(--accent-soft)}
   .tbl.stack td .btn{margin-top:2px}
   .tbl-wrap:has(> .tbl.stack){overflow:visible}
