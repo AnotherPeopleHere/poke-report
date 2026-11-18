@@ -671,7 +671,25 @@ function archOf(keys, typed){
     if(!best || score>best.score) best={name:a.name, score}; });
   return best ? best.name : '';
 }
-window.DeckLab = { archOf, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
+/* pixel sprites for an archetype name (tournament pages): its key Pokémon from the Limitless data */
+const META_ARCHS = (()=>{ try{ return JSON.parse(document.getElementById('metaData').textContent)||[]; }catch(e){ return []; } })();
+const ICON_CARD = new Map();
+function iconCard(icon){
+  if(ICON_CARD.has(icon)) return ICON_CARD.get(icon);
+  const [base,...mods]=icon.split('-'), mega=mods.includes('mega'), extra=mods.filter(m=>m!=='mega');
+  const c = CARDS.filter(c=>{ if(c.sup!=='P') return false; const w=nameWords(c.name); return w.includes(base) && mega===w.includes('mega') && extra.every(t=>w.some(x=>x.startsWith(t))); })
+    .sort((a,b)=>(b.sub.includes('ex')-a.sub.includes('ex')) || a.name.length-b.name.length)[0] || null;
+  ICON_CARD.set(icon,c); return c;
+}
+const ARCH_SPR = new Map();
+function archSprites(name){
+  const k=App.archKey(App.archCanon(name||'')); if(!k) return '';
+  if(ARCH_SPR.has(k)) return ARCH_SPR.get(k);
+  const a=[...META_ARCHS, ...ARCHS].find(x=>App.archKey(App.archCanon(x.name))===k);
+  const html = a ? (a.icons||[]).slice(0,2).map(iconCard).filter(Boolean).map(spriteImg).join('') : '';
+  ARCH_SPR.set(k,html); return html;
+}
+window.DeckLab = { archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';

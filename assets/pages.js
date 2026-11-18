@@ -11,7 +11,8 @@ function fmtDate(d){ if(!d) return ''; const [y,m,dd] = d.split('-'); return (dd
 const pct = (p,dec=1) => (p*100).toLocaleString('it-IT',{maximumFractionDigits:dec,minimumFractionDigits:dec})+'%';
 function hue(s){ let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))%360; return h; }
 const avatar = (name, size) => `<span class="av" style="background:hsl(${hue(name)} 55% 45%)${size?`;width:${size}px;height:${size}px`:''}">${esc(name.replace(/^(Mega |N's |Rocket's |Marnie's |Cynthia's |Hop's |Lillie's )/,'').charAt(0))}</span>`;
-const archLink = (name, url) => `<span class="arch">${avatar(name)}${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>`:`<span class="t">${esc(name)}</span>`}</span>`;
+const archIcon = name => { const h=DL.archSprites ? DL.archSprites(name) : ''; return h ? `<span class="dsp">${h}</span>` : avatar(name); };
+const archLink = (name, url) => `<span class="arch">${archIcon(name)}${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>`:`<span class="t">${esc(name)}</span>`}</span>`;
 const metaUrl = name => { const m = META.find(x=>x.name.toLowerCase()===String(name).toLowerCase()); return m ? m.url : ''; };
 
 /* ---------- META ---------- */

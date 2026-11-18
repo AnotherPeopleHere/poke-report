@@ -842,3 +842,8 @@ body:not(.on-deck){padding-bottom:max(90px,calc(16px + env(safe-area-inset-botto
 #regBody .tbl td{padding:4px 6px;height:40px}
 #regBody .tbl td .arch,.reg-top .arch{display:flex;align-items:center}
 .reg-top li{padding:4px 2px;min-height:40px;font-size:13px}
+
+/* archetype pixel sprites next to names (tournaments, widgets) */
+.dsp{display:inline-flex;align-items:center;flex:none;min-width:26px;height:26px}
+.dsp .spr{width:36px;height:36px;object-fit:contain;image-rendering:pixelated;margin:-5px -9px -5px -7px}
+.dsp:empty{width:26px;border-radius:50%;background:var(--sunk)}
