@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-18.10">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-18.11">
 </head>
 <body>
 <div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
@@ -230,11 +230,11 @@
     <select id="tPeriod" aria-label="Periodo"><option value="">Sempre</option><option value="90">Ultimi 3 mesi</option><option value="365">Ultimi 12 mesi</option><option value="season">Stagione 2026-27</option></select></div>
   <div class="kpis" id="tKpis"></div>
   <div class="cols">
-    <div class="panel"><h3>Percentuale di vittorie per torneo</h3><div id="tTrend"></div></div>
     <div class="panel"><h3>Rendimento per mazzo</h3><div class="tbl-wrap"><table class="tbl stack" id="tDecks"></table></div></div>
     <div class="panel"><h3>Matchup <span class="meta">contro gli archetipi avversari</span></h3><div class="tbl-wrap"><table class="tbl stack" id="tMatch"></table></div></div>
+    <div class="panel"><h3>Ultimi risultati <span class="meta" id="tLastMeta"></span></h3><div id="tLast"></div></div>
   </div>
-  <h3 style="font-family:var(--display);font-size:20px;margin:6px 0 0">Storico</h3>
+  <h3 id="tStorico" style="font-family:var(--display);font-size:20px;margin:6px 0 0;scroll-margin-top:80px">Storico</h3>
   <div class="tlist" id="tList"></div>
 </section>
 
@@ -276,7 +276,7 @@
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD='2026-11-18.10';               // bump on every change to assets/ so browsers load the new files
+  const BUILD='2026-11-18.11';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));

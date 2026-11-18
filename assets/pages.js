@@ -182,17 +182,24 @@ function renderTornei(){
     <div><span>Miglior piazzamento</span><b>${s.best?esc(s.best.placement)+'°':'—'}</b><small>${s.best?esc(s.best.name):'registra la posizione finale'}</small></div>`;
   if(!App.data.tournaments.length){
     const empty = `<div class="empty-state"><b>Nessun torneo registrato</b>Premi “Nuovo torneo” per aggiungere il primo: mazzo, round e risultato.</div>`;
-    $('#tTrend').innerHTML = empty; $('#tDecks').innerHTML=''; $('#tMatch').innerHTML=''; $('#tList').innerHTML = '';
+    $('#tLast').innerHTML = empty; $('#tLastMeta').textContent=''; $('#tDecks').innerHTML=''; $('#tMatch').innerHTML=''; $('#tList').innerHTML = '';
     return;
   }
-  const chrono = list.slice().reverse().slice(-20);
-  $('#tTrend').innerHTML = chrono.length ? `<div class="trend">${chrono.map(t=>{ const r=record(t), p=wr(r); return `<div style="height:${Math.max(2,p*100)}%;background:${p>=.55?'var(--ok)':p<.45?'var(--bad)':'var(--accent)'}" title="${esc(t.name)}: ${recStr(r)}"><span>${games(r)?Math.round(p*100):'–'}</span></div>`; }).join('')}</div>
-    <div class="trend-l">${chrono.map(t=>`<span>${t.date.slice(8,10)}/${t.date.slice(5,7)}</span>`).join('')}</div>` : '<p class="src">Nessun torneo nel filtro scelto.</p>';
+  // the latest results, compact; the full history is further down
+  const LAST=6, last=list.slice(0,LAST);
+  $('#tLastMeta').textContent = list.length>LAST ? `${LAST} di ${list.length}` : '';
+  $('#tLast').innerHTML = last.length ? `<ul class="tlast">${last.map(t=>{ const r=record(t), p=wr(r), n=games(r), [y,m,d]=t.date.split('-');
+      return `<li><button type="button" data-goto-t="${esc(t.id)}" title="Apri nello storico">
+        <span class="tl-d"><b>${+d}</b>${MONTHS[+m-1]}</span>
+        <span class="tl-m"><span class="tl-n">${esc(t.name)}</span><span class="tl-s">${archIcon(t.deckName||'—')}<span>${esc(t.deckName||'—')}</span>${t.placement?` · ${esc(t.placement)}°`:''}</span></span>
+        <span class="tl-r ${!n?'':p>=.55?'good':p<.45?'bad':''}"><b class="num">${recStr(r)}</b><small>${n?pct(p,0):'—'}</small></span></button></li>`; }).join('')}</ul>
+      <button type="button" class="btn small tl-all" id="tToList">Vai allo storico completo${list.length>LAST?` (${list.length})`:''} ↓</button>`
+    : '<p class="src">Nessun torneo nel filtro scelto.</p>';
   $('#tDecks').innerHTML = s.byDeck.length ? `<thead><tr><th>Mazzo</th><th class="n">Tornei</th><th class="n">Record</th><th class="n">Vittorie</th><th class="n">Top</th></tr></thead><tbody>${s.byDeck.map(d=>`<tr><td>${archLink(d.name||'—',metaUrl(d.name))}</td><td class="n">${d.n}</td><td class="n">${recStr(d)}</td>${wrCell(d)}<td class="n">${d.best?d.best+'°':'—'}</td></tr>`).join('')}</tbody>` : '';
   $('#tMatch').innerHTML = s.byOpp.length ? `<thead><tr><th>Avversario</th><th class="n">Round</th><th class="n">Record</th><th class="n">Vittorie</th><th class="n">Game</th></tr></thead><tbody>${s.byOpp.map(o=>`<tr><td>${archLink(o.name,metaUrl(o.name))}</td><td class="n">${games(o)}</td><td class="n">${recStr(o)}</td>${wrCell(o)}<td class="n">${o.gW+o.gL+o.gT?o.gW+'-'+o.gL+'-'+o.gT:'—'}</td></tr>`).join('')}</tbody>`
     : '<tbody><tr><td class="src">Registra i round con l\'archetipo avversario per vedere i matchup.</td></tr></tbody>';
   $('#tList').innerHTML = list.map(t=>{ const r=record(t), [y,m,d]=t.date.split('-');
-    return `<div class="trow"><div class="date"><b>${+d}</b>${MONTHS[+m-1]} ${y.slice(2)}</div>
+    return `<div class="trow" data-tid="${esc(t.id)}"><div class="date"><b>${+d}</b>${MONTHS[+m-1]} ${y.slice(2)}</div>
       <div style="min-width:0"><h4>${esc(t.name)}</h4><div class="sub"><span class="badge">${esc(t.type)}</span>${archLink(t.deckName||'—','')}${t.placement?`<span>${esc(t.placement)}°${t.players?' su '+esc(t.players):''}</span>`:''}${t.topcut?'<span class="badge w">Top cut</span>':''}</div>
         ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `<span class="res-pill ${rr}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${GL[rr]}${gt?' · '+esc(gt):''}">${GL[rr]}</span>`; }).join('')}</div>`) : ''}
         ${t.notes?`<div class="sub" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div>
@@ -200,6 +207,13 @@ function renderTornei(){
         <div class="ops"><button class="btn small" type="button" data-edit="${esc(t.id)}">Modifica</button><button class="btn small" type="button" data-del="${esc(t.id)}">Elimina</button></div></div></div>`; }).join('') || '<p class="src">Nessun torneo nel filtro scelto.</p>';
 }
 ['#tFilter','#tPeriod'].forEach(s=>$(s).addEventListener('change',renderTornei));
+// "Ultimi risultati": jump to the history, or to one tournament in it (briefly highlighted)
+$('#tLast').addEventListener('click',e=>{
+  if(e.target.closest('#tToList')){ $('#tStorico').scrollIntoView({behavior:'smooth',block:'start'}); return; }
+  const b=e.target.closest('[data-goto-t]'); if(!b) return;
+  const row=document.querySelector(`#tList .trow[data-tid="${CSS.escape(b.dataset.gotoT)}"]`); if(!row) return;
+  row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+});
 $('#tList').addEventListener('click',async e=>{
   const ed=e.target.closest('[data-edit]'); if(ed){ openTournament(App.data.tournaments.find(t=>t.id===ed.dataset.edit)); return; }
   const de=e.target.closest('[data-del]'); if(!de) return;
