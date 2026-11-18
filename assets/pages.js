@@ -68,24 +68,50 @@ function renderRegional(){
 $('#regSel').addEventListener('change',e=>{ regPick=e.target.value; renderRegional(); });
 /* card trends inside each deck (online lists, this week against the week before) */
 function renderTrends(){
-  const list=(RECO_M.archetypes||[]).filter(a=>a.cards && (a.cards.up.length||a.cards.down.length)).sort((a,b)=>b.share7-a.share7).slice(0,12);
+  const list=(RECO_M.archetypes||[]).filter(a=>a.cards && (a.cards.up.length||a.cards.down.length)).sort((a,b)=>b.share7-a.share7);
   if(!list.length){ $('#trendPanel').hidden=true; return; }
   $('#trendPanel').hidden=false;
   if(!trendPick || !list.some(a=>a.id===trendPick)) trendPick=list[0].id;
   $('#trendMeta').textContent = 'quanto spesso una carta è nelle liste, questa settimana contro la precedente · tornei online';
-  $('#trendPills').innerHTML = list.map(a=>`<button type="button" role="tab" data-tp="${esc(a.id)}" aria-selected="${a.id===trendPick}">${sprites(a.icons,a.name)}<span>${esc(a.name)}</span></button>`).join('');
-  const a=list.find(x=>x.id===trendPick), c=a.cards, d=a.sharePrev==null?null:a.share7-a.sharePrev;
+  const a=list.find(x=>x.id===trendPick);
+  const delta = x => x.sharePrev==null ? '' : (d => Math.abs(d)<.005 ? '<span class="utr flat">–</span>' : `<span class="utr ${d>0?'up':'down'}">${d>0?'↗':'↘'}</span>`)(x.share7-x.sharePrev);
+  $('#trendDrop').innerHTML = `<button type="button" class="adrop-btn" aria-haspopup="listbox" aria-expanded="false">${sprites(a.icons,a.name)}<span class="nm">${esc(a.name)}</span><span class="sh">${pct(a.share7,1)} del meta</span></button>
+    <div class="adrop-menu" hidden><input type="search" class="adrop-q" placeholder="Cerca un archetipo…" aria-label="Cerca un archetipo">
+      <ul role="listbox" aria-label="Archetipo">${list.map(x=>`<li role="option" tabindex="-1" data-tp="${esc(x.id)}" data-q="${esc(x.name.toLowerCase())}" aria-selected="${x.id===trendPick}">${sprites(x.icons,x.name)}<span class="nm">${esc(x.name)}</span>${delta(x)}<span class="sh">${pct(x.share7,1)}</span></li>`).join('')}</ul>
+      <p class="adrop-none src" hidden>Nessun archetipo trovato.</p></div>`;
+  const c=a.cards, d=a.sharePrev==null?null:a.share7-a.sharePrev;
   const tile = r => { const card=DL.BY_KEY.get(r.set+'-'+r.num) || DL.byName(r.name);
     const face = card ? DL.cardFace(card,'',{inner:`<span class="tc-d ${r.delta>0?'up':'down'}">${r.delta>0?'↑ +':'↓ −'}${Math.round(Math.abs(r.delta)*100)}%</span>`}) : `<div class="card tc-miss"><span>${esc(r.name)}</span></div>`;
     return `<div class="tc" title="${esc(r.name)}: ${pct(r.prev,0)} → ${pct(r.now,0)} delle liste${r.avg?` · ${String(r.avg).replace('.',',')} copie in media`:''}">${face}
       <div class="tc-n"><span>${esc(r.name)}</span><small>${pct(r.now,0)} delle liste</small></div></div>`; };
   const group = (label, rows, cls) => rows.length ? `<div class="tc-grp"><h4 class="${cls}">${label}</h4><div class="tc-grid">${rows.map(tile).join('')}</div></div>` : '';
-  $('#trendBody').innerHTML = `<div class="tc-head">${archS(a.name,a.icons,a.url)}
+  $('#trendBody').innerHTML = `<div class="tc-head"><a class="link" href="${esc(a.url)}" target="_blank" rel="noopener">Liste su Limitless ↗</a>
       ${d==null?'':`<span class="tc-share">utilizzo ${pct(a.sharePrev,1)} → ${pct(a.share7,1)} <b class="${d>=0?'good':'bad'}">${d>=0?'↑ +':'↓ −'}${(Math.abs(d)*100).toLocaleString('it-IT',{maximumFractionDigits:1})}</b></span>`}
       <span class="src">${c.lists} liste questa settimana, ${c.listsPrev} la precedente</span></div>
     <div class="tc-cols">${group('In crescita', c.up, 'up')}${group('In calo', c.down, 'down')}</div>`;
 }
-$('#trendPills').addEventListener('click',e=>{ const b=e.target.closest('[data-tp]'); if(!b) return; trendPick=b.dataset.tp; renderTrends(); });
+/* archetype picker: a dropdown with sprites, usage and a search box */
+const dropEl = () => $('#trendDrop');
+function dropOpen(open){ const d=dropEl(), m=d.querySelector('.adrop-menu'), b=d.querySelector('.adrop-btn'); if(!m) return;
+  m.hidden=!open; b.setAttribute('aria-expanded',open); d.classList.toggle('open',open);
+  if(open){ const q=m.querySelector('.adrop-q'); q.value=''; m.querySelectorAll('li').forEach(li=>li.hidden=false); m.querySelector('.adrop-none').hidden=true;
+    const sel=m.querySelector('[aria-selected="true"]'); if(sel) sel.scrollIntoView({block:'nearest'}); if(matchMedia('(hover:hover)').matches) q.focus(); } }
+$('#trendDrop').addEventListener('click',e=>{
+  if(e.target.closest('.adrop-btn')){ dropOpen(dropEl().querySelector('.adrop-menu').hidden); return; }
+  const li=e.target.closest('[data-tp]'); if(li){ trendPick=li.dataset.tp; dropOpen(false); renderTrends(); dropEl().querySelector('.adrop-btn').focus(); }
+});
+$('#trendDrop').addEventListener('input',e=>{ if(!e.target.classList.contains('adrop-q')) return; const q=e.target.value.trim().toLowerCase(); let n=0;
+  dropEl().querySelectorAll('li').forEach(li=>{ const ok=!q||li.dataset.q.includes(q); li.hidden=!ok; if(ok) n++; }); dropEl().querySelector('.adrop-none').hidden=!!n; });
+$('#trendDrop').addEventListener('keydown',e=>{
+  const m=dropEl().querySelector('.adrop-menu'); if(!m) return;
+  if(e.key==='Escape' && !m.hidden){ dropOpen(false); dropEl().querySelector('.adrop-btn').focus(); e.preventDefault(); return; }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ if(m.hidden){ dropOpen(true); e.preventDefault(); return; }
+    const items=[...m.querySelectorAll('li:not([hidden])')], i=items.indexOf(document.activeElement);
+    const nx=items[e.key==='ArrowDown' ? Math.min(items.length-1,i+1) : Math.max(0,i-1)]; if(nx){ nx.focus(); e.preventDefault(); } }
+  if(e.key==='Enter'){ const li=document.activeElement.closest&&document.activeElement.closest('li[data-tp]') || (document.activeElement.classList.contains('adrop-q') && m.querySelector('li:not([hidden])'));
+    if(li){ e.preventDefault(); li.click(); } }
+});
+document.addEventListener('click',e=>{ if(!e.target.closest('#trendDrop')) dropOpen(false); });
 $('#metaMore').addEventListener('click',()=>{ metaAll=!metaAll; renderMeta(); });
 
 /* ---------- NEWS ---------- */
