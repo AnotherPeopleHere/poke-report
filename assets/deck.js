@@ -203,36 +203,38 @@ function kindGrid(cards){
   return byKind(cards).map(s=>`<div class="st-sec"><b>${s.label} <span class="hint num">${s.n}</span></b><div class="grid kgrid">${s.items.map(({c,q})=>cardFace(c,'',{inner:`<span class="q">${q}</span>`})).join('')}</div></div>`).join('');
 }
 /* PNG of the deck: card scans in sections, with the number of copies on each card */
-async function deckImage(cards, title, sub){
-  const secs=byKind(cards), COLS=10, CW=175, CH=244, GAP=12, PAD=36, HEAD=96, LAB=46;
-  const W=PAD*2+COLS*CW+(COLS-1)*GAP;
-  let H=PAD+HEAD; secs.forEach(s=>{ const rows=Math.ceil(s.items.length/COLS); H+=LAB+rows*CH+(rows-1)*GAP+22; }); H+=PAD+10;
-  const load = c => !imOf(c) ? Promise.resolve(null) : fetch(imgUrl(c,false),{mode:'cors',cache:'reload'}).then(r=>{ if(!r.ok) throw 0; return r.blob(); }).then(b=>createImageBitmap(b)).catch(()=>null);
-  const uniq=[...new Set(secs.flatMap(s=>s.items.map(x=>x.c)))], imgs=new Map(await Promise.all(uniq.map(async c=>[c.key, await load(c)])));
-  const DISP=getComputedStyle(document.documentElement).getPropertyValue('--display').trim()||'sans-serif', BODY=getComputedStyle(document.documentElement).getPropertyValue('--body').trim()||'sans-serif';
+async function deckImage(cards){
+  // 16:9 picture, minimal: dark background, cards in kind order (Pokémon, Supporters, Items, Tools, Stadiums, Energy),
+  // centred rows, the number of copies in a hexagon badge on each card
+  const items=byKind(cards).flatMap(s=>s.items), n=items.length, W=1920, H=1080, PAD=56, GAP=10, R=88/63;
+  let best={cw:0,cols:8};
+  for(let cols=4; cols<=16; cols++){ const rows=Math.ceil(n/cols); const cw=Math.min((W-2*PAD-(cols-1)*GAP)/cols, (H-2*PAD-(rows-1)*GAP)/rows/R); if(cw>best.cw) best={cw,cols}; }
+  const cols=best.cols, cw=Math.floor(best.cw), ch=Math.round(cw*R), rows=Math.ceil(n/cols);
+  const load = c => !imOf(c) ? Promise.resolve(null) : fetch(imgUrl(c,cw>200),{mode:'cors',cache:'reload'}).then(r=>{ if(!r.ok) throw 0; return r.blob(); }).then(b=>createImageBitmap(b)).catch(()=>null);
+  const imgs=await Promise.all(items.map(x=>load(x.c)));
+  const DISP=getComputedStyle(document.documentElement).getPropertyValue('--display').trim()||'sans-serif';
   const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+  x.fillStyle='#1b1b1e'; x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(255,255,255,.035)';   // faint diamond texture
+  for(let yy=0; yy<H+24; yy+=24) for(let xx=(yy/24)%2?12:0; xx<W+24; xx+=24){ x.beginPath(); x.moveTo(xx,yy-5); x.lineTo(xx+5,yy); x.lineTo(xx,yy+5); x.lineTo(xx-5,yy); x.fill(); }
   const rr=(px,py,w,h,r)=>{ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); };
-  x.fillStyle='#11131b'; x.fillRect(0,0,W,H);
-  x.fillStyle='#ffffff'; x.font=`800 40px ${DISP}`; x.textBaseline='alphabetic'; x.fillText(title||'Mazzo',PAD,PAD+42);
-  x.fillStyle='#9aa3b5'; x.font=`500 20px ${BODY}`; x.fillText(sub||'',PAD,PAD+76);
-  x.textAlign='right'; x.fillStyle='#ffd34f'; x.font=`800 22px ${DISP}`; x.fillText('Poke Report',W-PAD,PAD+42); x.textAlign='left';
-  let y=PAD+HEAD;
-  secs.forEach(s=>{
-    x.fillStyle='#ffffff'; x.font=`700 24px ${DISP}`; x.fillText(s.label,PAD,y+28);
-    const lw=x.measureText(s.label).width; x.fillStyle='#9aa3b5'; x.font=`600 20px ${BODY}`; x.fillText(String(s.n),PAD+lw+12,y+28);
-    y+=LAB;
-    s.items.forEach(({c,q},i)=>{
-      const cx=PAD+(i%COLS)*(CW+GAP), cy=y+Math.floor(i/COLS)*(CH+GAP), im=imgs.get(c.key);
-      x.save(); rr(cx,cy,CW,CH,9); x.clip();
-      if(im) x.drawImage(im,cx,cy,CW,CH);
-      else { x.fillStyle='#2a2f3d'; x.fillRect(cx,cy,CW,CH); x.fillStyle='#fff'; x.font=`700 17px ${DISP}`;
-        const words=c.name.split(' '); let line='', ly=cy+34; words.forEach(w=>{ if(x.measureText(line+w).width>CW-20 && line){ x.fillText(line.trim(),cx+10,ly); ly+=22; line=''; } line+=w+' '; }); x.fillText(line.trim(),cx+10,ly);
-        x.fillStyle='#9aa3b5'; x.font=`500 14px ${BODY}`; x.fillText(artOf(c)[0]+' '+artOf(c)[1],cx+10,cy+CH-14); }
-      x.restore();
-      const bx=cx+CW-30, by=cy+CH-30; x.beginPath(); x.arc(bx,by,21,0,Math.PI*2); x.fillStyle='rgba(12,14,20,.92)'; x.fill(); x.lineWidth=2.5; x.strokeStyle='#ffd34f'; x.stroke();
-      x.fillStyle='#fff'; x.font=`800 22px ${DISP}`; x.textAlign='center'; x.fillText(String(q),bx,by+8); x.textAlign='left';
-    });
-    const rows=Math.ceil(s.items.length/COLS); y+=rows*CH+(rows-1)*GAP+22;
+  const top=Math.round((H-(rows*ch+(rows-1)*GAP))/2), rad=Math.max(4,cw*.045);
+  items.forEach(({c,q},i)=>{
+    const row=Math.floor(i/cols), inRow=Math.min(cols,n-row*cols), col=i%cols;
+    const left=Math.round((W-(inRow*cw+(inRow-1)*GAP))/2), cx=left+col*(cw+GAP), cy=top+row*(ch+GAP), im=imgs[i];
+    x.save(); x.shadowColor='rgba(0,0,0,.45)'; x.shadowBlur=10; x.shadowOffsetY=3; rr(cx,cy,cw,ch,rad); x.fillStyle='#2a2b31'; x.fill(); x.restore();
+    x.save(); rr(cx,cy,cw,ch,rad); x.clip();
+    if(im) x.drawImage(im,cx,cy,cw,ch);
+    else { x.fillStyle='#fff'; x.font=`700 ${Math.round(cw*.1)}px ${DISP}`; const words=c.name.split(' '); let line='', ly=cy+cw*.18;
+      words.forEach(w=>{ if(x.measureText(line+w).width>cw*.84 && line){ x.fillText(line.trim(),cx+cw*.08,ly); ly+=cw*.13; line=''; } line+=w+' '; }); x.fillText(line.trim(),cx+cw*.08,ly); }
+    x.restore();
+    // hexagon badge, centred near the bottom of the card
+    const hr=cw*.17, hx=cx+cw/2, hy=cy+ch*.83;
+    x.beginPath(); for(let k=0;k<6;k++){ const a=Math.PI/3*k-Math.PI/2; x.lineTo(hx+hr*Math.cos(a), hy+hr*Math.sin(a)); } x.closePath();
+    const gr=x.createLinearGradient(0,hy-hr,0,hy+hr); gr.addColorStop(0,'#c8333f'); gr.addColorStop(1,'#8e1d27'); x.fillStyle=gr;
+    x.save(); x.shadowColor='rgba(0,0,0,.5)'; x.shadowBlur=8; x.fill(); x.restore();
+    x.lineWidth=Math.max(1.5,cw*.012); x.strokeStyle='rgba(255,255,255,.85)'; x.stroke();
+    x.fillStyle='#fff'; x.font=`800 ${Math.round(hr*1.15)}px ${DISP}`; x.textAlign='center'; x.textBaseline='middle'; x.fillText(String(q),hx,hy+hr*.06); x.textAlign='left'; x.textBaseline='alphabetic';
   });
   return new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('png')),'image/png'));
 }
@@ -241,7 +243,7 @@ const fileName = n => (String(n||'mazzo').normalize('NFD').replace(/[\u0300-\u03
 function imagePanel(el, cards, title, sub){
   el.innerHTML=`<div class="ex-prev"><span class="hint">Preparo l'immagine…</span></div>
     <div class="row"><span class="hint ex-msg"></span><button type="button" class="btn ex-share" hidden>Condividi</button><button type="button" class="btn primary ex-dl" disabled>Scarica immagine</button></div>`;
-  deckImage(cards,title,sub).then(blob=>{
+  deckImage(cards).then(blob=>{
     const url=URL.createObjectURL(blob), file=new File([blob],fileName(title),{type:'image/png'});
     el.querySelector('.ex-prev').innerHTML=`<img src="${url}" alt="Immagine del mazzo ${esc(title)}">`;
     const dl=el.querySelector('.ex-dl'); dl.disabled=false;
