@@ -870,3 +870,12 @@ body:not(.on-deck){padding-bottom:max(90px,calc(16px + env(safe-area-inset-botto
 @keyframes trowFlash{0%,30%{box-shadow:0 0 0 2px var(--accent);background:var(--accent-soft)}100%{box-shadow:none}}
 @media (prefers-reduced-motion:reduce){ .trow.flash{animation:none;box-shadow:0 0 0 2px var(--accent)} }
 .gtbl td .arch{display:flex;align-items:center}
+
+/* top cut: options in the form, divider in the history */
+.cut-more{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-4px}
+.cut-more[hidden]{display:none}
+.cut-sep{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px 0 9px;margin:0 2px 0 4px;border-left:2px solid var(--accent);font:700 10.5px var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+.mlist .cut-li{list-style:none;display:flex;align-items:center;gap:8px;margin:2px 0}
+.mlist .cut-li::after{content:'';flex:1;height:1px;background:var(--accent);opacity:.5}
+.mlist .cut-li .cut-sep{border-left:0;padding:0;margin:0}
+@media (max-width:560px){ .cut-more{grid-template-columns:1fr} }
