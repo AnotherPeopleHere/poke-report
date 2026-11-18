@@ -10,7 +10,7 @@ const memberBy = x => cache && cache.members.find(m=>m.id===x || (m.display_name
 const av = n => { const m=memberBy(n); return App.avatar(m ? (m.display_name||'Amico') : n, m && m.avatar_url); };
 const key = s => App.archKey(s);
 let cache = null, loading = false;
-const F = {player:'', deck:'', period:'', bo:'', arch:'', side:'played', tab:'over', fopen:false};   // filters and explorer state (kept for the visit)
+const F = {player:'', deck:'', period:'', bo:'', src:'', arch:'', side:'played', tab:'over', fopen:false};   // filters and explorer state (kept for the visit)
 
 function state(html){ $('#gBody').innerHTML = html; }
 async function load(){
@@ -27,6 +27,11 @@ async function load(){
 }
 
 /* ---------- data shaping ---------- */
+// TCG Live sessions (imported logs and quick matches) are not real tournaments: they are counted apart
+const isLive = t => t.type==='TCG Live';
+const realT = list => list.filter(t=>!isLive(t));
+const liveN = list => list.length - realT(list).length;
+const nT = (n,live) => !n && live ? `${live} live` : `${n} ${n===1?'torneo':'tornei'}${live?` <span class="src">+ ${live} live</span>`:''}`;
 const nameOf = id => { const m=cache.members.find(x=>x.id===id); return (m && m.display_name) || 'Amico'; };
 function inPeriod(date){
   if(!F.period) return true;
@@ -42,7 +47,7 @@ function roundsOf(list){
   return out;
 }
 function filteredTournaments(){
-  return cache.tournaments.filter(t => (!F.player || t.user_id===F.player) && (!F.deck || key(t.deckName)===key(F.deck)) && inPeriod(t.date));
+  return cache.tournaments.filter(t => (!F.src || (F.src==='live')===isLive(t)) && (!F.player || t.user_id===F.player) && (!F.deck || key(t.deckName)===key(F.deck)) && inPeriod(t.date));
 }
 function filteredRounds(){ return roundsOf(filteredTournaments()).filter(r => !F.bo || r.bo===F.bo); }
 function agg(rounds){
@@ -72,7 +77,7 @@ function render(){
   if(F.arch && !archs.some(a=>key(a)===key(F.arch))) F.arch='';
   const ts = filteredTournaments(), rs = filteredRounds(), a = agg(rs);
   const players = members.map(m=>[m.id, m.display_name||'Amico']);
-  const nf = ['player','deck','period','bo'].filter(k=>F[k]).length;
+  const nf = ['player','deck','period','bo','src'].filter(k=>F[k]).length;
   const TABS = [['over','Panoramica'],['match','Matchup'],['players','Giocatori'],['tours','Tornei']];
   const sec = (k, html) => `<section class="gsec${F.tab===k?' on':''}" data-gsec="${k}" role="tabpanel">${html}</section>`;
   state(`
@@ -84,12 +89,13 @@ function render(){
       <label>Giocatore<select data-f="player">${options(players, F.player, 'Tutto il gruppo')}</select></label>
       <label>Mazzo giocato<select data-f="deck">${options(decks.map(d=>[d,d]), F.deck, 'Tutti i mazzi')}</select></label>
       <label>Periodo<select data-f="period">${options([['90','Ultimi 3 mesi'],['365','Ultimi 12 mesi'],['season','Stagione 2026-27']], F.period, 'Sempre')}</select></label>
+      <label>Partite<select data-f="src">${options([['tour','Solo tornei'],['live','Solo partite TCG Live']], F.src, 'Tornei e partite TCG Live')}</select></label>
       <label>Formato<select data-f="bo">${options([['bo1','Solo Bo1'],['bo3','Solo Bo3']], F.bo, 'Bo1 e Bo3')}</select></label>
       <span class="gcode" title="Codice del gruppo">${esc(code)} · ${members.length} ${members.length===1?'membro':'membri'}</span>
     </div>
     <nav class="gtabs" id="gTabs" role="tablist" aria-label="Sezioni del gruppo">${TABS.map(([k,l])=>`<button type="button" role="tab" data-gtab="${k}" aria-selected="${F.tab===k}">${l}</button>`).join('')}</nav>
     ${sec('over', `<div class="kpis">
-      <div><span>Tornei</span><b>${ts.length}</b><small>${a.R} round registrati</small></div>
+      <div><span>Tornei</span><b>${realT(ts).length}</b><small>${liveN(ts)?`+ ${liveN(ts)} ${liveN(ts)===1?'sessione':'sessioni'} TCG Live · `:''}${a.R} round registrati</small></div>
       <div><span>Round vinti</span><b class="${rateCls(a.W,a.R)}">${rate(a.W,a.R)}</b><small>record ${a.W}-${a.L}-${a.T}</small></div>
       <div><span>Game vinti</span><b class="${rateCls(a.gW,a.gW+a.gL+a.gT)}">${rate(a.gW,a.gW+a.gL+a.gT)}</b><small>${a.gW}-${a.gL}${a.gT?'-'+a.gT:''} nei game</small></div>
       <div><span>Andando primo</span><b class="${rateCls(a.fW,a.fN)}">${rate(a.fW,a.fN)}</b><small>${a.fN} game</small></div>
@@ -108,7 +114,8 @@ function render(){
       <div id="gExpBody">${explorer(rs)}</div>
     </div>`)}
     ${sec('players', `<div class="panel"><h3>Giocatori e liste <span class="meta">mazzo più giocato da ognuno, nel periodo scelto</span></h3>${playersTable(members, tournaments)}</div>`)}
-    ${sec('tours', `<div class="panel"><h3>Tornei del gruppo <span class="meta">${ts.length} nei filtri scelti</span></h3>${recent(ts)}</div>`)}`);
+    ${sec('tours', `<div class="panel"><h3>Tornei del gruppo <span class="meta">${realT(ts).length} nei filtri scelti</span></h3>${F.src==='live'?'<p class="src">Hai scelto solo le partite TCG Live: qui compaiono solo i tornei veri.</p>':recent(realT(ts))}</div>`
+      + (F.src==='tour' ? '' : `<div class="panel"><h3>Sessioni TCG Live <span class="meta">partite importate o veloci, raggruppate per giorno</span></h3>${recent(ts.filter(isLive))}</div>`))}`);
   moveTabInd(false);
 }
 function explorer(rs){
@@ -135,19 +142,19 @@ function explorer(rs){
     <h4 class="gsub">Giocatore per giocatore</h4><div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
 }
 function favorite(userId, tournaments){
-  const mine = tournaments.filter(t=>t.user_id===userId && (t.deckName||'').trim() && inPeriod(t.date));
+  const mine = tournaments.filter(t=>t.user_id===userId && (t.deckName||'').trim() && inPeriod(t.date) && (!F.src || (F.src==='live')===isLive(t)));
   if(!mine.length) return null;
   const m = new Map(); mine.forEach(t=>{ const k=t.deckName.trim(); if(!m.has(k)) m.set(k,[]); m.get(k).push(t); });
-  const [name, list] = [...m].sort((x,y)=>y[1].length-x[1].length || String(y[1][0].date).localeCompare(String(x[1][0].date)))[0];
+  const [name, list] = [...m].sort((x,y)=>realT(y[1]).length-realT(x[1]).length || y[1].length-x[1].length || String(y[1][0].date).localeCompare(String(x[1][0].date)))[0];
   const withList = list.filter(t=>Array.isArray(t.list) && t.list.length).sort((x,y)=>String(y.date).localeCompare(String(x.date)))[0];
-  return {name, n:list.length, a:agg(roundsOf(list).filter(r=>!F.bo || r.bo===F.bo)), list: withList ? withList.list : null, from: withList};
+  return {name, n:realT(list).length, live:liveN(list), a:agg(roundsOf(list).filter(r=>!F.bo || r.bo===F.bo)), list: withList ? withList.list : null, from: withList};
 }
 function playersTable(members, tournaments){
   const me = App.Store.user.id;
-  const rows = members.map(m=>({m, f:favorite(m.id, tournaments), total:tournaments.filter(t=>t.user_id===m.id && inPeriod(t.date)).length}));
-  return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total})=>`<tr${m.id===me?' class="me"':''}>
+  const rows = members.map(m=>({m, f:favorite(m.id, tournaments), all:tournaments.filter(t=>t.user_id===m.id && inPeriod(t.date) && (!F.src || (F.src==='live')===isLive(t)))})).map(x=>({...x, total:realT(x.all).length, live:liveN(x.all)}));
+  return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total,live})=>`<tr${m.id===me?' class="me"':''}>
       <td><span class="arch">${av(m.id)}<span class="t">${esc(m.display_name||'Amico')}${m.id===me?' <span class="badge">tu</span>':''}</span></span>${m.share_stats===false?'<div class="src">non condivide i tornei</div>':''}</td>
-      <td class="n">${total}</td><td>${f?esc(f.name):'<span class="src">—</span>'}</td><td class="n">${f?f.n+' tornei':'—'}</td>${f?cell(f.a.W,f.a.R,'Round vinti'):'<td class="n muted">—</td>'}
+      <td class="n">${total}${live?`<div class="src">+ ${live} live</div>`:''}</td><td>${f?esc(f.name):'<span class="src">—</span>'}</td><td class="n">${f?nT(f.n,f.live):'—'}</td>${f?cell(f.a.W,f.a.R,'Round vinti'):'<td class="n muted">—</td>'}
       <td class="n">${f&&f.list?`<button class="btn small" type="button" data-list="${esc(m.id)}">Vedi lista</button>`:f?'<span class="src" title="Nel registro tornei scegli il mazzo salvato usato, così la lista viene condivisa">lista non collegata</span>':''}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function recent(ts){
