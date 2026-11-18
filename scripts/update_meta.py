@@ -32,7 +32,8 @@ for d, c, name, f, players, winner, href in [r for r in rows if r[3] == "standar
     for m in re.finditer(r'<tr data-rank="(\d+)" data-name="([^"]*)" data-country="([^"]*)" data-deck="([^"]*)".*?</tr>', page, flags=re.S):
         rank, pl, cc, dk = m.groups()
         if int(rank) > 8: break
-        top.append({"rank": int(rank), "player": html.unescape(pl), "country": cc, "deck": html.unescape(dk)})
+        top.append({"rank": int(rank), "player": html.unescape(pl), "country": cc, "deck": html.unescape(dk),
+                    "icons": re.findall(r'class="pokemon"[^>]*alt="([^"]+)"', m.group(0))})
         mf = re.search(r'href="(https://metafy\.gg/@[^"?]+)', m.group(0))
         if mf:
             k = mf.group(1)

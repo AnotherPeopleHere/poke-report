@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-18.5">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-18.6">
 </head>
 <body>
 <div id="boot" class="boot"><div class="logo" aria-hidden="true"></div><p id="bootMsg">Carico le carte…</p></div>
@@ -188,13 +188,15 @@
   </div>
   <div class="kpis" id="metaKpis"></div>
   <div class="cols-2">
-    <div class="panel"><h3>Archetipi più forti <span class="meta">quota sui punti totali</span></h3><div class="tbl-wrap"><table class="tbl" id="metaTable"></table></div>
+    <div class="panel"><h3>Archetipi più forti <span class="meta">quota sui punti · freccia: utilizzo online nell’ultima settimana</span></h3><div class="tbl-wrap"><table class="tbl" id="metaTable"></table></div>
       <button class="btn small" id="metaMore" type="button" style="margin-top:8px">Mostra tutti</button></div>
-    <div class="panel"><h3>Top 8 negli ultimi Regional <span class="meta" id="convMeta"></span></h3><div class="tbl-wrap"><table class="tbl" id="convTable"></table></div>
-      <p class="src" style="margin-top:8px">Nomi delle varianti come li riporta Limitless nelle classifiche dei tornei.</p></div>
+    <div class="panel"><h3>Analizza un Regional <span class="meta" id="regMeta"></span></h3>
+      <select id="regSel" aria-label="Scegli il Regional da analizzare"></select>
+      <div id="regBody"></div></div>
   </div>
-  <h3 style="font-family:var(--display);font-size:20px;margin:6px 0 0">Ultimi tornei Standard</h3>
-  <div class="tcards" id="tcards"></div>
+  <div class="panel" id="trendPanel"><h3>Cosa cambia nei mazzi <span class="meta" id="trendMeta"></span></h3>
+    <div class="tr-pills" id="trendPills" role="tablist" aria-label="Archetipo"></div>
+    <div id="trendBody"></div></div>
 </section>
 
 <section class="page" id="pg-consigli" data-page="consigli">
@@ -274,7 +276,7 @@
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD='2026-11-18.5';               // bump on every change to assets/ so browsers load the new files
+  const BUILD='2026-11-18.6';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));

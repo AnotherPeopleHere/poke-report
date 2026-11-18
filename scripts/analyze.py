@@ -35,6 +35,7 @@ for fn in glob.glob(os.path.join(CACHE, "*.json")):
 deck_name, deck_icons = {}, {}
 players_by_deck = collections.Counter()
 recent_players = collections.Counter()
+prev_players = collections.Counter()                      # players 8-14 days ago, for the usage trend
 rec = collections.defaultdict(lambda: [0, 0, 0])            # deck -> W L T (non-mirror matches)
 rec7 = collections.defaultdict(lambda: [0, 0, 0])
 recOld = collections.defaultdict(lambda: [0, 0, 0])
@@ -61,11 +62,13 @@ for t in T:
         total_players += 1
         if age <= 7:
             recent_players[did] += 1
+        elif age <= 14:
+            prev_players[did] += 1
         r = s.get("record") or {}
         if s.get("decklist"):
             lists[did].append({"player": s.get("name") or s["player"], "tournament": meta["name"], "players": meta.get("players", 0),
                                "date": meta["date"][:10], "placing": s.get("placing"), "w": r.get("wins", 0), "l": r.get("losses", 0), "t": r.get("ties", 0),
-                               "list": s["decklist"]})
+                               "list": s["decklist"], "age": age})
     for m in t["pairings"] or []:
         a, b = m.get("player1"), m.get("player2")
         if not a or not b or a not in pdeck or b not in pdeck:
@@ -146,6 +149,38 @@ def to_lines(L):
             out.append({"q": x["count"], "name": x["name"], "set": x.get("set", ""), "num": str(x.get("number", "")), "sec": sec})
     return out
 
+# ---------- card trends inside each deck: share of lists playing a card, this week against the week before ----------
+MIN_LISTS = 15                                # fewer lists than this in either week: no trend (too noisy)
+def card_id(x):
+    c = resolve(x)
+    if c: return (c["n"], c["p"][0][0], str(c["p"][0][1]))
+    return (x.get("name", ""), str(x.get("set", "")), str(x.get("number", "")))
+def card_trends(d):
+    now_l = [l["list"] for l in lists[d] if l["age"] <= 7]
+    old_l = [l["list"] for l in lists[d] if 7 < l["age"] <= 14]
+    if len(now_l) < MIN_LISTS or len(old_l) < MIN_LISTS:
+        return None
+    def inclusion(ls):
+        cnt, copies = collections.Counter(), collections.Counter()
+        for L in ls:
+            seen = {}
+            for sec in ("pokemon", "trainer", "energy"):
+                for x in L.get(sec, []):
+                    k = card_id(x); seen[k] = seen.get(k, 0) + x["count"]
+            for k, q in seen.items():
+                cnt[k] += 1; copies[k] += q
+        return {k: (cnt[k] / len(ls), copies[k] / cnt[k]) for k in cnt}
+    a, b = inclusion(now_l), inclusion(old_l)
+    rows = []
+    for k in set(a) | set(b):
+        na, nb = a.get(k, (0, 0))[0], b.get(k, (0, 0))[0]
+        if abs(na - nb) >= 0.04:
+            rows.append({"name": k[0], "set": k[1], "num": k[2], "now": round(na, 3), "prev": round(nb, 3),
+                         "delta": round(na - nb, 3), "avg": round(a.get(k, b.get(k))[1], 1)})
+    up = sorted([r for r in rows if r["delta"] > 0], key=lambda r: -r["delta"])[:5]
+    down = sorted([r for r in rows if r["delta"] < 0], key=lambda r: r["delta"])[:5]
+    return {"lists": len(now_l), "listsPrev": len(old_l), "up": up, "down": down}
+
 deck_ids = [d for d in players_by_deck if sum(rec[d]) >= 15]
 top_by_play = sorted(deck_ids, key=lambda d: -players_by_deck[d])[:8]
 avg = 0.5
@@ -170,6 +205,8 @@ for d in deck_ids:
     res.append({
         "id": d, "name": deck_name[d], "icons": deck_icons.get(d, []),
         "players": players_by_deck[d], "share": round(share, 4), "share7": round(share7, 4),
+        "sharePrev": round(prev_players[d] / max(1, sum(prev_players.values())), 4) if sum(prev_players.values()) else None,
+        "cards": card_trends(d),
         "W": r[0], "L": r[1], "T": r[2], "games": g, "wr": round(wr(r), 4) if g else None, "wrAdj": round(s, 4),
         "trend": trend, "score": round(score, 4), "vs": sorted(vs, key=lambda x: -x["games"]),
         "excluded": EXCLUDED_WORD in d,

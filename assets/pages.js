@@ -15,7 +15,19 @@ const archLink = (name, url) => `<span class="arch">${avatar(name)}${url?`<a hre
 const metaUrl = name => { const m = META.find(x=>x.name.toLowerCase()===String(name).toLowerCase()); return m ? m.url : ''; };
 
 /* ---------- META ---------- */
-let metaAll = false;
+const RECO_M = J('recoData');
+// archetype sprites: the Limitless icons (the same pixel art Limitless and Trainer Hill show); a lettered dot if one is missing
+const sprites = (icons, name) => (icons&&icons.length) ? `<span class="sprs" title="${esc(name)}">${icons.slice(0,2).map(ic=>`<img src="https://r2.limitlesstcg.net/pokemon/gen9/${esc(ic)}.png" alt="" loading="lazy" onerror="this.remove()">`).join('')}</span>` : avatar(name);
+const archS = (name, icons, url) => `<span class="arch">${sprites(icons,name)}${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>`:`<span class="t">${esc(name)}</span>`}</span>`;
+const iconKey = icons => (icons||[]).slice().sort().join('+');
+const ONLINE = new Map((RECO_M.archetypes||[]).map(a=>[iconKey(a.icons), a]));
+function usageTrend(icons){
+  const a=ONLINE.get(iconKey(icons)); if(!a || a.sharePrev==null || a.players<30) return '';
+  const d=a.share7-a.sharePrev, t=`Tornei online: ${pct(a.sharePrev,1)} → ${pct(a.share7,1)}`;
+  if(Math.abs(d) < .005) return `<span class="utr flat" title="${t}">–</span>`;
+  return `<span class="utr ${d>0?'up':'down'}" title="${t}">${d>0?'↗':'↘'}</span>`;
+}
+let metaAll = false, regPick = 'all', trendPick = null;
 function renderMeta(){
   $('#metaDate').textContent = fmtDate(SNAP.metaDate||SNAP.date);
   const top = META[0], players = TOURS.reduce((a,t)=>a+t.players,0);
@@ -27,20 +39,53 @@ function renderMeta(){
   const rows = (metaAll ? META : META.slice(0,15));
   const mx = META[0].share;
   $('#metaTable').innerHTML = `<thead><tr><th class="n">#</th><th>Archetipo</th><th style="width:34%">Quota</th><th class="n">Punti</th></tr></thead><tbody>${rows.map(m=>`<tr>
-    <td class="n rank">${m.rank}</td><td>${archLink(m.name,m.url)}</td>
+    <td class="n rank"><span class="rk">${usageTrend(m.icons)}${m.rank}</span></td><td>${archS(m.name,m.icons,m.url)}</td>
     <td><div style="display:flex;align-items:center;gap:8px"><div class="bar" style="flex:1"><b style="width:${m.share/mx*100}%"></b></div><span class="num" style="font-size:12px;min-width:48px;text-align:right">${pct(m.share/100,2)}</span></div></td>
     <td class="n">${m.points.toLocaleString('it-IT')}</td></tr>`).join('')}</tbody>`;
   $('#metaMore').textContent = metaAll ? 'Mostra i primi 15' : `Mostra tutti (${META.length})`;
-  const conv = new Map();
-  TOURS.forEach(t=>t.top.forEach(p=>{ const c = conv.get(p.deck)||{deck:p.deck,top8:0,wins:0}; c.top8++; if(p.rank===1) c.wins++; conv.set(p.deck,c); }));
-  const cl = [...conv.values()].sort((a,b)=>b.top8-a.top8||b.wins-a.wins||a.deck.localeCompare(b.deck));
-  $('#convMeta').textContent = `${TOURS.length} tornei · ${TOURS.length*8} posti`;
-  $('#convTable').innerHTML = `<thead><tr><th>Variante</th><th class="n">Top 8</th><th class="n">Vittorie</th></tr></thead><tbody>${cl.slice(0,14).map(c=>`<tr><td>${archLink(c.deck,'')}</td><td class="n">${c.top8}</td><td class="n">${c.wins||'—'}</td></tr>`).join('')}</tbody>`;
-  $('#tcards').innerHTML = TOURS.map(t=>`<article class="tcard">
-    <div><h4><a class="link" style="color:inherit" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.name)} ↗</a></h4>
-    <div class="meta">${fmtDate(t.date)} · ${t.country} · ${t.players.toLocaleString('it-IT')} giocatori</div></div>
-    <ol>${t.top.map(p=>`<li class="${p.rank===1?'win':''}"><span class="rank">${p.rank}</span>${archLink(p.deck,'')}<span class="p">${esc(p.player)}</span></li>`).join('')}</ol></article>`).join('');
+  renderRegional(); renderTrends();
 }
+/* one Regional at a time (or all of them together) */
+function renderRegional(){
+  const sel=$('#regSel');
+  sel.innerHTML = `<option value="all">Tutti gli ultimi ${TOURS.length} (top 8 sommate)</option>` + TOURS.map((t,i)=>`<option value="${i}">${esc(t.name)} · ${fmtDate(t.date)}</option>`).join('');
+  sel.value = regPick;
+  const summary = list => { const m=new Map(); list.forEach(p=>{ const c=m.get(p.deck)||{deck:p.deck,icons:p.icons,n:0,wins:0}; c.n++; if(p.rank===1) c.wins++; m.set(p.deck,c); });
+    return [...m.values()].sort((a,b)=>b.n-a.n||b.wins-a.wins||a.deck.localeCompare(b.deck)); };
+  if(regPick==='all'){
+    const all=TOURS.flatMap(t=>t.top), cl=summary(all);
+    $('#regMeta').textContent = `${TOURS.length} tornei · ${all.length} posti`;
+    $('#regBody').innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Variante</th><th class="n">Top 8</th><th class="n">Vittorie</th></tr></thead><tbody>${cl.slice(0,14).map(c=>`<tr><td>${archS(c.deck,c.icons,'')}</td><td class="n">${c.n}</td><td class="n">${c.wins||'—'}</td></tr>`).join('')}</tbody></table></div>
+      <p class="src" style="margin-top:8px">Nomi delle varianti come li riporta Limitless nelle classifiche. Scegli un torneo qui sopra per vederne la top 8.</p>`;
+    return;
+  }
+  const t=TOURS[+regPick]; if(!t){ regPick='all'; return renderRegional(); }
+  $('#regMeta').textContent = `${t.country} · ${t.players.toLocaleString('it-IT')} giocatori`;
+  $('#regBody').innerHTML = `<div class="reg-chips">${summary(t.top).map(c=>`<span class="chip">${sprites(c.icons,c.deck)}${esc(c.deck)} <b>×${c.n}</b></span>`).join('')}</div>
+    <ol class="reg-top">${t.top.map(p=>`<li class="${p.rank===1?'win':''}"><span class="rank">${p.rank}</span>${archS(p.deck,p.icons,'')}<span class="p">${esc(p.player)}</span></li>`).join('')}</ol>
+    <a class="link" href="${esc(t.url)}" target="_blank" rel="noopener" style="font-size:13px">Classifica completa su Limitless ↗</a>`;
+}
+$('#regSel').addEventListener('change',e=>{ regPick=e.target.value; renderRegional(); });
+/* card trends inside each deck (online lists, this week against the week before) */
+function renderTrends(){
+  const list=(RECO_M.archetypes||[]).filter(a=>a.cards && (a.cards.up.length||a.cards.down.length)).sort((a,b)=>b.share7-a.share7).slice(0,12);
+  if(!list.length){ $('#trendPanel').hidden=true; return; }
+  $('#trendPanel').hidden=false;
+  if(!trendPick || !list.some(a=>a.id===trendPick)) trendPick=list[0].id;
+  $('#trendMeta').textContent = 'quanto spesso una carta è nelle liste, questa settimana contro la precedente · tornei online';
+  $('#trendPills').innerHTML = list.map(a=>`<button type="button" role="tab" data-tp="${esc(a.id)}" aria-selected="${a.id===trendPick}">${sprites(a.icons,a.name)}<span>${esc(a.name)}</span></button>`).join('');
+  const a=list.find(x=>x.id===trendPick), c=a.cards, d=a.sharePrev==null?null:a.share7-a.sharePrev;
+  const tile = r => { const card=DL.BY_KEY.get(r.set+'-'+r.num) || DL.byName(r.name);
+    const face = card ? DL.cardFace(card,'',{inner:`<span class="tc-d ${r.delta>0?'up':'down'}">${r.delta>0?'↑ +':'↓ −'}${Math.round(Math.abs(r.delta)*100)}%</span>`}) : `<div class="card tc-miss"><span>${esc(r.name)}</span></div>`;
+    return `<div class="tc" title="${esc(r.name)}: ${pct(r.prev,0)} → ${pct(r.now,0)} delle liste${r.avg?` · ${String(r.avg).replace('.',',')} copie in media`:''}">${face}
+      <div class="tc-n"><span>${esc(r.name)}</span><small>${pct(r.now,0)} delle liste</small></div></div>`; };
+  const group = (label, rows, cls) => rows.length ? `<div class="tc-grp"><h4 class="${cls}">${label}</h4><div class="tc-grid">${rows.map(tile).join('')}</div></div>` : '';
+  $('#trendBody').innerHTML = `<div class="tc-head">${archS(a.name,a.icons,a.url)}
+      ${d==null?'':`<span class="tc-share">utilizzo ${pct(a.sharePrev,1)} → ${pct(a.share7,1)} <b class="${d>=0?'good':'bad'}">${d>=0?'↑ +':'↓ −'}${(Math.abs(d)*100).toLocaleString('it-IT',{maximumFractionDigits:1})}</b></span>`}
+      <span class="src">${c.lists} liste questa settimana, ${c.listsPrev} la precedente</span></div>
+    <div class="tc-cols">${group('In crescita', c.up, 'up')}${group('In calo', c.down, 'down')}</div>`;
+}
+$('#trendPills').addEventListener('click',e=>{ const b=e.target.closest('[data-tp]'); if(!b) return; trendPick=b.dataset.tp; renderTrends(); });
 $('#metaMore').addEventListener('click',()=>{ metaAll=!metaAll; renderMeta(); });
 
 /* ---------- NEWS ---------- */
