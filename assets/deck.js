@@ -603,7 +603,39 @@ mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTa
 let toastT;
 function toast(msg,withUndo){ const t=$('#toast'); t.innerHTML=`<span>${esc(msg)}</span>${withUndo&&history.length?'<button type="button" id="tUndo">Annulla</button>':''}`; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,3200); const u=$('#tUndo'); if(u) u.addEventListener('click',undo); }
 
-window.DeckLab = { getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
+/* archetype of a list, the Limitless way: the archetype's key Pokémon (its icons) must all be in the list;
+   among those that fit, the most specific one wins, then the one whose sample list looks most like this one */
+const ARCHS = (()=>{ try{ return JSON.parse(document.getElementById('recoData').textContent).archetypes||[]; }catch(e){ return []; } })();
+const nameWords = n => n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(Boolean);
+function iconHits(icon, mons, lenient){
+  const [base,...mods] = icon.split('-'), mega = mods.includes('mega'), extra = mods.filter(m=>m!=='mega');
+  // the key Pokémon (a plain icon does not match its Mega form), plus the earlier stages of its line
+  const key=[...mons.keys()].filter(name=>{ const w=nameWords(name); if(!w.includes(base)) return false; if(mega!==w.includes('mega')) return false;
+    return extra.every(t=>w.some(x=>x.startsWith(t))); });
+  if(!key.length) return 0;
+  const line=new Set(key); key.forEach(nm=>{ let c=BY_NAME.get(nm.toLowerCase()), g=0; while(c && c.from && g++<3){ line.add(c.from); c=BY_NAME.get(c.from.toLowerCase()); } });
+  let n=0; mons.forEach((q,nm)=>{ if(line.has(nm)) n+=q; });
+  // a single copy of a non rule-box key Pokémon is just a tech
+  const kn=key.reduce((t,nm)=>t+mons.get(nm),0), box=key.some(nm=>{ const w=nameWords(nm); return w.includes('ex')||w.includes('mega'); });
+  return kn>=2||box||(lenient && n>=2) ? n : 0;
+}
+function archOf(keys, typed){
+  const cs=(keys||[]).map(k=>BY_KEY.get(k)).filter(Boolean); if(cs.length<20) return '';
+  const mons=new Map(); cs.filter(c=>c.sup==='P').forEach(c=>mons.set(c.name,(mons.get(c.name)||0)+1)); if(!mons.size) return '';
+  let best=null;
+  ARCHS.forEach(a=>{ const icons=a.icons||[]; if(!icons.length) return;
+    // the archetype written by the player only needs its key Pokémon line in the list, even as a small part of it
+    const isTyped = !!typed && App.archKey(App.archCanon(typed))===App.archKey(App.archCanon(a.name));
+    const hits=icons.map(ic=>iconHits(ic,mons,isTyped)); if(hits.some(h=>!h)) return;
+    const sample=new Set(((a.list&&a.list.lines)||[]).filter(l=>l.sec==='pokemon').map(l=>l.name));
+    let overlap=0; mons.forEach((q,nm)=>{ if(sample.has(nm)) overlap++; });
+    // the archetype's key Pokémon should be a big part of the list: count their copies, then specificity and similarity
+    let score = hits.reduce((x,y)=>x+y,0) + icons.length*.5 + overlap*.1 + Math.log10(1+(a.games||0))*.05;
+    if(isTyped) score+=100;   // the name typed fits the list: keep it
+    if(!best || score>best.score) best={name:a.name, score}; });
+  return best ? best.name : '';
+}
+window.DeckLab = { archOf, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';

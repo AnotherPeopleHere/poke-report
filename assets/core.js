@@ -28,8 +28,16 @@ const archKey = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'
 const ARCH = new Map();
 ['metaData','recoData'].forEach(id=>{ try{ const d=JSON.parse(document.getElementById(id).textContent);
   (Array.isArray(d)?d:d.archetypes||[]).forEach(a=>{ const k=archKey(a.name); if(k && !ARCH.has(k)) ARCH.set(k,a.name); }); }catch(e){} });
-const archCanon = s => { const t=String(s||'').trim().replace(/\s+/g,' '); return ARCH.get(archKey(t)) || t; };
-const canonT = t => { if(!t) return t; if(t.deckName) t.deckName=archCanon(t.deckName); (t.rounds||[]).forEach(r=>{ if(r && r.opp) r.opp=archCanon(r.opp); }); return t; };
+const archCanon = s => { const t=String(s||'').trim().replace(/\s+/g,' '), k=archKey(t); if(ARCH.has(k)) return ARCH.get(k);
+  // a name typed short ("Zoroark") that is part of exactly one known archetype's name
+  const w=k.split(' ').filter(x=>x.length>2 && x!=='mega'); if(!w.length) return t;
+  const hits=[...new Set([...ARCH.values()])].filter(n=>{ const nw=archKey(n).split(' '); return w.every(x=>nw.includes(x)) && nw.length<=w.length+1; });
+  return hits.length===1 ? hits[0] : t; };
+const canonT = t => { if(!t) return t;
+  // with a list attached, the archetype comes from the cards (like Limitless); otherwise from the name typed
+  const fromList = t.list && window.DeckLab && window.DeckLab.archOf ? window.DeckLab.archOf(t.list, t.deckName) : '';
+  if(fromList){ if(t.deckName && archCanon(t.deckName)!==archCanon(fromList)) t.deckTyped=t.deckName; t.deckName=archCanon(fromList); }
+  else if(t.deckName) t.deckName=archCanon(t.deckName); (t.rounds||[]).forEach(r=>{ if(r && r.opp) r.opp=archCanon(r.opp); }); return t; };
 
 /* ---------- storage ---------- */
 const Store = {
