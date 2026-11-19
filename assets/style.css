@@ -961,3 +961,5 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .lc-star[aria-pressed="true"] .i{fill:currentColor}
 .lc-star:active{transform:scale(.88)}
 .libcard.fav{border-color:color-mix(in srgb,#f5b800 55%,var(--line));box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,#f5b800 35%,transparent)}
+.gtbl .dk{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.gtbl .dk .btn{flex:none}

@@ -233,6 +233,7 @@ function openTournament(t){
   t.rounds = (t.rounds||[]).map(normRound);
   let mode = t.rounds.length || !t.manual ? 'rounds' : 'manual';
   let cut = cutOf(t);
+  const prevDeck = t.deckId||'', hadList = Array.isArray(t.list) && t.list.length>0;
   const decks = App.data.decks.slice().sort((a,b)=>a.name.localeCompare(b.name));
   const archNames = [...new Set([...META.map(m=>m.name), ...App.data.tournaments.flatMap(x=>(x.rounds||[]).map(r=>r.opp)).filter(Boolean)])];
   body2.innerHTML = `<h2>${isNew?'Nuovo torneo':'Modifica torneo'}</h2>
@@ -241,6 +242,7 @@ function openTournament(t){
       <label>Data<input id="fDate" type="date" value="${esc(t.date)}"></label>
       <label>Tipo<select id="fType">${TYPES.map(x=>`<option ${x===t.type?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
       <label>Mazzo salvato<select id="fDeck"><option value="">— Nessuno / scrivo l'archetipo —</option>${decks.map(d=>`<option value="${esc(d.id)}" ${d.id===t.deckId?'selected':''}>${esc(d.name)}</option>`).join('')}</select></label>
+      ${hadList && t.deckId ? `<label class="switch inline full" for="fRelist"><input type="checkbox" id="fRelist" role="switch"><span class="track" aria-hidden="true"></span><span>Aggiorna la lista con la versione attuale del mazzo <small class="src">(ora è quella salvata${t.listDate?' il '+fmtDate(t.listDate):''} con il torneo)</small></span></label>` : ''}
       <label>Archetipo giocato<input id="fArch" list="archList" placeholder="es. Dragapult ex" value="${esc(t.deckName)}"></label>
       <label>Posizione finale<input id="fPlace" type="number" min="1" placeholder="es. 5" value="${esc(t.placement)}"></label>
       <label class="full">Formato dei round<span class="seg" id="fBo"><button type="button" data-tbo="bo1" aria-pressed="${t.bo==='bo1'}">Bo1 · partita secca</button><button type="button" data-tbo="bo3" aria-pressed="${t.bo==='bo3'}">Bo3 · al meglio di tre</button></span><small class="src">Vale per i nuovi round; ogni round si può cambiare.</small></label>
@@ -303,7 +305,11 @@ function openTournament(t){
     if(cut==='made'){ t.cutSize = +$('#fCutSize').value || ''; t.cutFrom = mode==='rounds' ? (+$('#fCutFrom').value || '') : ''; if(t.cutFrom && t.cutFrom>t.rounds.length) t.cutFrom=''; }
     else { delete t.cutSize; delete t.cutFrom; }
     // keep a copy of the list played, so friends in the group can see it (saved decks stay private)
-    if(d) t.list = d.cards.slice(); else if(!deckId) delete t.list;
+    // the list is a snapshot taken when the tournament is saved: later edits to the deck don't change it,
+    // unless another deck is chosen or the player asks to refresh it
+    const relist = $('#fRelist') && $('#fRelist').checked;
+    if(d){ if(!hadList || deckId!==prevDeck || relist){ t.list = d.cards.slice(); t.listDate = new Date().toISOString().slice(0,10); } }
+    else if(!deckId){ delete t.list; delete t.listDate; }
     if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>{ const o={opp:(x.opp||'').trim(), bo:x.bo, games:x.games, r:roundRes(x)}; if(x.note&&x.note.trim()) o.note=x.note.trim(); if(x.src) o.src=x.src; if(x.h) o.h=x.h; return o; }); }
     App.canonT(t);
     const i=App.data.tournaments.findIndex(x=>x.id===t.id); if(i>=0) App.data.tournaments[i]=t; else App.data.tournaments.push(t);

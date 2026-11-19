@@ -118,7 +118,7 @@ async function saveMatch({deck, deckName, opp, first, res, note, src, h}){
   let t = App.data.tournaments.find(x=>x.type==='TCG Live' && x.date===date && (x.deckName||'')===deckName);
   const isNew = !t;
   if(!t) t = {id:App.uid(), name:`TCG Live · ${today.getDate()} ${MONTHS[today.getMonth()]}`, date, type:'TCG Live', players:'', deckId:deck?deck.id:'', deckName, placement:'', topcut:false, rounds:[], manual:null, notes:'', created:Date.now()};
-  if(deck){ t.deckId = deck.id; t.list = deck.cards.slice(); }
+  if(deck && (!t.list || t.deckId!==deck.id)){ t.deckId = deck.id; t.list = deck.cards.slice(); t.listDate = date; }   // snapshot of the list at the first match of the day
   const round = {opp:App.archCanon(opp), bo:'bo1', games:[{first:first||null, res}], r:res, src};
   if(note && note.trim()) round.note = note.trim();
   if(h) round.h = h;

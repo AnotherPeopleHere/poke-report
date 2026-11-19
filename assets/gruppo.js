@@ -163,13 +163,14 @@ function playersTable(members, tournaments){
 function recent(ts){
   const list = ts.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12);
   return list.length ? `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);
-    return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${esc(t.date)} · ${esc(t.type||'')}</div></td><td class="wide">${esc(nameOf(t.user_id))}</td><td class="wide">${t.deckName?archN(t.deckName):'—'}</td><td class="n">${T.recStr(r)}</td><td class="n">${t.placement?esc(t.placement)+'°':'—'}</td></tr>`; }).join('')}</tbody></table></div>`
+    return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${esc(t.date)} · ${esc(t.type||'')}</div></td><td class="wide">${esc(nameOf(t.user_id))}</td><td class="wide"><div class="dk">${t.deckName?archN(t.deckName):'—'}${Array.isArray(t.list)&&t.list.length?`<button type="button" class="btn small" data-tlist="${esc(t.id)}">Vedi lista</button>`:''}</div></td><td class="n">${T.recStr(r)}</td><td class="n">${t.placement?esc(t.placement)+'°':'—'}</td></tr>`; }).join('')}</tbody></table></div>`
     : '<p class="src">Nessun torneo nei filtri scelti.</p>';
 }
 
 /* ---------- list pop-up ---------- */
-function showList(userId){
-  const f = favorite(userId, cache.tournaments); if(!f || !f.list) return;
+function showList(userId, one){
+  // one tournament's list (the copy saved with that tournament), or the player's most played deck
+  const f = one || favorite(userId, cache.tournaments); if(!f || !f.list) return;
   const cards = f.list.map(k=>DL.BY_KEY.get(k)).filter(Boolean);
   const counts = new Map(); cards.forEach(c=>counts.set(c.key,(counts.get(c.key)||0)+1));
   const rows = [...counts].map(([k,q])=>({c:DL.BY_KEY.get(k), q}));
@@ -232,6 +233,7 @@ $('#pg-gruppo').addEventListener('click',e=>{
   const sd=e.target.closest('[data-side]'); if(sd){ F.side=sd.dataset.side; render(); return; }
   const pk=e.target.closest('tr.pick[data-arch]'); if(pk){ F.arch=pk.dataset.arch; render(); $('#gExplorer').scrollIntoView({behavior:'smooth',block:'start'}); return; }
   const ls=e.target.closest('[data-list]'); if(ls){ showList(ls.dataset.list); return; }
+  const lt=e.target.closest('[data-tlist]'); if(lt){ const t=cache.tournaments.find(x=>x.id===lt.dataset.tlist); if(t) showList(t.user_id, {name:t.deckName||'Mazzo', list:t.list, from:t}); return; }
 });
 $('#pg-gruppo').addEventListener('change',e=>{ const s=e.target.closest('[data-f]'); if(!s) return; F[s.dataset.f]=s.value; render(); });
 $('#gProfile').addEventListener('click',()=>App.accountDialog());
