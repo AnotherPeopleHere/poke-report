@@ -970,3 +970,9 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .libcard .lc-top h3{overflow-wrap:normal;word-break:normal;hyphens:manual;font-size:18px}
 .libcard .lc-sub{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px}
 .libcard .lc-sub .status{font-size:11.5px;padding:2px 8px}
+
+/* energy symbol cut from the card scan: the big circle sits at 49.8% / 53.5% of the card, 49% of its width */
+.tbtn .tsym-img{width:30px;height:30px;border-radius:50%;background-repeat:no-repeat;background-size:61.2px 85.4px;background-position:-15.5px -30.7px}
+.tbtn:has(.tsym-img){background:none;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tbtn:has(.tsym-img){border:0;overflow:hidden}
+.tbtn:has(.tsym-img)[aria-pressed="true"]{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--fg)}

@@ -48,8 +48,11 @@ let kind = '', typeSel = new Set(), shown = 120, lastHand = null, dview = 'lib',
 const history = [];
 
 /* filter widgets */
+// filter buttons show the real energy symbol, cut from the Basic Energy scans (Scarlet & Violet energies, SVE 1-8);
+// Dragon and Colorless have no Basic Energy, so they keep a drawn glyph
+const ENERGY_SCAN = Object.fromEntries(['Grass','Fire','Water','Lightning','Psychic','Fighting','Darkness','Metal'].map((t,i)=>[t,`https://images.pokemontcg.io/sve/${i+1}.png`]));
 Object.keys(TYPE_IT).forEach(t=>{ if(!CARDS.some(c=>c.types.includes(t))) return;
-  $('#typeBtns').insertAdjacentHTML('beforeend',`<button class="tbtn ty-${t}" data-type="${t}" aria-pressed="false" title="${TYPE_IT[t]}" aria-label="Tipo ${TYPE_IT[t]}"><svg class="tsym" aria-hidden="true"><use href="#ty-${t}"/></svg></button>`); });
+  $('#typeBtns').insertAdjacentHTML('beforeend',`<button class="tbtn ty-${t}" data-type="${t}" aria-pressed="false" title="${TYPE_IT[t]}" aria-label="Tipo ${TYPE_IT[t]}">${ENERGY_SCAN[t]?`<span class="tsym-img" aria-hidden="true" style="background-image:url(${ENERGY_SCAN[t]})"></span>`:`<svg class="tsym" aria-hidden="true"><use href="#ty-${t}"/></svg>`}</button>`); });
 const setsSeen = new Map(); CARDS.forEach(c=>c.prints.forEach(p=>{ if(!setsSeen.has(p[0])) setsSeen.set(p[0],[p[2],p[3]]); }));
 [...setsSeen].sort((a,b)=>b[1][1].localeCompare(a[1][1])).forEach(([code,[name]])=>$('#fSet').insertAdjacentHTML('beforeend',`<option value="${esc(code)}">${esc(name)} (${esc(code)})</option>`));
 const ADV = ['qText','fStage','fRule','fMark','fSet','hpMin','rcMax'];
