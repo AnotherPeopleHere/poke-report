@@ -51,9 +51,12 @@ const history = [];
 // filter buttons show the real energy symbol, cut from the Basic Energy scans (Scarlet & Violet energies, SVE 1-8);
 // Dragon and Colorless have no Basic Energy: their symbol is cut from the type icon next to the HP of a Pokémon of that type
 const ENERGY_SCAN = Object.fromEntries(['Grass','Fire','Water','Lightning','Psychic','Fighting','Darkness','Metal'].map((t,i)=>[t,`https://images.pokemontcg.io/sve/${i+1}.png`]));
+// the real type symbol at any size (--s); falls back to the coloured dot with the letter for types without a symbol
+const typeIcon = (t, size) => { const u=ENERGY_SCAN[t]||TYPE_SCAN[t];
+  return u ? `<span class="tico${ENERGY_SCAN[t]?'':' hp'}" title="${TYPE_IT[t]||t}" style="--s:${size||16}px;background-image:url(${u})"></span>` : `<span class="dot ty-${t}">${TYPE_L[t]||''}</span>`; };
 const TYPE_SCAN = {Colorless:'https://images.scrydex.com/pokemon/me6-83/large', Dragon:'https://images.scrydex.com/pokemon/me6-72/large'};   // Kecleon, Druddigon (DLR)
 Object.keys(TYPE_IT).forEach(t=>{ if(!CARDS.some(c=>c.types.includes(t))) return;
-  $('#typeBtns').insertAdjacentHTML('beforeend',`<button class="tbtn ty-${t}" data-type="${t}" aria-pressed="false" title="${TYPE_IT[t]}" aria-label="Tipo ${TYPE_IT[t]}">${ENERGY_SCAN[t]?`<span class="tsym-img" aria-hidden="true" style="background-image:url(${ENERGY_SCAN[t]})"></span>`:TYPE_SCAN[t]?`<span class="tsym-img hp" aria-hidden="true" style="background-image:url(${TYPE_SCAN[t]})"></span>`:`<svg class="tsym" aria-hidden="true"><use href="#ty-${t}"/></svg>`}</button>`); });
+  $('#typeBtns').insertAdjacentHTML('beforeend',`<button class="tbtn ty-${t}" data-type="${t}" aria-pressed="false" title="${TYPE_IT[t]}" aria-label="Tipo ${TYPE_IT[t]}">${ENERGY_SCAN[t]||TYPE_SCAN[t]?typeIcon(t,30):`<svg class="tsym" aria-hidden="true"><use href="#ty-${t}"/></svg>`}</button>`); });
 const setsSeen = new Map(); CARDS.forEach(c=>c.prints.forEach(p=>{ if(!setsSeen.has(p[0])) setsSeen.set(p[0],[p[2],p[3]]); }));
 [...setsSeen].sort((a,b)=>b[1][1].localeCompare(a[1][1])).forEach(([code,[name]])=>$('#fSet').insertAdjacentHTML('beforeend',`<option value="${esc(code)}">${esc(name)} (${esc(code)})</option>`));
 const ADV = ['qText','fStage','fRule','fMark','fSet','hpMin','rcMax'];
@@ -95,7 +98,7 @@ function tags(c){
   return t;
 }
 function subline(c){
-  if(c.sup==='P') return `<span class="dot ty-${c.color}">${TYPE_L[c.color]||''}</span>${SUB_IT[stageOf(c)]||''} · <span class="num">${c.hp} PS</span>${c.abilities.length?' · Abilità':''} ${tags(c)}<span class="tag">${esc(c.prints[0][0])} ${c.mark||'—'}</span>`;
+  if(c.sup==='P') return `${typeIcon(c.color,16)}${SUB_IT[stageOf(c)]||''} · <span class="num">${c.hp} PS</span>${c.abilities.length?' · Abilità':''} ${tags(c)}<span class="tag">${esc(c.prints[0][0])} ${c.mark||'—'}</span>`;
   if(c.sup==='T') return `${c.sub.filter(s=>!['ACE SPEC','Ancient','Future'].includes(s)).map(s=>SUB_IT[s]||s).join(' · ')} ${tags(c)}<span class="tag">${c.mark||'—'}</span>`;
   return c.isBasicEnergy ? 'Energia base · nessun limite di copie' : `Energia speciale ${tags(c)}<span class="tag">${c.mark||'—'}</span>`;
 }
@@ -182,7 +185,7 @@ function imgUrl(c, big){ const m=imOf(c); if(!m) return '';
   if(m.startsWith('td:')) return `https://assets.tcgdex.net/en/${m.slice(3)}/${big?'high':'low'}.webp`;   // promos from tcgdex
   return m.startsWith('x:') ? `https://images.scrydex.com/pokemon/${m.slice(2)}/${big?'large':'small'}` : `https://images.pokemontcg.io/${m}${big?'_hires':''}.png`; }
 const scan = (c, big, cls) => imOf(c) ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" crossorigin="anonymous" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
-function costDots(cost, big){ return cost.map(t=>`<i class="ty-${t}" title="${TYPE_IT[t]||t}"${big?' style="width:14px;height:14px;border-radius:50%;display:inline-block"':''}></i>`).join(''); }
+function costDots(cost, big){ return cost.map(t=>big ? typeIcon(t,18) : `<i class="ty-${t}" title="${TYPE_IT[t]||t}"></i>`).join(''); }
 function cardFace(c, attrs, extra){
   let top, art, mid='', foot;
   if(c.sup==='P'){
@@ -318,13 +321,13 @@ function closeDrawer(){ const d=$('#inspect'); d.classList.remove('open'); d.set
 $('#drawerClose').addEventListener('click',closeDrawer);
 $('#drawerBack').addEventListener('click',closeDrawer);
 function select(c){ selected=c; renderDetail(); openDrawer(); document.querySelectorAll('.res.sel').forEach(x=>x.classList.remove('sel')); const li=document.querySelector(`.res[data-key="${CSS.escape(c.key)}"]`); if(li) li.classList.add('sel'); }
-function wr(list){ return list.length ? list.map(x=>{ const [t,v]=x.split(' '); return `<span class="dot ty-${t}">${TYPE_L[t]||''}</span>${esc(v)}`; }).join(' ') : '—'; }
+function wr(list){ return list.length ? list.map(x=>{ const [t,v]=x.split(' '); return `${typeIcon(t,18)}${esc(v)}`; }).join(' ') : '—'; }
 const LT_CODE = {'PR-SV':'SVP','PR-SW':'SSP'};   // Limitless names the promo sets differently
 const ltUrl = p => `https://limitlesstcg.com/cards/${encodeURIComponent(LT_CODE[p[0]]||p[0])}/${encodeURIComponent(p[1])}`;
 function renderDetail(){
   const c=selected, n=c.isBasicEnergy?countKey(c.key):count(c), lim=c.isBasicEnergy?null:4;
   const typeLine = c.sup==='P' ? `Pokémon ${SUB_IT[stageOf(c)]||''}${c.from?` · si evolve da ${esc(c.from)}`:''}` : c.sup==='T' ? `Allenatore · ${c.sub.map(s=>SUB_IT[s]||s).join(' · ')}` : (c.isBasicEnergy?'Energia base':'Energia speciale');
-  const chips = c.sup==='P' ? `<span class="chip"><span class="dot ty-${c.color}">${TYPE_L[c.color]}</span><b>${TYPE_IT[c.color]||c.color}</b></span><span class="chip">PS <b class="num">${c.hp}</b></span>${tags(c)}` : tags(c);
+  const chips = c.sup==='P' ? `<span class="chip">${typeIcon(c.color,18)}<b>${TYPE_IT[c.color]||c.color}</b></span><span class="chip">PS <b class="num">${c.hp}</b></span>${tags(c)}` : tags(c);
   const blocks = [
     ...c.abilities.map(a=>`<div class="blk"><div class="bh"><span class="ab">${esc(a[2]==='Ability'?'Abilità':a[2])}</span>${esc(a[0])}</div><p>${esc(a[1])}</p></div>`),
     ...c.attacks.map(a=>`<div class="blk"><div class="bh"><span class="cost">${costDots(a[1],true)}</span>${esc(a[0])}<span class="dmg">${esc(a[2])}</span></div>${a[3]?`<p>${esc(a[3])}</p>`:''}</div>`),
