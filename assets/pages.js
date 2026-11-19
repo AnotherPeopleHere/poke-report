@@ -138,18 +138,20 @@ const games = r => r.W+r.L+r.T;
 const wr = r => games(r) ? r.W/games(r) : 0;
 const recStr = r => `${r.W}-${r.L}-${r.T}`;
 const GL = {W:'V',L:'S',T:'P'};
+const resL = x => x.id ? 'ID' : GL[roundRes(x)||'T'];
 const BIG_EVENTS = ['League Cup','Regional','Special Event','International','Mondiali'];
-function roundRes(x){ const g=(x.games||[]).filter(y=>y&&y.res); if(!g.length) return x.r||null; const w=g.filter(y=>y.res==='W').length, l=g.filter(y=>y.res==='L').length; return w>l?'W':l>w?'L':'T'; }
+function roundRes(x){ if(x.id) return 'T';   // ID: intentional draw, counts as a tie with no games
+  const g=(x.games||[]).filter(y=>y&&y.res); if(!g.length) return x.r||null; const w=g.filter(y=>y.res==='W').length, l=g.filter(y=>y.res==='L').length; return w>l?'W':l>w?'L':'T'; }
 function normRound(x){ const bo=x.bo==='bo3'?'bo3':'bo1', n=bo==='bo3'?3:1;
   const games=(x.games&&x.games.length?x.games:(x.r?[{first:null,res:x.r}]:[])).slice(0,n).map(g=>({first:g.first||null,res:g.res||null}));
-  while(games.length<n) games.push({first:null,res:null}); return {opp:x.opp||'', bo, games, note:x.note||'', src:x.src, h:x.h}; }
+  while(games.length<n) games.push({first:null,res:null}); return {opp:x.opp||'', bo, games, note:x.note||'', src:x.src, h:x.h, id:!!x.id}; }
 // top cut: t.cut = 'none' | 'missed' | 'made'; when made, t.cutSize (4..64) and t.cutFrom (first round of the cut, 1-based)
 const cutOf = t => t.cut || (t.topcut ? 'made' : 'none');
 const cutLabel = t => t.cutSize ? 'Top '+t.cutSize : 'Top cut';
 const cutSep = (t,i) => cutOf(t)==='made' && +t.cutFrom===i+1 && i>0 ? `<span class="cut-sep" title="Da qui inizia il top cut">${esc(cutLabel(t))}</span>` : '';
 function matchList(t){
   return `<ul class="mlist">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', g=(x.games||[]).find(y=>y&&y.first), gt=x.bo==='bo3'?gameText(x):'';
-    return `${cutSep(t,i)?`<li class="cut-li">${cutSep(t,i)}</li>`:''}<li><span class="res-pill ${rr}">${GL[rr]}</span><span class="mv">${t.type==='TCG Live'?'':'R'+(i+1)+' · '}vs <b>${esc(x.opp||'avversario non segnato')}</b>${g&&x.bo!=='bo3'?` <span class="src">· ${g.first==='F'?'per primo':'per secondo'}</span>`:''}${gt?` <span class="src">· ${esc(gt)}</span>`:''}</span>${x.note?`<span class="mnote">${esc(x.note)}</span>`:''}</li>`; }).join('')}</ul>`;
+    return `${cutSep(t,i)?`<li class="cut-li">${cutSep(t,i)}</li>`:''}<li><span class="res-pill ${rr}${x.id?' id':''}">${resL(x)}</span><span class="mv">${t.type==='TCG Live'?'':'R'+(i+1)+' · '}vs <b>${esc(x.opp||'avversario non segnato')}</b>${g&&x.bo!=='bo3'?` <span class="src">· ${g.first==='F'?'per primo':'per secondo'}</span>`:''}${gt?` <span class="src">· ${esc(gt)}</span>`:''}</span>${x.note?`<span class="mnote">${esc(x.note)}</span>`:''}</li>`; }).join('')}</ul>`;
 }
 function gameText(x){ return (x.games||[]).map((g,j)=>g.res?`G${j+1} ${GL[g.res]}${g.first?(g.first==='F'?' da primo':' da secondo'):''}`:'').filter(Boolean).join(', '); }
 function tFiltered(){
@@ -205,7 +207,7 @@ function renderTornei(){
   $('#tList').innerHTML = list.map(t=>{ const r=record(t), [y,m,d]=t.date.split('-');
     return `<div class="trow" data-tid="${esc(t.id)}"><div class="date"><b>${+d}</b>${MONTHS[+m-1]} ${y.slice(2)}</div>
       <div style="min-width:0"><h4>${esc(t.name)}</h4><div class="sub"><span class="badge">${esc(t.type)}</span>${archLink(t.deckName||'—','')}${t.placement?`<span>${esc(t.placement)}°${t.players?' su '+esc(t.players):''}</span>`:''}${cutOf(t)==='made'?`<span class="badge w">${esc(cutLabel(t))}</span>`:''}</div>
-        ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `${cutSep(t,i)}<span class="res-pill ${rr}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${GL[rr]}${gt?' · '+esc(gt):''}">${GL[rr]}</span>`; }).join('')}</div>`) : ''}
+        ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `${cutSep(t,i)}<span class="res-pill ${rr}${x.id?' id':''}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${x.id?'ID (pareggio concordato)':GL[rr]}${gt?' · '+esc(gt):''}">${resL(x)}</span>`; }).join('')}</div>`) : ''}
         ${t.notes?`<div class="sub" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div>
       <div class="recbox"><div class="rec num">${recStr(r)}<small>${games(r)?pct(wr(r),0)+' vittorie':'nessuna partita'}</small></div>
         <div class="ops"><button class="btn small" type="button" data-edit="${esc(t.id)}">Modifica</button><button class="btn small" type="button" data-del="${esc(t.id)}">Elimina</button></div></div></div>`; }).join('') || '<p class="src">Nessun torneo nel filtro scelto.</p>';
@@ -264,12 +266,12 @@ function openTournament(t){
     box.innerHTML = `<div class="rounds">${t.rounds.map((x,i)=>{ const rr=roundRes(x);
       return `<div class="round2" data-i="${i}">
         <div class="rh"><span class="n">R${i+1}</span><input list="archList" data-opp="${i}" placeholder="Archetipo avversario" value="${esc(x.opp)}" aria-label="Avversario round ${i+1}">
-          <span class="seg">${['bo1','bo3'].map(b=>`<button type="button" data-bo="${i}:${b}" aria-pressed="${x.bo===b}">${b==='bo1'?'Bo1':'Bo3'}</button>`).join('')}</span>
+          <span class="seg">${['bo1','bo3'].map(b=>`<button type="button" data-bo="${i}:${b}" aria-pressed="${!x.id&&x.bo===b}">${b==='bo1'?'Bo1':'Bo3'}</button>`).join('')}<button type="button" data-rid="${i}" aria-pressed="${!!x.id}" title="Pareggio concordato (Intentional Draw)">ID</button></span>
           <button type="button" class="xbtn" data-rmr="${i}" aria-label="Togli round ${i+1}">✕</button></div>
-        ${x.games.map((g,j)=>`<div class="gm"><span class="n">${x.bo==='bo3'?'Game '+(j+1):'Partita'}</span>
+        ${x.id ? '<div class="rres">Pareggio concordato: conta come pareggio, senza game giocati. Risultato del round: <span class="res-pill T id">ID</span></div>' : x.games.map((g,j)=>`<div class="gm"><span class="n">${x.bo==='bo3'?'Game '+(j+1):'Partita'}</span>
           <span class="seg">${[['F','Primo'],['S','Secondo']].map(([k,l])=>`<button type="button" data-first="${i}:${j}:${k}" aria-pressed="${g.first===k}">${l}</button>`).join('')}</span>
           <span class="wlt">${['W','L','T'].map(k=>`<button type="button" class="${k}" data-g="${i}:${j}:${k}" aria-pressed="${g.res===k}" title="${{W:'Vinta',L:'Persa',T:'Pareggio'}[k]}">${GL[k]}</button>`).join('')}</span></div>`).join('')}
-        <div class="rres">${x.bo==='bo3'?'Segna solo i game giocati.':''} Risultato del round: ${rr?`<span class="res-pill ${rr}">${GL[rr]}</span>`:'<span class="src">da segnare</span>'}</div>
+        ${x.id?'':`<div class="rres">${x.bo==='bo3'?'Segna solo i game giocati.':''} Risultato del round: ${rr?`<span class="res-pill ${rr}">${GL[rr]}</span>`:'<span class="src">da segnare</span>'}</div>`}
         <input class="rnote" data-note="${i}" maxlength="300" placeholder="Nota sul round (facoltativa)" value="${esc(x.note||'')}" aria-label="Nota round ${i+1}"></div>`; }).join('')}</div>
       <button type="button" class="btn small" id="addR" style="margin-top:8px"><svg class="i"><use href="#i-plus"/></svg>Aggiungi round</button>
       <span class="src" style="margin-left:8px">${(()=>{ const r=record({rounds:t.rounds}); return t.rounds.length?`Record ${recStr(r)}`:'Primo/Secondo = chi ha iniziato · V vinta, S persa, P pareggio'; })()}</span>`;
@@ -285,7 +287,8 @@ function openTournament(t){
     const cb=e.target.closest('[data-cut]'); if(cb){ cut=cb.dataset.cut; body2.querySelectorAll('[data-cut]').forEach(b=>b.setAttribute('aria-pressed',b===cb)); $('#fCutMore').hidden = cut!=='made'; return; }
     const md=e.target.closest('[data-mode]'); if(md){ mode=md.dataset.mode; if(mode==='manual' && !t.manual) t.manual=record({rounds:t.rounds}); body2.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b===md)); drawAll(); return; }
     const tb=e.target.closest('[data-tbo]'); if(tb){ t.bo=tb.dataset.tbo; body2.querySelectorAll('[data-tbo]').forEach(b=>b.setAttribute('aria-pressed',b===tb)); return; }
-    const bo=e.target.closest('[data-bo]'); if(bo){ const [i,v]=bo.dataset.bo.split(':'); const x=t.rounds[+i]; x.bo=v; t.rounds[+i]=normRound(x); drawAll(); return; }
+    const rid=e.target.closest('[data-rid]'); if(rid){ const x=t.rounds[+rid.dataset.rid]; x.id=!x.id; drawAll(); return; }
+    const bo=e.target.closest('[data-bo]'); if(bo){ const [i,v]=bo.dataset.bo.split(':'); const x=t.rounds[+i]; x.bo=v; x.id=false; t.rounds[+i]=normRound(x); drawAll(); return; }
     const fi=e.target.closest('[data-first]'); if(fi){ const [i,j,k]=fi.dataset.first.split(':'); const g=t.rounds[+i].games[+j]; g.first = g.first===k?null:k;
       if(k && t.rounds[+i].bo==='bo3' && +j===0 && g.first){ /* game 2 usually starts with the loser of game 1: leave to the player */ } drawAll(); return; }
     const gr=e.target.closest('[data-g]'); if(gr){ const [i,j,k]=gr.dataset.g.split(':'); const g=t.rounds[+i].games[+j]; g.res = g.res===k?null:k; drawAll(); return; }
@@ -310,7 +313,7 @@ function openTournament(t){
     const relist = $('#fRelist') && $('#fRelist').checked;
     if(d){ if(!hadList || deckId!==prevDeck || relist){ t.list = d.cards.slice(); t.listDate = new Date().toISOString().slice(0,10); } }
     else if(!deckId){ delete t.list; delete t.listDate; }
-    if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>{ const o={opp:(x.opp||'').trim(), bo:x.bo, games:x.games, r:roundRes(x)}; if(x.note&&x.note.trim()) o.note=x.note.trim(); if(x.src) o.src=x.src; if(x.h) o.h=x.h; return o; }); }
+    if(mode==='manual'){ t.rounds=[]; t.manual=t.manual||{W:0,L:0,T:0}; } else { t.manual=null; t.rounds=t.rounds.map(x=>{ const o={opp:(x.opp||'').trim(), bo:x.bo, games:x.id?[]:x.games, r:roundRes(x)}; if(x.id) o.id=true; if(x.note&&x.note.trim()) o.note=x.note.trim(); if(x.src) o.src=x.src; if(x.h) o.h=x.h; return o; }); }
     App.canonT(t);
     const i=App.data.tournaments.findIndex(x=>x.id===t.id); if(i>=0) App.data.tournaments[i]=t; else App.data.tournaments.push(t);
     dlg2.close(); renderAll(); const ok = await App.Store.put('tournaments', t); if(ok) App.toast(isNew?'Torneo salvato':'Modifiche salvate');

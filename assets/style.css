@@ -1008,3 +1008,4 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .pstart-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px;align-items:center}
 @media (max-width:760px){ .hand,.hand.prizes{grid-template-columns:repeat(4,minmax(0,1fr))} }
 .pstart-res .pm{grid-template-columns:140px 46px 1fr}
+.res-pill.id{width:auto;padding:0 5px;font-size:10px}
