@@ -54,12 +54,12 @@ const ADV = ['qText','fStage','fRule','fMark','fSet','hpMin','rcMax'];
 const advCount = () => ADV.filter(id=>{ const el=$('#'+id); return el.type==='checkbox'? el.checked : el.value!==''; }).length;
 
 function filtered(){
-  const q = $('#q').value.trim().toLowerCase(), qt = $('#qText').checked;
+  const q = $('#q').value.trim().toLowerCase(), qt = $('#qText').checked, fq = fold(q);
   const stage=$('#fStage').value, rule=$('#fRule').value, mark=$('#fMark').value, set=$('#fSet').value;
   const hpMin=parseInt($('#hpMin').value), rcMax=parseInt($('#rcMax').value);
-  const words = q ? q.split(/\s+/) : [];
+  const words = q ? q.split(/\s+/) : [], fwords = fq ? fq.split(' ') : [];
   let out = CARDS.filter(c=>{
-    if(words.length && !words.every(w=>c.lname.includes(w) || (qt && c.ltext.includes(w)))) return false;
+    if(words.length && !(fwords.every(w=>(c.lsearch||c.lname).includes(w)) || words.every(w=>c.lname.includes(w) || (qt && c.ltext.includes(w))))) return false;
     if(kind==='P' && c.sup!=='P') return false;
     if(kind==='E' && c.sup!=='E') return false;
     if(kind && kind!=='P' && kind!=='E' && !(c.sup==='T' && c.sub.includes(kind))) return false;
@@ -101,7 +101,7 @@ function renderResults(){
   const n=advCount(); $('#advCnt').hidden=!n; $('#advCnt').textContent=n;
   $('#results').innerHTML = list.slice(0,shown).map(c=>{ const own=countKey(c.key);
     return `<li class="res${c===selected?' sel':''}" data-key="${esc(c.key)}" draggable="true">
-      <span class="mini ty-${c.color}">${scan(c,false,'m-img')}</span><span class="nm">${esc(c.name)}</span>
+      <span class="mini ty-${c.color}">${scan(c,false,'m-img')}</span><span class="nm">${esc(c.name)}${c.itName?`<small class="it">${esc(c.itName)}</small>`:''}</span>
       <span class="acts">${own?`<span class="owned">×${own}</span>`:''}<button class="add" data-add="${esc(c.key)}" title="Aggiungi al mazzo" aria-label="Aggiungi ${esc(c.name)} al mazzo">+</button></span>
       <span class="sub">${subline(c)}</span></li>`; }).join('')
     + (list.length>shown ? `<li><button class="more" id="more">Mostra altre ${Math.min(120,list.length-shown)} carte</button></li>` : '')
@@ -437,6 +437,15 @@ function toList(){
 }
 /* Read a deck list: Pokémon TCG Live exports (any language), Limitless lists, "4 Name", "4 Name SET 123", "4 Name SET #123". */
 const NAMES = (()=>{ try{ return JSON.parse(document.getElementById('namesData').textContent); }catch(e){ return {}; } })();
+// search in any language: each card is also findable by its Italian (French, Spanish...) names, without accents, hyphens or case
+// Italian names come lower-case: capitalise each word except short linking words ("Determinazione di Lylia", "Spineferree-ex")
+const IT_SMALL = new Set(['di','del','della','dello','dei','degli','delle','da','dal','dalla','e','ed','a','al','alla','in','con','per','su','tra','fra','il','lo','la','i','gli','le','ex']);
+const itCase = s => s.split(' ').map((w,i)=>w.split('-').map((p,j)=>(i===0&&j===0)||!IT_SMALL.has(p)?p.charAt(0).toUpperCase()+p.slice(1):p).join('-')).join(' ');
+const fold = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’`´]/g,"'").replace(/[-_]/g,' ').replace(/\s+/g,' ').trim();
+(()=>{ const loc=new Map(), it=new Map();
+  for(const l in NAMES) for(const k in NAMES[l]){ const en=String(NAMES[l][k]).toLowerCase(); if(!loc.has(en)) loc.set(en,[]); loc.get(en).push(k); if(l==='it' && !it.has(en)) it.set(en,k); }
+  CARDS.forEach(c=>{ c.lsearch = fold(c.lname+' '+(loc.get(c.lname)||[]).join(' ')); const i=it.get(c.lname); if(i && fold(i)!==fold(c.lname)) c.itName = itCase(i); });
+  if($('#q').value) renderResults(); })();
 const ENERGY_WORD = {g:'grass',r:'fire',w:'water',l:'lightning',p:'psychic',f:'fighting',d:'darkness',m:'metal',y:'fairy',
   grass:'grass',fire:'fire',water:'water',lightning:'lightning',psychic:'psychic',fighting:'fighting',darkness:'darkness',metal:'metal',fairy:'fairy',
   erba:'grass',fuoco:'fire',acqua:'water',lampo:'lightning',psico:'psychic',lotta:'fighting','oscurità':'darkness',oscurita:'darkness',metallo:'metal',folletto:'fairy',
