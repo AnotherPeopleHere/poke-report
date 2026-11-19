@@ -595,10 +595,12 @@ function pickSprites(d){
 }
 const fmtDay = ms => ms ? new Date(ms).toLocaleDateString('it-IT',{day:'numeric',month:'short'}) : '';
 function renderLib(){
-  const list=savedDecks().slice().sort((a,b)=>(b.updated||0)-(a.updated||0));
+  // one favourite deck (saved in the preferences): shown first, with a filled star
+  const fav=App.prefs().favDeck||'';
+  const list=savedDecks().slice().sort((a,b)=>(b.id===fav)-(a.id===fav) || (b.updated||0)-(a.updated||0));
   $('#libGrid').innerHTML = list.length ? list.map(d=>{ const s=deckSummary(d), ok=!s.issues.length;
-    return `<article class="libcard" data-id="${esc(d.id)}">
-      <div class="lc-top"><button type="button" class="lc-spr" data-lib="sprite" title="Scegli gli sprite del mazzo" aria-label="Scegli gli sprite di ${esc(d.name)}">${deckSprites(d).map(spriteImg).join('')||'<span class="lc-spr-add">+</span>'}</button><h3>${esc(d.name||'Senza nome')}</h3><span class="status ${ok?'ok':'bad'}">${ok?'Legale':s.issues.length+(s.issues.length===1?' problema':' problemi')}</span></div>
+    return `<article class="libcard${d.id===fav?' fav':''}" data-id="${esc(d.id)}">
+      <div class="lc-top"><button type="button" class="lc-spr" data-lib="sprite" title="Scegli gli sprite del mazzo" aria-label="Scegli gli sprite di ${esc(d.name)}">${deckSprites(d).map(spriteImg).join('')||'<span class="lc-spr-add">+</span>'}</button><h3>${esc(d.name||'Senza nome')}</h3><button type="button" class="lc-star" data-lib="fav" aria-pressed="${d.id===fav}" title="${d.id===fav?'Togli dai preferiti':'Imposta come mazzo preferito'}" aria-label="${d.id===fav?'Togli':'Imposta'} ${esc(d.name)} ${d.id===fav?'dai preferiti':'come preferito'}"><svg class="i"><use href="#i-star"/></svg></button><span class="status ${ok?'ok':'bad'}">${ok?'Legale':s.issues.length+(s.issues.length===1?' problema':' problemi')}</span></div>
       <div class="lc-sub">${s.n}/60 carte${d.updated?' · modificato il '+fmtDay(d.updated):''}</div>
       <div class="split" title="Pokémon ${s.p} · Allenatori ${s.t} · Energie ${s.e}">${s.p?`<span style="width:${s.p/Math.max(1,s.n)*100}%;background:var(--t-Fire)"></span>`:''}${s.t?`<span style="width:${s.t/Math.max(1,s.n)*100}%;background:var(--tr-Item)"></span>`:''}${s.e?`<span style="width:${s.e/Math.max(1,s.n)*100}%;background:var(--t-Lightning)"></span>`:''}</div>
       <div class="lc-counts"><span><i style="background:var(--t-Fire)"></i>Pokémon <b>${s.p}</b></span><span><i style="background:var(--tr-Item)"></i>Allenatori <b>${s.t}</b></span><span><i style="background:var(--t-Lightning)"></i>Energie <b>${s.e}</b></span></div>
@@ -613,6 +615,7 @@ $('#libGrid').addEventListener('click',async e=>{
   const d=savedDecks().find(x=>x.id===card.dataset.id); if(!d) return;
   const act=b?b.dataset.lib:'edit';
   if(act==='sprite'){ pickSprites(d); return; }
+  if(act==='fav'){ const pr=App.prefs(), on=pr.favDeck!==d.id; pr.favDeck = on ? d.id : ''; App.Store.savePrefs(); renderLib(); App.emit('decks'); toast(on?`${d.name}: mazzo preferito`:'Nessun mazzo preferito'); return; }
   if(act==='edit'||act==='stats'){ openDeck(d, act); return; }
   if(act==='export'){ openDeck(d,'lib'); $('#bExport').click(); return; }
   if(act==='dup'){ const rec={id:App.uid(), name:d.name+' (copia)', cards:d.cards.slice(), updated:Date.now()}; App.data.decks.push(rec); renderLib(); App.emit('decks'); await App.Store.put('decks',rec); toast('Mazzo duplicato'); return; }

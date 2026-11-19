@@ -952,3 +952,12 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
   .bsub button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 }
 .res .nm .it{margin-left:6px;font-size:11.5px;font-weight:400;color:var(--muted)}
+
+/* favourite deck */
+.lc-star{flex:none;width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;transition:color .2s,background .2s,transform .2s}
+.lc-star:hover{background:var(--sunk);color:var(--fg)}
+.lc-star .i{width:19px;height:19px}
+.lc-star[aria-pressed="true"]{color:#f5b800}
+.lc-star[aria-pressed="true"] .i{fill:currentColor}
+.lc-star:active{transform:scale(.88)}
+.libcard.fav{border-color:color-mix(in srgb,#f5b800 55%,var(--line));box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,#f5b800 35%,transparent)}
