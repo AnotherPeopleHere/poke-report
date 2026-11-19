@@ -963,3 +963,8 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .libcard.fav{border-color:color-mix(in srgb,#f5b800 55%,var(--line));box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,#f5b800 35%,transparent)}
 .gtbl .dk{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
 .gtbl .dk .btn{flex:none}
+
+/* saved decks: the name gets the whole row (wrapping only between words), the legality badge moves next to the date */
+.libcard .lc-top h3{overflow-wrap:normal;word-break:normal;hyphens:manual;font-size:18px}
+.libcard .lc-sub{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px}
+.libcard .lc-sub .status{font-size:11.5px;padding:2px 8px}
