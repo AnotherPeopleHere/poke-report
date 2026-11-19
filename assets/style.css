@@ -244,7 +244,9 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(310px,1fr) mi
 .prob td.n .pb b{display:block;height:100%;background:var(--accent)}
 .prob tr.grp td{border-top:2px solid var(--line);font-weight:600}
 .prob select{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:4px 6px;max-width:100%}
-.hand{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.hand{display:grid;grid-template-columns:repeat(7,minmax(0,78px));gap:6px;margin-top:6px}
+.hand.prizes{grid-template-columns:repeat(6,minmax(0,78px))}
+.hand-wrap{display:flex;flex-wrap:wrap;gap:4px 28px}
 .hand-l{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:10px}
 .hint{color:var(--muted);font-size:12px;margin:0}
 
@@ -983,3 +985,26 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 /* type icon next to the HP: centre at 91.3% / 5.9% of the card, 7.6% of its width */
 .cost .tico+.tico,.wrr .tico+.tico{margin-left:2px}
 .chip .tico{margin-right:2px}
+
+/* stats: draw probabilities as readable cards */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:8px}
+.prow{display:flex;gap:10px;align-items:flex-start;background:var(--sunk);border-radius:12px;padding:8px 10px}
+.prow img,.prow .ph{width:42px;aspect-ratio:63/88;border-radius:4px;flex:none;object-fit:cover;background:var(--line)}
+.pinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.pname{display:flex;align-items:baseline;gap:6px;font-size:13.5px;min-width:0}
+.pname b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pname .num{color:var(--muted);font-size:12px}
+.pm{display:grid;grid-template-columns:96px 40px 1fr;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.pm > b{font:700 13px var(--mono);color:var(--fg);text-align:right}
+.pm > b.good{color:var(--ok)} .pm > b.badc{color:var(--bad)}
+.pm i{height:6px;border-radius:9px;background:var(--line);overflow:hidden}
+.pm i b{display:block;height:100%;background:var(--accent);border-radius:9px}
+.pwarn{font-size:11.5px;color:var(--warn)}
+.pstart{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.pstart-h{display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.pstart-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pstart-chips .chip{border:0;cursor:pointer}
+.pstart-chips select{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:5px 8px;color:var(--fg)}
+.pstart-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px;align-items:center}
+@media (max-width:760px){ .hand,.hand.prizes{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.pstart-res .pm{grid-template-columns:140px 46px 1fr}

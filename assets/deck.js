@@ -358,6 +358,13 @@ $('#detail').addEventListener('click',e=>{
 function choose(n,k){ if(k<0||k>n) return 0; k=Math.min(k,n-k); let r=1; for(let i=1;i<=k;i++) r=r*(n-k+i)/i; return r; }
 const pAtLeast1 = (N,K,n) => (N<=0||K<=0) ? 0 : 1 - choose(N-K,Math.min(n,N))/choose(N,Math.min(n,N));
 const pct = p => (p>0&&p<.001) ? '<0,1%' : (p*100).toLocaleString('it-IT',{maximumFractionDigits:1,minimumFractionDigits:1})+'%';
+const meter = (label,p) => `<div class="pm"><span>${label}</span><b class="${p>=.6?'good':p<.35?'badc':''}">${pct(p,0)}</b><i><b style="width:${Math.round(p*100)}%"></b></i></div>`;
+function probRow(c, nm, q, N, pr){
+  return `<div class="prow">${c&&imOf(c)?`<img src="${imgUrl(c,false)}" alt="" loading="lazy">`:'<span class="ph"></span>'}
+    <div class="pinfo"><div class="pname"><b>${esc(nm)}</b><span class="num">×${q}</span></div>
+      ${meter('Mano iniziale',pAtLeast1(N,q,7))}${meter('Primo turno',pAtLeast1(N,q,8))}
+      ${pr>=.001?`<span class="pwarn">${pct(pr,1)} di averle tutte nei Premi</span>`:''}</div></div>`;
+}
 const pcell = p => `<td class="n"><span class="pb"><b style="width:${p*100}%"></b></span>${pct(p)}</td>`;
 function renderStats(){
   const cs=deck.cards.map(k=>BY_KEY.get(k)), N=cs.length;
@@ -379,13 +386,15 @@ function renderStats(){
       <div class="split">${p?`<span style="width:${w(p)};background:var(--t-Fire)"></span>`:''}${t?`<span style="width:${w(t)};background:var(--tr-Item)"></span>`:''}${e?`<span style="width:${w(e)};background:var(--t-Lightning)"></span>`:''}</div>
       <div class="legend"><span><i style="background:var(--t-Fire)"></i>Pokémon <b class="num">${p}</b></span><span><i style="background:var(--tr-Item)"></i>Allenatori <b class="num">${t}</b></span><span><i style="background:var(--t-Lightning)"></i>Energie <b class="num">${e}</b></span></div>
       ${eTypes.size?`<div class="legend">${[...eTypes].map(([k,v])=>`<span><i class="${k==='Speciale'?'ty-Energy':'ty-'+k}"></i>${k==='Speciale'?'Speciali':TYPE_IT[k]||k} <b class="num">${v}</b></span>`).join('')}</div>`:''}</div>
-    <div class="prob"><h3>Probabilità in mano iniziale</h3>
-      <table><thead><tr><th>Almeno 1 di…</th><th class="n">Mano (7)</th><th class="n">Turno 1 (8)</th><th class="n" title="Tutte le copie finiscono nelle carte Premio">Tutte premio</th></tr></thead><tbody>
-      ${top.map(([nm,q])=>`<tr><td>${esc(nm)} <span class="num" style="color:var(--muted)">×${q}</span></td>${pcell(pAtLeast1(N,q,7))}${pcell(pAtLeast1(N,q,8))}<td class="n">${pct(prized(q))}</td></tr>`).join('')}
-      <tr class="grp"><td>Gruppo starter <span class="num" style="color:var(--muted)">×${K}</span></td>${pcell(pAtLeast1(N,K,7))}${pcell(pAtLeast1(N,K,8))}<td class="n">${pct(prized(K))}</td></tr>
-      </tbody></table>
-      <div style="margin-top:8px"><select id="starterPick" aria-label="Aggiungi carta al gruppo starter"><option value="">+ Aggiungi al gruppo starter…</option>${[...byName.keys()].sort().filter(nm=>!starters.has(nm)).map(nm=>`<option>${esc(nm)}</option>`).join('')}</select></div>
-      <div class="cd-stats">${[...starters].map(nm=>`<button type="button" class="chip" style="border:0;cursor:pointer" data-unstart="${esc(nm)}">${esc(nm)} ✕</button>`).join('') || '<span class="hint">Metti nel gruppo le carte con cui vuoi aprire (es. i Pokémon Base chiave e le carte che li cercano).</span>'}</div>
+    <div class="prob"><h3>Quanto spesso la peschi</h3>
+      <p class="hint" style="margin:-4px 0 10px">Probabilità di avere <b>almeno una copia</b> della carta: nelle 7 carte iniziali e dopo la pescata del primo turno. Con 3 o 4 copie fra le 6 carte Premio compare un avviso.</p>
+      <div class="pgrid">${top.map(([nm,q])=>probRow(BY_KEY.get(cs.find(c=>c.name===nm).key), nm, q, N, prized(q))).join('')}</div>
+      <div class="pstart">
+        <div class="pstart-h"><b>Le tue carte di apertura</b><span class="hint">Scegli le carte con cui ti va bene iniziare (es. i Pokémon Base chiave e chi li cerca): vedi la probabilità di averne almeno una.</span></div>
+        <div class="pstart-chips">${[...starters].map(nm=>`<button type="button" class="chip" data-unstart="${esc(nm)}" title="Togli">${esc(nm)} <span aria-hidden="true">✕</span></button>`).join('')}
+          <select id="starterPick" aria-label="Aggiungi una carta di apertura"><option value="">+ Aggiungi carta…</option>${[...byName.keys()].sort().filter(nm=>!starters.has(nm)).map(nm=>`<option>${esc(nm)}</option>`).join('')}</select></div>
+        ${K?`<div class="pstart-res">${meter('Nella mano iniziale',pAtLeast1(N,K,7))}${meter('Entro il primo turno',pAtLeast1(N,K,8))}<span class="hint">${K} carte nel gruppo</span></div>`:''}
+      </div>
     </div>
     <div><h3>Mano di prova</h3>
       <button type="button" class="btn small" data-hand><svg class="i"><use href="#i-shuffle"/></svg>Pesca 7 carte e 6 Premi</button>
@@ -393,8 +402,8 @@ function renderStats(){
 }
 function handHtml(h){
   return `${h.mull?`<p class="hint" style="margin-top:8px;color:var(--bad)">Nessun Pokémon Base: mulligan ${h.mull}× prima di questa mano.</p>`:''}
-    <div class="hand-l">Mano</div><div class="hand">${h.hand.map(k=>cardFace(BY_KEY.get(k),`data-key="${esc(k)}"`)).join('')}</div>
-    <div class="hand-l">Carte Premio</div><div class="hand">${h.prizes.map(k=>cardFace(BY_KEY.get(k),`data-key="${esc(k)}"`)).join('')}</div>`;
+    <div class="hand-wrap"><div><div class="hand-l">Mano · 7 carte</div><div class="hand">${h.hand.map(k=>cardFace(BY_KEY.get(k),`data-key="${esc(k)}"`)).join('')}</div></div>
+    <div><div class="hand-l">Carte Premio · 6</div><div class="hand prizes">${h.prizes.map(k=>cardFace(BY_KEY.get(k),`data-key="${esc(k)}"`)).join('')}</div></div></div>`;
 }
 $('#stats').addEventListener('change',e=>{ if(e.target.id==='starterPick'&&e.target.value){ starters.add(e.target.value); store.set('sdl.starters',[...starters]); renderStats(); } });
 $('#stats').addEventListener('click',e=>{
