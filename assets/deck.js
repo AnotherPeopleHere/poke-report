@@ -26,6 +26,8 @@ const CARDS = RAW.map(r=>{
 });
 const BY_KEY = new Map(CARDS.map(c=>[c.key,c]));
 const PRINT_IDX = new Map(); CARDS.forEach(c=>c.prints.forEach(p=>PRINT_IDX.set((p[0]+' '+p[1]).toUpperCase(), c)));
+// promo codes are written in two ways ("PR-SV 189" in TCG Live, "SVP 189" on Limitless): accept both
+CARDS.forEach(c=>c.prints.forEach(p=>{ if(p[0]==='PR-SV') PRINT_IDX.set('SVP '+String(p[1]).toUpperCase(), c); if(p[0]==='MEP') PRINT_IDX.set('PR-ME '+String(p[1]).toUpperCase(), c); }));
 // a card's key is its newest print, so it changes when a card is reprinted: keys saved earlier still resolve through the print index
 const KEY_GET = BY_KEY.get.bind(BY_KEY);
 BY_KEY.get = k => KEY_GET(k) || (m => m ? PRINT_IDX.get((m[1]+' '+m[2]).toUpperCase()) : undefined)(/^(.+)-([^-~]+)(?:~\d+)?$/.exec(String(k)));
@@ -173,6 +175,7 @@ function artOf(c){ const a=(App.prefs().art||{})[c.key]; return (a && c.prints.f
 const imOf = c => artOf(c)[6] || (artOf(c)===c.prints[0] ? c.im : '') || '';
 function setArt(c, p){ const pr=App.prefs(), art=pr.art||(pr.art={}); if(p===c.prints[0]) delete art[c.key]; else art[c.key]=p[0]+' '+p[1]; App.Store.savePrefs(); }
 function imgUrl(c, big){ const m=imOf(c); if(!m) return '';
+  if(m.startsWith('td:')) return `https://assets.tcgdex.net/en/${m.slice(3)}/${big?'high':'low'}.webp`;   // promos from tcgdex
   return m.startsWith('x:') ? `https://images.scrydex.com/pokemon/${m.slice(2)}/${big?'large':'small'}` : `https://images.pokemontcg.io/${m}${big?'_hires':''}.png`; }
 const scan = (c, big, cls) => imOf(c) ? `<img class="${cls}" src="${imgUrl(c,big)}" alt="" crossorigin="anonymous" loading="lazy" decoding="async" draggable="false" onerror="this.remove()">` : '';
 function costDots(cost, big){ return cost.map(t=>`<i class="ty-${t}" title="${TYPE_IT[t]||t}"${big?' style="width:14px;height:14px;border-radius:50%;display:inline-block"':''}></i>`).join(''); }
@@ -312,7 +315,8 @@ $('#drawerClose').addEventListener('click',closeDrawer);
 $('#drawerBack').addEventListener('click',closeDrawer);
 function select(c){ selected=c; renderDetail(); openDrawer(); document.querySelectorAll('.res.sel').forEach(x=>x.classList.remove('sel')); const li=document.querySelector(`.res[data-key="${CSS.escape(c.key)}"]`); if(li) li.classList.add('sel'); }
 function wr(list){ return list.length ? list.map(x=>{ const [t,v]=x.split(' '); return `<span class="dot ty-${t}">${TYPE_L[t]||''}</span>${esc(v)}`; }).join(' ') : '—'; }
-const ltUrl = p => `https://limitlesstcg.com/cards/${encodeURIComponent(p[0])}/${encodeURIComponent(p[1])}`;
+const LT_CODE = {'PR-SV':'SVP','PR-SW':'SSP'};   // Limitless names the promo sets differently
+const ltUrl = p => `https://limitlesstcg.com/cards/${encodeURIComponent(LT_CODE[p[0]]||p[0])}/${encodeURIComponent(p[1])}`;
 function renderDetail(){
   const c=selected, n=c.isBasicEnergy?countKey(c.key):count(c), lim=c.isBasicEnergy?null:4;
   const typeLine = c.sup==='P' ? `Pokémon ${SUB_IT[stageOf(c)]||''}${c.from?` · si evolve da ${esc(c.from)}`:''}` : c.sup==='T' ? `Allenatore · ${c.sub.map(s=>SUB_IT[s]||s).join(' · ')}` : (c.isBasicEnergy?'Energia base':'Energia speciale');
