@@ -976,3 +976,5 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .tbtn:has(.tsym-img){background:none;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .tbtn:has(.tsym-img){border:0;overflow:hidden}
 .tbtn:has(.tsym-img)[aria-pressed="true"]{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--fg)}
+/* type icon next to the HP: centre at 91.3% / 5.9% of the card, 7.6% of its width */
+.tbtn .tsym-img.hp{background-size:394.7px 551.4px;background-position:-345.2px -17.6px}
