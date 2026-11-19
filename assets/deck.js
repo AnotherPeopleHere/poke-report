@@ -718,7 +718,11 @@ function archSprites(name){
   const k=App.archKey(App.archCanon(name||'')); if(!k) return '';
   if(ARCH_SPR.has(k)) return ARCH_SPR.get(k);
   const a=[...META_ARCHS, ...ARCHS].find(x=>App.archKey(App.archCanon(x.name))===k);
-  const html = a ? (a.icons||[]).slice(0,2).map(iconCard).filter(Boolean).map(spriteImg).join('') : '';
+  let html = a ? (a.icons||[]).slice(0,2).map(iconCard).filter(Boolean).map(spriteImg).join('') : '';
+  // a name that is not a known archetype ("Alakazam Clefairy"): use the Pokémon named in it, up to two
+  if(!html){ const SKIP=new Set(['ex','box','mega','toolbox','control','lead','festival','basic','rocket','rockets','team','the','di','e','and']);
+    const mons=[]; nameWords(String(name)).filter(w=>w.length>2 && !SKIP.has(w)).forEach(w=>{ const c=iconCard(w); if(c && !mons.some(m=>m.dex===c.dex)) mons.push(c); });
+    html = mons.slice(0,2).map(spriteImg).join(''); }
   ARCH_SPR.set(k,html); return html;
 }
 window.DeckLab = { archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
