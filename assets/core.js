@@ -136,7 +136,7 @@ const Store = {
 };
 
 const App = window.App = {
-  ls, Store, sb, archKey, archCanon, canonT, data:{prefs:null, decks:[], tournaments:[]}, page:'home', ready:false,
+  ls, Store, sb, archKey, archCanon, canonT, bmoreOpen, data:{prefs:null, decks:[], tournaments:[]}, page:'home', ready:false,
   _subs:[], on(fn){ this._subs.push(fn); }, emit(what){ this._subs.forEach(f=>{ try{ f(what); }catch(e){ console.error(e); } }); },
   uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); },
   toast(msg){ const t=$('#toast'); if(!t) return; t.innerHTML=''; const s=document.createElement('span'); s.textContent=msg; t.appendChild(s); t.hidden=false; clearTimeout(App._tt); App._tt=setTimeout(()=>t.hidden=true,3600); },
@@ -152,7 +152,11 @@ function route(){
   App.page = p;
   document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on', s.dataset.page===p));
   document.querySelectorAll('#sitenav a, #bnav a, #bmore a').forEach(a=>{ if(a.dataset.p===p) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
-  const more=document.getElementById('bnMore'); if(more){ more.classList.toggle('on', ['gruppo','news','consigli','metafy'].includes(p)); }
+  // the 5th item shows the current "more" page (its icon and name); on the group page it also opens its sections
+  const MORE={gruppo:['i-group','Gruppo'],news:['i-news','Notizie'],consigli:['i-star','Consigli'],metafy:['i-coach','Metafy']};
+  const more=document.getElementById('bnMore'); if(more){ const m=MORE[p]; more.classList.toggle('on', !!m); more.classList.toggle('has-sub', p==='gruppo');
+    more.querySelector('use').setAttribute('href','#'+(m?m[0]:'i-more')); more.querySelector('.bn-l').textContent = m?m[1]:'Altro'; if(p!=='gruppo') more.querySelector('.bn-sub').textContent=''; }
+  const sub=document.getElementById('bmoreSub'); if(sub) sub.hidden = p!=='gruppo';
   bmoreOpen(false);
   document.body.classList.toggle('on-deck', p==='deck');
   moveIndicator(true);

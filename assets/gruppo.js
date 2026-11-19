@@ -119,6 +119,7 @@ function render(){
     ${sec('tours', `<div class="panel"><h3>Tornei del gruppo <span class="meta">${realT(ts).length} nei filtri scelti</span></h3>${F.src==='live'?'<p class="src">Hai scelto solo le partite TCG Live: qui compaiono solo i tornei veri.</p>':recent(realT(ts))}</div>`
       + (F.src==='tour' ? '' : `<div class="panel"><h3>Sessioni TCG Live <span class="meta">partite importate o veloci, raggruppate per giorno</span></h3>${recent(ts.filter(isLive))}</div>`))}`);
   moveTabInd(false);
+  drawSub();
 }
 function explorer(rs){
   if(!F.arch){
@@ -162,7 +163,7 @@ function playersTable(members, tournaments){
 function recent(ts){
   const list = ts.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12);
   return list.length ? `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);
-    return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${esc(t.date)} · ${esc(t.type||'')}</div></td><td>${esc(nameOf(t.user_id))}</td><td>${t.deckName?archN(t.deckName):'—'}</td><td class="n">${T.recStr(r)}</td><td class="n">${t.placement?esc(t.placement)+'°':'—'}</td></tr>`; }).join('')}</tbody></table></div>`
+    return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${esc(t.date)} · ${esc(t.type||'')}</div></td><td class="wide">${esc(nameOf(t.user_id))}</td><td class="wide">${t.deckName?archN(t.deckName):'—'}</td><td class="n">${T.recStr(r)}</td><td class="n">${t.placement?esc(t.placement)+'°':'—'}</td></tr>`; }).join('')}</tbody></table></div>`
     : '<p class="src">Nessun torneo nei filtri scelti.</p>';
 }
 
@@ -208,8 +209,14 @@ function moveTabInd(animate){
   ind.style.width=a.offsetWidth+'px'; ind.style.transform=`translateX(${a.offsetLeft}px)`;
   if(!animate) requestAnimationFrame(()=>requestAnimationFrame(()=>nav.classList.add('ready')));
 }
+// phone: the group's sections live in the bottom bar's sheet (the "Gruppo" item), not in a tab bar at the top
+const TAB_L = {over:'Panoramica',match:'Matchup',players:'Giocatori',tours:'Tornei'};
+function drawSub(){ const box=document.getElementById('bmoreSub'); if(!box) return;
+  box.innerHTML = `<div class="bsub-h">Sezioni del gruppo</div><div class="bsub">${Object.entries(TAB_L).map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${F.tab===k}">${l}</button>`).join('')}</div>`;
+  const lbl=document.querySelector('#bnMore .bn-sub'); if(lbl) lbl.textContent=TAB_L[F.tab]||''; }
+document.getElementById('bmoreSub')?.addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; showTab(b.dataset.gtab); App.bmoreOpen && App.bmoreOpen(false); window.scrollTo({top:0,behavior:'smooth'}); });
 function showTab(k){
-  F.tab=k;
+  F.tab=k; drawSub();
   document.querySelectorAll('#gTabs [data-gtab]').forEach(b=>b.setAttribute('aria-selected', b.dataset.gtab===k));
   document.querySelectorAll('#gBody .gsec').forEach(sct=>sct.classList.toggle('on', sct.dataset.gsec===k));
   moveTabInd(true);
