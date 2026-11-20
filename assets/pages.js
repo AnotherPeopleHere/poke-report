@@ -140,6 +140,9 @@ const recStr = r => `${r.W}-${r.L}-${r.T}`;
 const GL = {W:'V',L:'S',T:'P'};
 const resL = x => x.bye ? 'BYE' : x.id ? 'ID' : GL[roundRes(x)||'T'];
 const BIG_EVENTS = ['League Cup','Regional','Special Event','International','Mondiali'];
+// TCG Live sessions (imported logs, quick matches) are games on the simulator: their results count, but they are not tournaments
+const isLiveT = t => t.type==='TCG Live';
+const tCount = (n,live) => `${n}${live?`<small class="lv">+ ${live} live</small>`:''}`;
 function roundRes(x){ if(x.bye) return 'W'; if(x.id) return 'T';   // BYE: a win with no opponent   // ID: intentional draw, counts as a tie with no games
   const g=(x.games||[]).filter(y=>y&&y.res); if(!g.length) return x.r||null; const w=g.filter(y=>y.res==='W').length, l=g.filter(y=>y.res==='L').length; return w>l?'W':l>w?'L':'T'; }
 function normRound(x){ const bo=x.bo==='bo3'?'bo3':'bo1', n=bo==='bo3'?3:1;
@@ -166,7 +169,7 @@ function tFiltered(){
 function stats(list){
   const tot={W:0,L:0,T:0}; list.forEach(t=>{ const r=record(t); tot.W+=r.W; tot.L+=r.L; tot.T+=r.T; });
   const byDeck=new Map(), byOpp=new Map(), g={W:0,L:0,T:0}, first={W:0,L:0,T:0}, second={W:0,L:0,T:0};
-  list.forEach(t=>{ const r=record(t), d=byDeck.get(t.deckName)||{name:t.deckName,n:0,W:0,L:0,T:0,best:null}; d.n++; d.W+=r.W; d.L+=r.L; d.T+=r.T; if(t.placement && (!d.best||+t.placement<d.best)) d.best=+t.placement; byDeck.set(t.deckName,d);
+  list.forEach(t=>{ const r=record(t), d=byDeck.get(t.deckName)||{name:t.deckName,n:0,live:0,W:0,L:0,T:0,best:null}; if(isLiveT(t)) d.live++; else d.n++; d.W+=r.W; d.L+=r.L; d.T+=r.T; if(t.placement && (!d.best||+t.placement<d.best)) d.best=+t.placement; byDeck.set(t.deckName,d);
     (t.rounds||[]).forEach(x=>{ if(x.bye) return;   // a BYE has no opponent: not a matchup
       const k=(x.opp||'Sconosciuto').trim()||'Sconosciuto', o=byOpp.get(k)||{name:k,W:0,L:0,T:0,gW:0,gL:0,gT:0}, rr=roundRes(x); if(rr) o[rr]++;
       (x.games||[]).forEach(gm=>{ if(!gm||!gm.res) return; g[gm.res]++; o['g'+gm.res]++; if(gm.first==='F') first[gm.res]++; if(gm.first==='S') second[gm.res]++; });
@@ -180,7 +183,7 @@ function renderTornei(){
   sel.innerHTML = '<option value="">Tutti i mazzi</option>'+names.map(n=>`<option>${esc(n)}</option>`).join(''); sel.value = names.includes(cur)?cur:'';
   const list = tFiltered(), s = stats(list);
   $('#tKpis').innerHTML = `
-    <div><span>Tornei</span><b>${list.length}</b><small>${s.cuts} top cut</small></div>
+    <div><span>Tornei</span><b>${list.filter(t=>!isLiveT(t)).length}</b><small>${s.cuts} top cut${list.some(isLiveT)?` · + ${list.filter(isLiveT).length} ${list.filter(isLiveT).length===1?'sessione':'sessioni'} TCG Live`:''}</small></div>
     <div><span>Record</span><b class="num" style="font-family:var(--display)">${recStr(s.tot)}</b><small>${games(s.tot)} partite</small></div>
     <div><span>Vittorie</span><b>${games(s.tot)?pct(wr(s.tot)):'—'}</b><small>pareggi contati come non vinte</small></div>
     <div><span>Partite singole (game)</span><b class="num" style="font-family:var(--display)">${recStr(s.g)}</b><small>${games(s.g)?pct(wr(s.g),0)+' vinte':'segna i game nei round'}</small></div>
@@ -202,7 +205,7 @@ function renderTornei(){
         <span class="tl-r ${!n?'':p>=.55?'good':p<.45?'bad':''}"><b class="num">${recStr(r)}</b><small>${n?pct(p,0):'—'}</small></span></button></li>`; }).join('')}</ul>
       <button type="button" class="btn small tl-all" id="tToList">Vai allo storico completo${list.length>LAST?` (${list.length})`:''} ↓</button>`
     : '<p class="src">Nessun torneo nel filtro scelto.</p>';
-  $('#tDecks').innerHTML = s.byDeck.length ? `<thead><tr><th>Mazzo</th><th class="n">Tornei</th><th class="n">Record</th><th class="n">Vittorie</th><th class="n">Top</th></tr></thead><tbody>${s.byDeck.map(d=>`<tr><td>${archLink(d.name||'—',metaUrl(d.name))}</td><td class="n">${d.n}</td><td class="n">${recStr(d)}</td>${wrCell(d)}<td class="n">${d.best?d.best+'°':'—'}</td></tr>`).join('')}</tbody>` : '';
+  $('#tDecks').innerHTML = s.byDeck.length ? `<thead><tr><th>Mazzo</th><th class="n">Tornei</th><th class="n">Record</th><th class="n">Vittorie</th><th class="n">Top</th></tr></thead><tbody>${s.byDeck.map(d=>`<tr><td>${archLink(d.name||'—',metaUrl(d.name))}</td><td class="n">${tCount(d.n,d.live)}</td><td class="n">${recStr(d)}</td>${wrCell(d)}<td class="n">${d.best?d.best+'°':'—'}</td></tr>`).join('')}</tbody>` : '';
   $('#tMatch').innerHTML = s.byOpp.length ? `<thead><tr><th>Avversario</th><th class="n">Round</th><th class="n">Record</th><th class="n">Vittorie</th><th class="n">Game</th></tr></thead><tbody>${s.byOpp.map(o=>`<tr><td>${archLink(o.name,metaUrl(o.name))}</td><td class="n">${games(o)}</td><td class="n">${recStr(o)}</td>${wrCell(o)}<td class="n">${o.gW+o.gL+o.gT?o.gW+'-'+o.gL+'-'+o.gT:'—'}</td></tr>`).join('')}</tbody>`
     : '<tbody><tr><td class="src">Registra i round con l\'archetipo avversario per vedere i matchup.</td></tr></tbody>';
   $('#tList').innerHTML = list.map(t=>{ const r=record(t), [y,m,d]=t.date.split('-');
@@ -390,8 +393,8 @@ const W = {
   perf:{title:'Il mio rendimento', desc:'Record e percentuale di vittorie nei tornei', go:'#tornei', render:()=>{ const s=stats(App.data.tournaments);
     if(!App.data.tournaments.length) return '<p class="src">Ancora nessun torneo. <a class="link" href="#tornei">Registra il primo</a>.</p>';
     const fav = s.byDeck[0];
-    return `<div class="mini-stats"><div><span>Tornei</span><b>${App.data.tournaments.length}</b></div><div><span>Record</span><b class="num" style="font-family:var(--display)">${recStr(s.tot)}</b></div><div><span>Vittorie</span><b>${games(s.tot)?pct(wr(s.tot),0):'—'}</b></div></div>
-      ${fav?`<p class="src" style="margin:0">Mazzo più giocato: <b style="color:var(--fg)">${esc(fav.name||'—')}</b> (${fav.n} tornei, ${games(fav)?pct(wr(fav),0):'—'})</p>`:''}`; }},
+    return `<div class="mini-stats"><div><span>Tornei</span><b>${App.data.tournaments.filter(t=>!isLiveT(t)).length}</b></div><div><span>Record</span><b class="num" style="font-family:var(--display)">${recStr(s.tot)}</b></div><div><span>Vittorie</span><b>${games(s.tot)?pct(wr(s.tot),0):'—'}</b></div></div>
+      ${fav?`<p class="src" style="margin:0">Mazzo più giocato: <b style="color:var(--fg)">${esc(fav.name||'—')}</b> (${fav.n} ${fav.n===1?'torneo':'tornei'}${fav.live?` + ${fav.live} live`:''}, ${games(fav)?pct(wr(fav),0):'—'})</p>`:''}`; }},
   recent:{title:'Ultimi tornei giocati', desc:'I tuoi tornei più recenti', go:'#tornei', render:()=>{ const L=App.data.tournaments.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
     return L.length ? `<table class="tbl"><tbody>${L.map(t=>{ const r=record(t); return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${fmtDate(t.date)} · ${esc(t.deckName||'—')}</div></td><td class="n">${recStr(r)}</td></tr>`; }).join('')}</tbody></table>` : '<p class="src">Nessun torneo registrato.</p>'; }},
   matchups:{title:'Matchup', desc:'I tuoi matchup migliori e peggiori', go:'#tornei', render:()=>{ const o=stats(App.data.tournaments).byOpp.filter(x=>games(x)>=1);
