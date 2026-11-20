@@ -42,6 +42,11 @@ jobs:
           python scripts/build_names.py .cache/tcgdex/data data/cards.json data/names.json
           python scripts/build_promos.py .cache/tcgdex/data data/cards.json
 
+      - name: Card fingerprints (to read deck pictures exported by Limitless)
+        run: |
+          pip install --quiet pillow
+          python scripts/build_hashes.py data/cards.json data/hashes.json
+
       - name: Meta report and recent Regionals (limitlesstcg.com)
         run: python scripts/update_meta.py data
 

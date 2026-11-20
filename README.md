@@ -21,6 +21,7 @@ Si usa dal browser o dal telefono, anche aggiunto alla schermata Home come un'ap
 - **Aggiornamento automatico dei dati** ogni mattina con GitHub Actions (`.github/workflows/update-data.yml`):
   - `scripts/build_cards.py` — card pool legale da [PokemonTCG/pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)
   - `scripts/build_promos.py` — stampe promo (SVP, MEP) che mancano ancora in pokemon-tcg-data, prese da tcgdex con le loro immagini
+  - `scripts/build_hashes.py` — "impronta" di ogni scansione (`data/hashes.json`), per leggere le immagini dei mazzi esportate da Limitless
   - `scripts/build_names.py` — nomi delle carte in italiano, francese, spagnolo, tedesco e portoghese da [tcgdex/cards-database](https://github.com/tcgdex/cards-database), per importare liste esportate da TCG Live in altre lingue
   - `scripts/update_meta.py` — meta report e Regional recenti da limitlesstcg.com
   - `scripts/fetch_online.py` + `scripts/analyze.py` — tornei online delle ultime 3 settimane e calcolo dei consigli
@@ -54,4 +55,5 @@ Poi apri http://localhost:8000.
 
 Dati di gioco © The Pokémon Company, Nintendo, Game Freak, Creatures. Questo sito non è affiliato né approvato da loro.
 Dati dei tornei da Limitless TCG; testi delle carte da PokemonTCG/pokemon-tcg-data. Le scansioni delle carte sono caricate dai server di immagini di pokemontcg.io (images.pokemontcg.io e images.scrydex.com) e non sono salvate nel repository; se un’immagine non è disponibile il sito mostra una carta disegnata al suo posto.
+Import da immagine: [Tesseract.js](https://github.com/naptha/tesseract.js) (licenza Apache 2.0), caricato da jsDelivr solo quando serve.
 `assets/vendor/supabase-2.118.0.js` è la libreria @supabase/supabase-js (licenza MIT, vedi `assets/vendor/supabase-LICENSE.txt`).

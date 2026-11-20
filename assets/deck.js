@@ -529,12 +529,16 @@ $('#bImport').addEventListener('click',()=>{
   openDlg(`<h2>Importa lista</h2>
     <p class="hint">Incolla una lista esportata da Pokémon TCG Live o da un sito di liste (una carta per riga, ad es. “4 Dreepy TWM 128”). Va bene anche solo “4 Dreepy”, e anche con i nomi in italiano (es. “4 Arbitro UL 78”).</p>
     <div class="drop-file" id="dropF">Trascina qui un file .txt oppure <label for="lFile">sceglilo</label><input type="file" id="lFile" accept=".txt" hidden></div>
+    <div class="drop-file img" id="dropI"><svg class="i"><use href="#i-img"/></svg><span>Hai un'<b>immagine</b> del mazzo (export di Limitless o una foto)? <label for="iFile">Caricala</label> e la leggo io.</span><input type="file" id="iFile" accept="image/*" hidden></div>
     <textarea id="lIn" placeholder="Pokémon: 17&#10;4 Dreepy TWM 128&#10;…"></textarea>
     <div class="implist" id="impList"></div>
     <div class="row"><span class="hint" id="impMsg"></span><button class="btn" value="close">Annulla</button><button type="button" class="btn primary" id="doImp">Importa</button></div>`,
   ()=>{
     const read=f=>{ if(!f) return; fname=f.name.replace(/\.txt$/i,''); const r=new FileReader(); r.onload=()=>{ $('#lIn').value=r.result; }; r.readAsText(f); };
     $('#lFile').addEventListener('change',e=>read(e.target.files[0]));
+    const img=f=>{ if(!f) return; dlg.close(); DeckLab.fromImage(f); };
+    $('#iFile').addEventListener('change',e=>img(e.target.files[0]));
+    const di=$('#dropI'); di.addEventListener('dragover',e=>{ e.preventDefault(); di.classList.add('over'); }); di.addEventListener('dragleave',()=>di.classList.remove('over')); di.addEventListener('drop',e=>{ e.preventDefault(); di.classList.remove('over'); img(e.dataTransfer.files[0]); });
     const d=$('#dropF'); d.addEventListener('dragover',e=>{ e.preventDefault(); d.classList.add('over'); }); d.addEventListener('dragleave',()=>d.classList.remove('over')); d.addEventListener('drop',e=>{ e.preventDefault(); d.classList.remove('over'); read(e.dataTransfer.files[0]); });
     let confirmed=false;
     $('#lIn').addEventListener('input',()=>{ confirmed=false; $('#doImp').textContent='Importa'; $('#impList').innerHTML=''; });
@@ -725,7 +729,7 @@ function archSprites(name){
     html = mons.slice(0,2).map(spriteImg).join(''); }
   ARCH_SPR.set(k,html); return html;
 }
-window.DeckLab = { archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
+window.DeckLab = { NAMES, byPrint:k=>PRINT_IDX.get(String(k).toUpperCase()), thumb:c=>scan(c,false,'sc-scan')||`<span class="mini ty-${c.color}"></span>`, archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';
