@@ -43,6 +43,9 @@ const canonT = t => { if(!t) return t;
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') Store.flushPrefs(); });
 addEventListener('pagehide',()=>Store.flushPrefs());
 
+// the opening animation greets signed-in users by name: remember it in this browser (it runs before the account loads)
+function rememberWho(){ try{ if(Store.user && Store.profile && Store.profile.display_name) localStorage.setItem('pr.who', Store.profile.display_name); }catch(_){} }
+
 /* ---------- phone bottom navigation: "Altro" sheet ---------- */
 function bmoreOpen(open){ const m=document.getElementById('bmore'), b=document.getElementById('bnMore'); if(!m) return;
   if(open){ m.hidden=false; requestAnimationFrame(()=>m.classList.add('open')); } else { m.classList.remove('open'); setTimeout(()=>{ if(!m.classList.contains('open')) m.hidden=true; },220); }
@@ -112,7 +115,7 @@ const Store = {
     const row = {id:this.user.id, ...(this.profile||{}), ...patch, updated_at:new Date().toISOString()};
     const {data, error} = await sb.from('profiles').upsert(row).select().maybeSingle();
     if(error){ console.error(error); App.toast('Non sono riuscito a salvare il profilo.'); return false; }
-    this.profile = data || row; return true;
+    this.profile = data || row; rememberWho(); return true;
   },
   _pt:null,
   savePrefs(){
@@ -310,12 +313,12 @@ App.boot = async function(){
   App.data = Store.local(); renderAccount(); App.ready = true; App.emit('data');
   if(!sb) return;
   const {data} = await sb.auth.getSession();
-  if(data && data.session){ Store.user = data.session.user; App.data = await Store.load(); renderAccount(); App.emit('data'); }
+  if(data && data.session){ Store.user = data.session.user; App.data = await Store.load(); rememberWho(); renderAccount(); App.emit('data'); }
   sb.auth.onAuthStateChange(async (ev, session)=>{
     const u = session ? session.user : null;
     if((u && Store.user && u.id===Store.user.id) || (!u && !Store.user)) return;
     Store.user = u; Store.profile = null;
-    App.data = await Store.load(); renderAccount(); App.emit('data'); App.emit('group');
+    App.data = await Store.load(); rememberWho(); if(!u){ try{ localStorage.removeItem('pr.who'); }catch(_){} } renderAccount(); App.emit('data'); App.emit('group');
     if(u) App.toast('Accesso effettuato'); else App.toast('Sei uscito: ora vedi i dati di questo browser.');
   });
 };

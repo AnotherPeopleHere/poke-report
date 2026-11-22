@@ -15,8 +15,8 @@
 <meta name="apple-mobile-web-app-title" content="Poke Report">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-22.3">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-22.5">
 </head>
 <body>
 <!-- opening animation: an original Pokédex-style device (drawn in CSS) that opens while the data loads, then zooms into its screen -->
@@ -24,7 +24,7 @@
   <div class="dex" id="dex" aria-hidden="true">
     <div class="dex-body">
       <div class="dex-top"><span class="dex-lens"></span><span class="dex-led r"></span><span class="dex-led y"></span><span class="dex-led g"></span></div>
-      <div class="dex-bezel"><div class="dex-screen"><span class="dex-logo"></span><span class="dex-scan"></span></div><span class="dex-dot"></span><span class="dex-grill"></span></div>
+      <div class="dex-bezel"><div class="dex-screen"><span class="dex-logo"></span><span class="dex-hello" id="dexHello"></span><span class="dex-scan"></span></div><span class="dex-dot"></span><span class="dex-grill"></span></div>
       <div class="dex-ctrl"><span class="dex-btn"></span><span class="dex-pad"></span><span class="dex-cross"></span></div>
     </div>
     <div class="dex-hinge"></div>
@@ -324,20 +324,27 @@
    a tap skips it; with "reduce motion" it only fades. To remove it, delete .dexboot from the #boot element above. */
 function dexOpen(){
   const b=document.getElementById('boot'); if(!b) return;
-  const done=()=>{ b.classList.add('gone'); setTimeout(()=>b.remove(),350); };
+  const done=()=>{ if(b.classList.contains('gone')) return; b.classList.add('gone'); setTimeout(()=>b.remove(),400); };
   if(!b.classList.contains('dexboot')) return b.remove();
-  let full=true; try{ const d=new Date().toISOString().slice(0,10); full = localStorage.getItem('pr.dexDay')!==d; localStorage.setItem('pr.dexDay',d); }catch(_){}
+  let full=true, seen=false, who='';
+  try{ const d=new Date().toISOString().slice(0,10); seen=!!localStorage.getItem('pr.dexDay'); full = localStorage.getItem('pr.dexDay')!==d; localStorage.setItem('pr.dexDay',d); who=localStorage.getItem('pr.who')||''; }catch(_){}
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
   b.addEventListener('click',done,{once:true});
   if(!full) b.classList.add('quick');
   requestAnimationFrame(()=>b.classList.add('open'));
-  setTimeout(()=>b.classList.add('zoom'), full?1000:380);
-  setTimeout(done, full?1550:720);
+  const zoom=()=>{ b.classList.add('zoom'); setTimeout(done, 750); };
+  if(!full) return void setTimeout(zoom, 650);
+  // greeting typed on the screen, Game Boy style: "Bentornato, <name>" for signed-in users, "Benvenuto" the first time
+  const msg = who ? ['BENTORNATO,', who.toUpperCase()] : seen ? ['BENTORNATO!'] : ['BENVENUTO IN','POKE REPORT!'];
+  const el=document.getElementById('dexHello'), long=Math.max(...msg.map(x=>x.length));
+  el.style.setProperty('--n', Math.max(10, long));
+  setTimeout(()=>{ b.classList.add('hello'); let i=0; const all=msg.join('\n');
+    const t=setInterval(()=>{ i++; el.innerHTML='<span></span>'; el.firstChild.textContent=all.slice(0,i); if(i>=all.length){ clearInterval(t); setTimeout(zoom, 900); } }, 55); }, 1700);
 }
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD='2026-11-22.3';               // bump on every change to assets/ so browsers load the new files
+  const BUILD='2026-11-22.5';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));
