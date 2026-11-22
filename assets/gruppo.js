@@ -44,7 +44,7 @@ function roundsOf(list){
   const out = [];
   list.forEach(t=>(t.rounds||[]).forEach((x,i)=>{
     const games = (x.games||[]).filter(g=>g && g.res);
-    out.push({t, player:t.user_id, deck:(t.deckName||'').trim(), opp:(x.opp||'').trim(), bo:x.bo==='bo3'?'bo3':'bo1', games, res:T.roundRes(x), n:i+1, bye:!!x.bye});
+    out.push({t, player:t.user_id, deck:(t.deckName||'').trim(), opp:(x.opp||'').trim(), bo:x.bo==='bo3'?'bo3':'bo1', games, res:T.roundRes(x), n:i+1, bye:!!x.bye, id:!!x.id});
   }));
   return out;
 }
@@ -122,7 +122,7 @@ function render(){
   drawSub();
 }
 function explorer(rs){
-  rs = rs.filter(r=>!r.bye);   // a BYE has no opponent: it is not a matchup
+  rs = rs.filter(r=>!r.bye && !r.id);   // BYE and ID: no game against a deck, so not a matchup
   if(!F.arch){
     const faced = groupBy(rs, r=>r.opp);
     return faced.length ? `<p class="src" style="margin:0 0 8px">Gli archetipi che il gruppo incontra di più. Scegline uno qui sopra per i dettagli, o tocca una riga.</p>

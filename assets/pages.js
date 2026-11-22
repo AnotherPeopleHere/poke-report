@@ -170,7 +170,7 @@ function stats(list){
   const tot={W:0,L:0,T:0}; list.forEach(t=>{ const r=record(t); tot.W+=r.W; tot.L+=r.L; tot.T+=r.T; });
   const byDeck=new Map(), byOpp=new Map(), g={W:0,L:0,T:0}, first={W:0,L:0,T:0}, second={W:0,L:0,T:0};
   list.forEach(t=>{ const r=record(t), d=byDeck.get(t.deckName)||{name:t.deckName,n:0,live:0,W:0,L:0,T:0,best:null}; if(isLiveT(t)) d.live++; else d.n++; d.W+=r.W; d.L+=r.L; d.T+=r.T; if(t.placement && (!d.best||+t.placement<d.best)) d.best=+t.placement; byDeck.set(t.deckName,d);
-    (t.rounds||[]).forEach(x=>{ if(x.bye) return;   // a BYE has no opponent: not a matchup
+    (t.rounds||[]).forEach(x=>{ if(x.bye || x.id) return;   // BYE and ID: no game against a deck, so not a matchup
       const k=(x.opp||'Sconosciuto').trim()||'Sconosciuto', o=byOpp.get(k)||{name:k,W:0,L:0,T:0,gW:0,gL:0,gT:0}, rr=roundRes(x); if(rr) o[rr]++;
       (x.games||[]).forEach(gm=>{ if(!gm||!gm.res) return; g[gm.res]++; o['g'+gm.res]++; if(gm.first==='F') first[gm.res]++; if(gm.first==='S') second[gm.res]++; });
       byOpp.set(k,o); }); });
