@@ -97,9 +97,11 @@ function tags(c){
   if(c.isAce) t+='<span class="tag ace">ACE SPEC</span>'; if(c.sub.includes('Ancient')) t+='<span class="tag">Antico</span>'; if(c.sub.includes('Future')) t+='<span class="tag">Futuro</span>';
   return t;
 }
+const SAME_NAME = (()=>{ const n=new Map(); CARDS.forEach(c=>{ if(c.sup==='T') n.set(c.name,(n.get(c.name)||0)+1); }); return new Set([...n].filter(x=>x[1]>1).map(x=>x[0])); })();
 function subline(c){
   if(c.sup==='P') return `${typeIcon(c.color,16)}${SUB_IT[stageOf(c)]||''} · <span class="num">${c.hp} PS</span>${c.abilities.length?' · Abilità':''} ${tags(c)}<span class="tag">${esc(c.prints[0][0])} ${c.mark||'—'}</span>`;
-  if(c.sup==='T') return `${c.sub.filter(s=>!['ACE SPEC','Ancient','Future'].includes(s)).map(s=>SUB_IT[s]||s).join(' · ')} ${tags(c)}<span class="tag">${c.mark||'—'}</span>`;
+  // Trainers with the same name but separate artworks (the DLR "Legendary" Stadiums): show which print it is
+  if(c.sup==='T') return `${c.sub.filter(s=>!['ACE SPEC','Ancient','Future'].includes(s)).map(s=>SUB_IT[s]||s).join(' · ')} ${tags(c)}<span class="tag">${SAME_NAME.has(c.name)?esc(c.prints[0][0]+' '+c.prints[0][1])+' · ':''}${c.mark||'—'}</span>`;
   return c.isBasicEnergy ? 'Energia base · nessun limite di copie' : `Energia speciale ${tags(c)}<span class="tag">${c.mark||'—'}</span>`;
 }
 const count = c => deck.cards.reduce((n,k)=>n+(BY_KEY.get(k).name===c.name?1:0),0);

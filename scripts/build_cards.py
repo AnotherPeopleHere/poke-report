@@ -37,9 +37,24 @@ def img(c):
     if u.startswith('https://images.pokemontcg.io/') and u.endswith('.png'): return u[29:-4]
     if u.startswith('https://images.scrydex.com/pokemon/') and u.endswith('/small'): return 'x:' + u[35:-6]
     return ''
-out = []
+# Stadiums printed more than once in the same set with the same rarity (the "Legendary" Stadiums of DLR: halves of one
+# picture) are different artworks a player may want side by side: each of those extra prints
+# becomes its own entry. Same name, so the 4-copies rule still counts them together. The first print keeps the usual key.
+def split_arts(prints):
+    if prints[0]['supertype'] != 'Trainer' or 'Stadium' not in prints[0].get('subtypes', []): return [prints]
+    by = collections.defaultdict(list)
+    for c in prints:
+        if c.get('regulationMark') in LEGAL_MARKS and str(c['number']).isdigit():
+            by[(c['_set'], c.get('rarity', ''))].append(c)
+    extra = [c for v in by.values() if len(v) > 1 for c in v if c is not prints[0]]
+    if not extra: return [prints]
+    return [[c for c in prints if c not in extra]] + [[c] for c in extra]
+expanded = []
 for k, prints in groups.items():
     prints.sort(key=lambda c: (c.get('regulationMark') in LEGAL_MARKS, sets[c['_set']]['releaseDate']), reverse=True)
+    expanded.extend(split_arts(prints))
+out = []
+for prints in expanded:
     c = prints[0]
     out.append({
         'n': c['name'], 's': c['supertype'][0], 'st': c.get('subtypes', []), 'hp': int(c['hp']) if str(c.get('hp', '')).isdigit() else 0,
