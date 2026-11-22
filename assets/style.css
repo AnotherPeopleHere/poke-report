@@ -1084,7 +1084,5 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .dexboot.zoom{opacity:0;transition:opacity .45s ease .2s}
 /* quick version (already seen today) */
 .dexboot.quick .dex,.dexboot.quick .dex-lid,.dexboot.quick .dex-screen,.dexboot.quick .dex-logo{transition-duration:.3s;transition-delay:0s}
-/* header: three status LEDs next to the title, like the device */
-.brand h1::after{content:'';display:inline-block;vertical-align:middle;margin-left:8px;width:30px;height:8px;
   background:radial-gradient(circle,#ff4b4b 3px,transparent 3.5px) 0 50%/10px 8px no-repeat,radial-gradient(circle,#ffd33b 3px,transparent 3.5px) 10px 50%/10px 8px no-repeat,radial-gradient(circle,#3fd46b 3px,transparent 3.5px) 20px 50%/10px 8px no-repeat}
 @media (prefers-reduced-motion:reduce){ .dex,.dex-lid,.dex-screen,.dex-logo{transition:none!important} .dex-led,.dex-lens{animation:none} }
