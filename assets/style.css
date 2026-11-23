@@ -185,7 +185,7 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(310px,1fr) mi
 /* inspector */
 .card-detail{padding:14px;display:flex;flex-direction:column;gap:10px}
 .big{display:grid;grid-template-columns:118px 1fr;gap:12px;align-items:start}
-.big .card{cursor:default}
+.big .card{cursor:zoom-in}
 .big .card:hover{transform:none}
 .big .card .c-name{font-size:12px}
 .big .card .c-sym{width:48px;height:48px;font-size:20px}
@@ -1121,3 +1121,17 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 @media (max-width:560px){ .grow{grid-template-columns:minmax(0,1fr) 54px 40px} .gr-bar{display:none} }
 @media (max-width:560px){ .gsum{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} .gsum > div{padding:8px} .gsum b{font-size:18px} .gsum small{display:none} .gsum span{font-size:11px} }
 #gBody{display:flex;flex-direction:column;gap:14px}
+
+/* full-screen card */
+.czoom{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px;background:rgba(6,8,12,.0);backdrop-filter:blur(0);transition:background .2s,backdrop-filter .2s;cursor:zoom-out}
+.czoom[hidden]{display:none}
+.czoom.on{background:rgba(6,8,12,.78);backdrop-filter:blur(4px)}
+.czoom figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:10px;transform:scale(.92);opacity:0;transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .18s;cursor:default}
+.czoom.on figure{transform:none;opacity:1}
+.czoom img{max-height:min(86vh,1000px);max-width:min(92vw,720px);aspect-ratio:63/88;object-fit:contain;border-radius:3.5%/2.5%;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.czoom .cz-face{width:min(70vw,360px)} .czoom .cz-face .card{cursor:default}
+.czoom figcaption{color:#eee;font-size:14px} .czoom figcaption b{color:#fff}
+.cz-x{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(20,22,30,.8);color:#fff;font-size:18px;cursor:pointer}
+.cz-x:hover{background:rgba(40,44,58,.95)}
+.big .card{cursor:zoom-in}
+@media (prefers-reduced-motion:reduce){ .czoom,.czoom figure{transition:none} }

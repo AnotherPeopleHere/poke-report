@@ -731,7 +731,28 @@ function archSprites(name){
     html = mons.slice(0,2).map(spriteImg).join(''); }
   ARCH_SPR.set(k,html); return html;
 }
-window.DeckLab = { NAMES, byPrint:k=>PRINT_IDX.get(String(k).toUpperCase()), thumb:c=>scan(c,false,'sc-scan')||`<span class="mini ty-${c.color}"></span>`, archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
+/* full-screen view of a card: right click (or long press on phones) on any card of the deck builder; tap on the big card in the details */
+function zoomCard(c){
+  if(!c) return;
+  let z=document.getElementById('cardZoom');
+  if(!z){ z=document.createElement('div'); z.id='cardZoom'; z.className='czoom'; z.setAttribute('role','dialog'); z.setAttribute('aria-modal','true'); document.body.appendChild(z);
+    z.addEventListener('click',e=>{ if(e.target===z || e.target.closest('.cz-x')) closeZoom(); });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape' && z.classList.contains('on')) closeZoom(); }); }
+  const u=imOf(c) ? imgUrl(c,true) : '', p=artOf(c);
+  z.setAttribute('aria-label', c.name);
+  z.innerHTML = `<button type="button" class="cz-x" aria-label="Chiudi">✕</button>
+    <figure>${u ? `<img src="${u}" alt="${esc(c.name)}">` : `<div class="cz-face">${cardFace(c,'')}</div>`}<figcaption><b>${esc(c.name)}</b> · ${esc(p[0]+' '+p[1])}</figcaption></figure>`;
+  z.hidden=false; requestAnimationFrame(()=>z.classList.add('on'));
+}
+function closeZoom(){ const z=document.getElementById('cardZoom'); if(!z) return; z.classList.remove('on'); setTimeout(()=>{ if(!z.classList.contains('on')) z.hidden=true; },200); }
+document.addEventListener('contextmenu',e=>{
+  const el=e.target.closest('#pg-deck .res[data-key], #pg-deck .card[data-key], #pg-deck .dlist li[data-key], #pg-deck .big .card, #dlg2 .card, #stats .card[data-key]');
+  if(!el) return;
+  const k=el.dataset.key, c = k ? BY_KEY.get(k) : (el.closest('.big') ? selected : null);
+  if(!c) return; e.preventDefault(); zoomCard(c);
+});
+$('#detail').addEventListener('click',e=>{ if(e.target.closest('.big .card')) zoomCard(selected); });
+window.DeckLab = { NAMES, zoomCard, byPrint:k=>PRINT_IDX.get(String(k).toUpperCase()), thumb:c=>scan(c,false,'sc-scan')||`<span class="mini ty-${c.color}"></span>`, archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';
