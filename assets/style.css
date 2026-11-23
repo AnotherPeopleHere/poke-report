@@ -1120,3 +1120,4 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .gr-w{text-align:right;font-weight:700}
 @media (max-width:560px){ .grow{grid-template-columns:minmax(0,1fr) 54px 40px} .gr-bar{display:none} }
 @media (max-width:560px){ .gsum{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px} .gsum > div{padding:8px} .gsum b{font-size:18px} .gsum small{display:none} .gsum span{font-size:11px} }
+#gBody{display:flex;flex-direction:column;gap:14px}
