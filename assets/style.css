@@ -1135,3 +1135,19 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .cz-x:hover{background:rgba(40,44,58,.95)}
 .big .card{cursor:zoom-in}
 @media (prefers-reduced-motion:reduce){ .czoom,.czoom figure{transition:none} }
+
+/* guided tour */
+.tour-btn{position:relative;width:34px;height:34px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:800 15px var(--display);cursor:pointer;box-shadow:var(--shadow);transition:color .15s,border-color .15s}
+.tour-btn:hover{color:var(--fg);border-color:var(--accent)}
+.tour-btn.new::after{content:'';position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--bg);animation:tourDot 1.8s ease-in-out infinite}
+@keyframes tourDot{50%{transform:scale(1.35)}}
+.tour{position:fixed;inset:0;z-index:110;opacity:0;transition:opacity .2s}
+.tour[hidden]{display:none}
+.tour.on{opacity:1}
+.tour-hole{position:fixed;border-radius:12px;box-shadow:0 0 0 2px var(--accent),0 0 0 9999px rgba(6,8,12,.62);transition:all .3s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.tour-tip{position:fixed;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 18px 50px rgba(0,0,0,.4);transition:top .3s cubic-bezier(.2,.8,.2,1),left .3s cubic-bezier(.2,.8,.2,1)}
+.tt-h{display:flex;align-items:baseline;gap:10px;font-family:var(--display);font-size:17px}
+.tt-h .num{margin-left:auto;font-size:12px;color:var(--muted)}
+.tour-tip p{margin:6px 0 12px;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.tt-a{display:flex;gap:6px;align-items:center} .tt-a span{flex:1}
+@media (prefers-reduced-motion:reduce){ .tour-hole,.tour-tip,.tour-btn.new::after{transition:none;animation:none} }
