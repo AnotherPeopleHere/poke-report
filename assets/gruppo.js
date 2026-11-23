@@ -121,29 +121,47 @@ function render(){
   moveTabInd(false);
   drawSub();
 }
+// compact views: tiles to pick an archetype, then its matchups as simple rows (full stats behind a switch)
+const wrPct = a => a.R ? Math.round(a.W/a.R*100) : null;
+const wrCls = a => !a.R ? 'muted' : a.W/a.R>=.55 ? 'good' : a.W/a.R<.45 ? 'bad' : '';
+function tiles(list){
+  const all=F.tilesAll, L=all?list:list.slice(0,12);
+  return `<div class="gtiles">${L.map(x=>`<button type="button" class="gtile" data-arch="${esc(x.k)}"><span class="gt-spr">${DL.archSprites?DL.archSprites(x.k):''}</span>
+      <span class="gt-n">${esc(x.k)}</span><span class="gt-m">${x.a.R} round · ${x.a.W}-${x.a.L}-${x.a.T}</span>
+      <b class="gt-w ${wrCls(x.a)}">${wrPct(x.a)??'—'}${x.a.R?'%':''}</b></button>`).join('')}</div>
+    ${list.length>12?`<button type="button" class="btn small" data-tiles style="margin-top:10px">${all?'Mostra meno':`Mostra tutti (${list.length})`}</button>`:''}`;
+}
+function rows(list, head){
+  if(F.full) return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>${head}</th>${STAT_HEAD}</tr></thead><tbody>${list.map(x=>`<tr${x.tot?' class="tot"':''}><td>${x.tot?x.k:x.pl?`<span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span>`:archN(x.k)}</td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
+  return `<div class="grows">${list.filter(x=>!x.tot).map(x=>`<div class="grow"><span class="gr-n">${x.pl?`<span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span>`:archN(x.k)}</span>
+      <span class="gr-r num">${x.a.W}-${x.a.L}-${x.a.T}</span><span class="gr-bar"><i style="width:${wrPct(x.a)||0}%" class="${wrCls(x.a)}"></i></span><b class="gr-w num ${wrCls(x.a)}">${wrPct(x.a)??'—'}${x.a.R?'%':''}</b></div>`).join('')}</div>`;
+}
+function summary(a, label){
+  return `<div class="gsum"><div><span>${label}</span><b class="${wrCls(a)}">${wrPct(a)??'—'}${a.R?'%':''}</b><small>round vinti · ${a.W}-${a.L}-${a.T} in ${a.R} round</small></div>
+    <div><span>Game</span><b>${a.gW+a.gL+a.gT?Math.round(a.gW/(a.gW+a.gL+a.gT)*100)+'%':'—'}</b><small>${a.gW}-${a.gL}${a.gT?'-'+a.gT:''}</small></div>
+    <div><span>Primo · Secondo</span><b>${a.fN?Math.round(a.fW/a.fN*100)+'%':'—'} · ${a.sN?Math.round(a.sW/a.sN*100)+'%':'—'}</b><small>game vinti</small></div></div>`;
+}
 function explorer(rs){
   rs = rs.filter(r=>!r.bye && !r.id);   // BYE and ID: no game against a deck, so not a matchup
+  const tgl = `<label class="switch inline gfull"><input type="checkbox" data-full${F.full?' checked':''}><span class="track" aria-hidden="true"></span><span>Statistiche complete</span></label>`;
   if(!F.arch){
-    const faced = groupBy(rs, r=>r.opp);
-    return faced.length ? `<p class="src" style="margin:0 0 8px">Gli archetipi che il gruppo incontra di più. Scegline uno qui sopra per i dettagli, o tocca una riga.</p>
-      <div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Avversario</th>${STAT_HEAD}</tr></thead><tbody>${faced.map(x=>`<tr class="pick" data-arch="${esc(x.k)}"><td>${archN(x.k,1)}</td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`
-      : '<p class="src">Nessun round con l’archetipo avversario nei filtri scelti. Nel registro tornei segna l’avversario di ogni round.</p>';
+    const list = F.side==='played' ? groupBy(rs, r=>r.deck) : groupBy(rs, r=>r.opp);
+    return list.length ? `<p class="src" style="margin:0 0 10px">${F.side==='played'?'I mazzi giocati dal gruppo':'Gli archetipi che il gruppo incontra di più'}: tocca un archetipo per vedere i suoi matchup.</p>${tiles(list)}`
+      : '<p class="src">Nessun round nei filtri scelti. Nel registro tornei segna mazzo e avversario di ogni round.</p>';
   }
-  const A = key(F.arch);
+  const A = key(F.arch), back = `<div class="gback"><button type="button" class="btn small" data-arch-clear>← Tutti gli archetipi</button>${tgl}</div>`;
   if(F.side==='played'){
     const mine = rs.filter(r=>key(r.deck)===A), tot = agg(mine);
-    if(!mine.length) return `<p class="src">Nessuno del gruppo ha giocato ${esc(F.arch)} nei filtri scelti.</p>`;
+    if(!mine.length) return back+`<p class="src">Nessuno del gruppo ha giocato ${esc(F.arch)} nei filtri scelti.</p>`;
     const vs = groupBy(mine, r=>r.opp||'Avversario non segnato'), by = groupBy(mine, r=>nameOf(r.player));
-    return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>${esc(F.arch)} contro…</th>${STAT_HEAD}</tr></thead><tbody>
-        <tr class="tot"><td>Totale</td>${statCells(tot)}</tr>${vs.map(x=>`<tr><td>${archN(x.k)}</td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>
-      <h4 class="gsub">Chi lo gioca</h4><div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
+    return back + summary(tot, `${esc(F.arch)}`) + `<h4 class="gsub">Contro…</h4>${rows([{k:'Totale',a:tot,tot:1},...vs], `${esc(F.arch)} contro…`)}
+      <h4 class="gsub">Chi lo gioca</h4>${rows(by.map(x=>({...x,pl:1})),'Giocatore')}`;
   }
   const vsIt = rs.filter(r=>key(r.opp)===A), tot = agg(vsIt);
-  if(!vsIt.length) return `<p class="src">Nessuno del gruppo ha affrontato ${esc(F.arch)} nei filtri scelti.</p>`;
+  if(!vsIt.length) return back+`<p class="src">Nessuno del gruppo ha affrontato ${esc(F.arch)} nei filtri scelti.</p>`;
   const withDeck = groupBy(vsIt, r=>r.deck||'Mazzo non segnato'), by = groupBy(vsIt, r=>nameOf(r.player));
-  return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Contro ${esc(F.arch)} con…</th>${STAT_HEAD}</tr></thead><tbody>
-      <tr class="tot"><td>Totale del gruppo</td>${statCells(tot)}</tr>${withDeck.map(x=>`<tr><td>${archN(x.k)}</td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>
-    <h4 class="gsub">Giocatore per giocatore</h4><div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th>${STAT_HEAD}</tr></thead><tbody>${by.map(x=>`<tr><td><span class="arch">${av(x.k)}<span class="t">${esc(x.k)}</span></span></td>${statCells(x.a)}</tr>`).join('')}</tbody></table></div>`;
+  return back + summary(tot, `Contro ${esc(F.arch)}`) + `<h4 class="gsub">Con quale mazzo</h4>${rows([{k:'Totale del gruppo',a:tot,tot:1},...withDeck], `Contro ${esc(F.arch)} con…`)}
+    <h4 class="gsub">Giocatore per giocatore</h4>${rows(by.map(x=>({...x,pl:1})),'Giocatore')}`;
 }
 function favorite(userId, tournaments){
   const mine = tournaments.filter(t=>t.user_id===userId && (t.deckName||'').trim() && inPeriod(t.date) && (!F.src || (F.src==='live')===isLive(t)));
@@ -232,11 +250,14 @@ $('#pg-gruppo').addEventListener('click',e=>{
   const tb=e.target.closest('[data-gtab]'); if(tb){ showTab(tb.dataset.gtab); return; }
   const fb=e.target.closest('[data-gfilters]'); if(fb){ F.fopen=!F.fopen; fb.setAttribute('aria-expanded',F.fopen); $('#gBody .gfilters').classList.toggle('open',F.fopen); return; }
   const sd=e.target.closest('[data-side]'); if(sd){ F.side=sd.dataset.side; render(); return; }
+  if(e.target.closest('[data-tiles]')){ F.tilesAll=!F.tilesAll; render(); return; }
+  if(e.target.closest('[data-arch-clear]')){ F.arch=''; render(); $('#gExplorer').scrollIntoView({behavior:'smooth',block:'start'}); return; }
+  const gt=e.target.closest('.gtile[data-arch]'); if(gt){ F.arch=gt.dataset.arch; render(); $('#gExplorer').scrollIntoView({behavior:'smooth',block:'start'}); return; }
   const pk=e.target.closest('tr.pick[data-arch]'); if(pk){ F.arch=pk.dataset.arch; render(); $('#gExplorer').scrollIntoView({behavior:'smooth',block:'start'}); return; }
   const ls=e.target.closest('[data-list]'); if(ls){ showList(ls.dataset.list); return; }
   const lt=e.target.closest('[data-tlist]'); if(lt){ const t=cache.tournaments.find(x=>x.id===lt.dataset.tlist); if(t) showList(t.user_id, {name:t.deckName||'Mazzo', list:t.list, from:t}); return; }
 });
-$('#pg-gruppo').addEventListener('change',e=>{ const s=e.target.closest('[data-f]'); if(!s) return; F[s.dataset.f]=s.value; render(); });
+$('#pg-gruppo').addEventListener('change',e=>{ if(e.target.matches('[data-full]')){ F.full=e.target.checked; render(); return; } const s=e.target.closest('[data-f]'); if(!s) return; F[s.dataset.f]=s.value; render(); });
 $('#gProfile').addEventListener('click',()=>App.accountDialog());
 App.on(w=>{ if(w==='group'){ cache=null; load(); } if(w==='data' && App.page==='gruppo'){ load(); } if(w==='page' && App.page==='gruppo') load(); });
 App.groupSummary = async () => { if(!cache && App.Store.profile && App.Store.profile.group_code){ try{ cache = await App.Store.group(); }catch(e){} } return cache; };
