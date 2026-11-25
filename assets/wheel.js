@@ -84,5 +84,9 @@ function drawSub(){ const box=document.getElementById('whSub'), L=SUB[App.page];
   if(!L || !App.groupTab){ box.innerHTML=''; return; } const cur=App.groupTab();
   box.innerHTML = `<div class="bsub-h">Sezioni del gruppo</div><div class="bsub">${L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${cur===k}">${l}</button>`).join('')}</div>`; }
 document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; App.groupTab(b.dataset.gtab); hide(); window.scrollTo({top:0,behavior:'smooth'}); });
-App.on(w=>{ if(w==='page'){ mark(); if(keep){ keep=false; setTimeout(drawSub,50); } else hide(); } });
+// closed button: the icon of the section you are on
+const ICON={home:'i-home',deck:'i-grid',meta:'i-chart',consigli:'i-star',news:'i-news',tornei:'i-trophy',gruppo:'i-group',metafy:'i-coach'};
+const setIcon=()=>fab.querySelector('use').setAttribute('href','#'+(ICON[App.page]||'i-home'));
+setIcon();
+App.on(w=>{ if(w==='page'){ setIcon(); mark(); if(keep){ keep=false; setTimeout(drawSub,50); } else hide(); } });
 })();
