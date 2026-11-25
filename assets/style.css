@@ -1564,3 +1564,21 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
   #deck .deckhead .cnt{font-size:22px}
   #deck .deckhead .breakdown{margin-left:0;font-size:12px;gap:10px}
 }
+
+/* ---------- Home and Metafy on phones ---------- */
+.coach-more{display:none}
+@media (max-width:760px){
+  #pg-home .hero{flex-wrap:nowrap;align-items:center}
+  #pg-home .hero p{display:none}
+  .qlinks{grid-template-columns:1fr 1fr}
+  .qlinks a{flex-direction:column;align-items:flex-start;gap:6px;padding:12px;font-size:13px}
+  .qlinks a svg{width:22px;height:22px}
+  .widget[data-wid="meta"] col:nth-child(3),.widget[data-wid="meta"] td:nth-child(3){display:none}
+  .widget[data-wid="meta"] .tbl{table-layout:auto!important}
+  #pg-metafy .pg-head p{display:none}
+  #pg-metafy .pg-head .acts{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:8px}
+  #pg-metafy .pg-head .acts .btn{justify-content:center;font-size:13px;padding-left:8px;padding-right:8px}
+  #coachList .coach p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #coachList:not(.all) .coach:nth-of-type(n+7){display:none}
+  .coach-more{display:inline-flex;margin-top:10px}
+}

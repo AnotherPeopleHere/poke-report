@@ -361,7 +361,9 @@ $('#bAddT').addEventListener('click',()=>openTournament(null));
 function renderMetafy(){
   $('#coachList').innerHTML = COACHES.map(c=>`<div class="coach">${avatar(c.name,36).replace('class="av"','class="av"')}<div style="min-width:0"><h4>${esc(c.name)} <span class="src">${esc(c.country)}</span></h4>
     <p>${c.results.map(r=>`${r.rank}° ${esc(r.event.replace('Regional ',''))} (${esc(r.deck)})`).join(' · ')}</p></div>
-    <a class="btn small" href="${esc(c.url)}" target="_blank" rel="noopener">Profilo ↗</a></div>`).join('');
+    <a class="btn small" href="${esc(c.url)}" target="_blank" rel="noopener">Profilo ↗</a></div>`).join('')
+    + (COACHES.length>6 ? `<button type="button" class="btn small coach-more m-only" id="coachMore">Mostra tutti (${COACHES.length})</button>` : '');
+  $('#coachMore')?.addEventListener('click',e=>{ const l=$('#coachList'), o=l.classList.toggle('all'); e.currentTarget.textContent = o ? 'Mostra meno' : `Mostra tutti (${COACHES.length})`; });
   const links = App.prefs().links || [];
   $('#myLinks').innerHTML = links.length ? links.map((l,i)=>`<div class="coach">${avatar(l.name,36)}<div style="min-width:0"><h4>${esc(l.name)}</h4><p style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.url)}</p></div>
     <span style="display:flex;gap:4px"><a class="btn small" href="${esc(l.url)}" target="_blank" rel="noopener">Apri ↗</a><button class="xbtn" type="button" data-rml="${i}" aria-label="Togli ${esc(l.name)}">✕</button></span></div>`).join('')
@@ -455,7 +457,7 @@ const homeCols = () => { const w=$('#wgrid').clientWidth||innerWidth; return inn
 let lastCols=0;
 function wHtml(w,i,L,cols){ const def=W[w.id]; let inner; try{ inner=def.render(); }catch(e){ inner='<p class="src">Contenuto non disponibile.</p>'; }
   const same = cols>1 ? L.map((x,k)=>[x,k]).filter(([x])=>x.col===w.col).map(([,k])=>k) : L.map((x,k)=>k), pos=same.indexOf(i);
-  return `<section class="widget${w.wide&&cols===1?' wide':''}" data-w="${i}"><header><span class="wgrip" aria-hidden="true" title="Trascina per spostare">⋮⋮</span><h3>${esc(def.title)}</h3>${def.go?`<a class="link go" href="${def.go}">Apri →</a>`:''}
+  return `<section class="widget${w.wide&&cols===1?' wide':''}" data-w="${i}" data-wid="${w.id}"><header><span class="wgrip" aria-hidden="true" title="Trascina per spostare">⋮⋮</span><h3>${esc(def.title)}</h3>${def.go?`<a class="link go" href="${def.go}">Apri →</a>`:''}
       <span class="wctl"><button type="button" data-wa="up" aria-label="Sposta su" ${pos===0?'disabled':''}>↑</button><button type="button" data-wa="down" aria-label="Sposta giù" ${pos===same.length-1?'disabled':''}>↓</button>${cols===1?'<button type="button" data-wa="wide" aria-label="Allarga o stringi">⇔</button>':''}<button type="button" class="rm" data-wa="rm" aria-label="Togli il widget">✕</button></span></header>${inner}</section>`; }
 function renderHome(){
   const L = layout(), cols = homeCols(); lastCols=cols;
