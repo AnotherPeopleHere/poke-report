@@ -520,7 +520,14 @@ $('#wcat').addEventListener('pointerdown',e=>{ const b=e.target.closest('[data-a
 addEventListener('pointermove',dragMove,{passive:false}); addEventListener('pointerup',dragEnd); addEventListener('pointercancel',dragEnd);
 $('#wcat').addEventListener('click',e=>{ if(Date.now()-(window.__wdragClick||0)<300) e.stopImmediatePropagation(); },true);
 addEventListener('resize',()=>{ if(App.page==='home' && homeCols()!==lastCols) renderHome(); });
-$('#bEditHome').addEventListener('click',()=>{ const on=document.body.classList.toggle('editing'); $('#bEditHome span').textContent = on?'Fatto':'Personalizza'; $('#bEditHome').classList.toggle('primary',on); });
+// while customising, a floating "Fatto" stays at the top right once the real button has scrolled away
+const fDone=document.createElement('button'); fDone.type='button'; fDone.className='btn primary wdone-float'; fDone.innerHTML='<svg class="i"><use href="#i-ok"/></svg>Fatto';
+document.body.appendChild(fDone); fDone.addEventListener('click',()=>$('#bEditHome').click());
+let editVisible=true;
+new IntersectionObserver(es=>{ editVisible=es[0].isIntersecting; syncDone(); },{threshold:0}).observe($('#bEditHome'));
+function syncDone(){ fDone.classList.toggle('on', document.body.classList.contains('editing') && !editVisible && App.page==='home'); }
+App.on(w=>{ if(w==='page') syncDone(); });
+$('#bEditHome').addEventListener('click',()=>{ const on=document.body.classList.toggle('editing'); setTimeout(syncDone); $('#bEditHome span').textContent = on?'Fatto':'Personalizza'; $('#bEditHome').classList.toggle('primary',on); });
 
 /* ---------- wiring ---------- */
 function renderAll(){ renderHome(); renderTornei(); renderMetafy(); }

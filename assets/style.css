@@ -1256,3 +1256,6 @@ body.editing .wcol-drop{display:grid;place-items:center;min-height:70px;border:2
 .widget.wdrop-a{box-shadow:0 4px 0 var(--accent),var(--shadow)!important}
 .widget.wmoving{z-index:2;box-shadow:0 12px 30px rgba(0,0,0,.3),0 0 0 2px var(--accent)!important}
 @media (max-width:760px){ body.editing .wctl button{width:34px;height:34px;font-size:15px} }
+.wdone-float{position:fixed;z-index:58;top:calc(12px + env(safe-area-inset-top,0px));right:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);transform:translateY(-140%);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.wdone-float.on{transform:none;opacity:1;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){ .wdone-float{transition:none} }
