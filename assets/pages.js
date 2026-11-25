@@ -44,6 +44,9 @@ function renderMeta(){
     <td><div style="display:flex;align-items:center;gap:8px"><div class="bar" style="flex:1"><b style="width:${m.share/mx*100}%"></b></div><span class="num" style="font-size:12px;min-width:48px;text-align:right">${pct(m.share/100,2)}</span></div></td>
     <td class="n">${m.points.toLocaleString('it-IT')}</td></tr>`).join('')}</tbody>`;
   $('#metaMore').textContent = metaAll ? 'Mostra i primi 15' : `Mostra tutti (${META.length})`;
+  // phone: compact rows (rank and trend, sprites and name, share bar)
+  $('#metaRowsM').innerHTML = rows.map(m=>`<a class="mrow" href="${esc(m.url)}" target="_blank" rel="noopener"><span class="mr-k num">${usageTrend(m.icons)}${m.rank}</span>
+      <span class="mr-n">${archS(m.name,m.icons,'')}</span><span class="mr-s num">${pct(m.share/100,1)}</span><span class="mr-bar"><i style="width:${m.share/mx*100}%"></i></span></a>`).join('');
   renderRegional(); renderTrends();
 }
 /* one Regional at a time (or all of them together) */
@@ -66,6 +69,7 @@ function renderRegional(){
     <ol class="reg-top">${t.top.map(p=>`<li class="${p.rank===1?'win':''}"><span class="rank">${p.rank}</span>${archS(p.deck,p.icons,'')}<span class="p">${esc(p.player)}</span></li>`).join('')}</ol>
     <a class="link" href="${esc(t.url)}" target="_blank" rel="noopener" style="font-size:13px">Classifica completa su Limitless ↗</a>`;
 }
+App.metaTab = k => { const pg=$('#pg-meta'); if(k){ pg.dataset.mtab=k; window.scrollTo({top:0}); } return pg.dataset.mtab; };
 $('#regSel').addEventListener('change',e=>{ regPick=e.target.value; renderRegional(); });
 /* card trends inside each deck (online lists, this week against the week before) */
 function renderTrends(){
