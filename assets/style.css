@@ -1259,3 +1259,7 @@ body.editing .wcol-drop{display:grid;place-items:center;min-height:70px;border:2
 .wdone-float{position:fixed;z-index:58;top:calc(12px + env(safe-area-inset-top,0px));right:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);transform:translateY(-140%);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s}
 .wdone-float.on{transform:none;opacity:1;pointer-events:auto}
 @media (prefers-reduced-motion:reduce){ .wdone-float{transition:none} }
+/* no blue tap flash or long-press selection on controls and cards (text fields and normal text stay selectable) */
+html{-webkit-tap-highlight-color:transparent}
+button,a,label,summary,select,[role="button"],[data-key],.card,.res,.libcard,.gtile,.chip,.tbtn,.tc,.nav a,.sitenav a,img,svg{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+@media (hover:none){ button,a,label,summary,[role="button"],[data-key],.card,.res,.libcard,.gtile,.chip,.tbtn,.widget>header,img{-webkit-user-select:none;user-select:none} }
