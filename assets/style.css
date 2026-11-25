@@ -1191,3 +1191,17 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 }
 @media (max-width:760px) and (prefers-reduced-motion:reduce){ .wfab,.wheel,.wh-ring,.wh-sub{transition:none} }
 @media (max-width:760px){ .wheel,.wheel *,.wfab{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none} .wh-s:focus,.wh-s:focus-visible,.wh-c:focus{outline:none} }
+
+/* favourite Pokémon */
+.pf-mon{display:flex;align-items:center;gap:8px}
+.pf-mon input{flex:1;min-width:0}
+#pfMonPrev{width:48px;height:48px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--sunk)}
+#pfMonPrev img{max-width:44px;max-height:44px;image-rendering:pixelated}
+#pfMonPrev:empty{display:none}
+@media (max-width:760px){
+  .wh-mon{position:absolute;inset:8% 8% 34%;display:none;align-items:flex-end;justify-content:center;pointer-events:none}
+  .wh-mon img{max-width:100%;max-height:100%;image-rendering:pixelated;object-fit:contain}
+  .wheel.has-mon .wh-mon{display:flex}
+  .wheel.has-mon .wh-x{position:absolute;bottom:12%;font-size:15px}
+  .wheel.has-mon.picking .wh-mon{opacity:0}
+}

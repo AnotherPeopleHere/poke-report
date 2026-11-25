@@ -31,13 +31,34 @@ ov.innerHTML=`<div class="wh-sub" id="whSub"></div>
         return `<g class="wh-s${top?' top':''}${s.home?' home':''}" data-i="${i}"><path d="${arc(s.a0+.6,s.a1-.6)}"/>
           <use href="#${s.it[1]}" x="${ix-9}" y="${iy-13}" width="18" height="18"/><text x="${ix}" y="${iy+13}">${s.it[2]}</text></g>`; }).join('')}
     </svg>
-    <button type="button" class="wh-c" aria-label="Chiudi il menu"><span class="wh-x">✕</span><span class="wh-sel"></span></button>
+    <button type="button" class="wh-c" aria-label="Chiudi il menu"><span class="wh-mon" id="whMon"></span><span class="wh-x">✕</span><span class="wh-sel"></span></button>
   </div>`;
 document.body.append(ov, fab);
+
+/* favourite Pokémon (chosen in the profile): shown animated in the centre of the open wheel, above the X */
+const SKIP=/^(team rocket's|[a-z]+'s|radiant|tera)\s+/i;
+function monList(){
+  const seen=new Map();
+  (window.DeckLab?DeckLab.CARDS:[]).forEach(c=>{ if(c.sup!=='P') return; let n=c.name.replace(/\s+ex$/i,'').replace(SKIP,'').replace(SKIP,'').trim();
+    if(n && !seen.has(n.toLowerCase())) seen.set(n.toLowerCase(),{n, dex:c.dex}); });
+  return [...seen.values()].sort((a,b)=>a.n.localeCompare(b.n));
+}
+function showdownId(n){
+  let w=n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''), suf='';
+  const reg={alolan:'alola',galarian:'galar',hisuian:'hisui',paldean:'paldea'};
+  for(const k in reg) if(w.startsWith(k+' ')){ w=w.slice(k.length+1); suf='-'+reg[k]; }
+  if(w.startsWith('mega ')){ w=w.slice(5); const xy=w.match(/\s([xy])$/); if(xy) w=w.slice(0,-2); suf='-mega'+(xy?xy[1]:''); }
+  return w.replace(/[^a-z0-9]/g,'')+suf;
+}
+function monImg(m){ const id=showdownId(m.n);
+  return `<img src="https://play.pokemonshowdown.com/sprites/ani/${id}.gif" alt="${App.esc(m.n)}" data-fb="https://play.pokemonshowdown.com/sprites/gen5/${id}.png" data-fb2="${m.dex?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${m.dex}.png`:''}"
+    onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else if(this.dataset.fb2){this.src=this.dataset.fb2;this.dataset.fb2='';}else this.remove()">`; }
+function drawMon(){ const m=App.prefs().favMon, box=document.getElementById('whMon'); box.innerHTML = m ? monImg(m) : ''; ov.classList.toggle('has-mon', !!m); }
+App.monList=monList; App.monImg=monImg; App.drawMon=drawMon;
 const ring=ov.querySelector('.wh-ring'), sel=ov.querySelector('.wh-sel');
 let open=false, hot=-1;
 
-function show(){ if(open) return; open=true; fab.classList.remove('away'); ov.hidden=false; requestAnimationFrame(()=>ov.classList.add('on')); fab.classList.add('on'); fab.setAttribute('aria-expanded','true'); drawSub(); mark(); }
+function show(){ if(open) return; open=true; fab.classList.remove('away'); ov.hidden=false; requestAnimationFrame(()=>ov.classList.add('on')); fab.classList.add('on'); fab.setAttribute('aria-expanded','true'); drawSub(); drawMon(); mark(); }
 function hide(){ if(!open) return; open=false; ov.classList.remove('on'); fab.classList.remove('on'); fab.setAttribute('aria-expanded','false'); light(-1); setTimeout(()=>{ if(!open) ov.hidden=true; },260); }
 function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('hot',k===i));
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
