@@ -1264,3 +1264,21 @@ html{-webkit-tap-highlight-color:transparent}
 button,a,label,summary,select,[role="button"],[data-key],.card,.res,.libcard,.gtile,.chip,.tbtn,.tc,.nav a,.sitenav a,img,svg{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 @media (hover:none){ button,a,label,summary,[role="button"],[data-key],.card,.res,.libcard,.gtile,.chip,.tbtn,.widget>header,img{-webkit-user-select:none;user-select:none} }
 .dexboot,.dexboot *{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;outline:none}
+
+/* profile and settings */
+.pf-head{display:flex;align-items:center;gap:12px;min-width:0}
+.pf-head h2{margin:0} .pf-head .hint{margin:2px 0 0;overflow-wrap:anywhere}
+.pf-head .pf-av{flex:none}
+.pf-body{display:flex;flex-direction:column;gap:12px;max-height:68vh;overflow:auto;margin:4px -4px 12px;padding:0 4px}
+.pf-sec{background:var(--sunk);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.pf-sec h3{margin:0;font:700 13px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pf-sec .form{margin:0}
+.pf-sec .form input,.pf-sec .form select{background:var(--panel)}
+.pf-row{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap}
+.pf-row > div:first-child{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:14px}
+.pf-row .hint{font-size:12px}
+#pfTheme button{display:inline-flex;align-items:center;gap:5px;padding:6px 10px}
+#pfTheme .i{width:15px;height:15px}
+.pf-sw{display:flex;align-items:center;gap:10px}
+.pf-sw > span:last-child{display:flex;flex-direction:column;font-size:14px}
+.pf-sw small{font-size:12px}

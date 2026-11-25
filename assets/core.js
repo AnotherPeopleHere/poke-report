@@ -247,6 +247,21 @@ function renderAccount(){
   if(Store.user){ const p=Store.profile||{}, n=p.display_name||Store.user.email; b.className='sync cloud has-av'; b.innerHTML=`${App.avatar(n, p.avatar_url, 26)}<span>${esc(n)}</span>`; b.title='Il tuo profilo e il gruppo'; }
   else { b.className='sync'; b.innerHTML='<i></i><span>Accedi</span>'; b.title='Accedi per salvare i dati sul tuo account e vedere il gruppo'; }
 }
+/* settings shared by the profile and the sign-in dialog: theme, opening animation, guides */
+function settingsHtml(){
+  const th=ls.get('hub.theme','system'), intro=ls.get('pr.noIntro',false)!==true;
+  return `<section class="pf-sec"><h3>Impostazioni</h3>
+    <div class="pf-row"><div><b>Tema</b><span class="hint">Vale su questo dispositivo.</span></div>
+      <span class="seg" id="pfTheme">${[['light','i-sun','Chiaro'],['system','i-auto','Sistema'],['dark','i-moon','Scuro']].map(([k,ic,l])=>`<button type="button" data-theme-set="${k}" aria-pressed="${th===k}"><svg class="i"><use href="#${ic}"/></svg>${l}</button>`).join('')}</span></div>
+    <label class="switch inline pf-sw" for="pfIntro"><input type="checkbox" id="pfIntro" role="switch"${intro?' checked':''}><span class="track" aria-hidden="true"></span><span><b>Animazione d'apertura</b><small class="hint">Il Pokédex che si apre all'avvio</small></span></label>
+    <div class="pf-row"><div><b>Guide delle pagine</b><span class="hint">Rimette il puntino sul “?” per rivederle.</span></div><button type="button" class="btn small" id="pfTours">Mostra di nuovo</button></div>
+  </section>`;
+}
+function bindSettings(){
+  $('#pfTheme').addEventListener('click',e=>{ const b=e.target.closest('[data-theme-set]'); if(!b) return; ls.set('hub.theme',b.dataset.themeSet); applyTheme(b.dataset.themeSet); });
+  $('#pfIntro').addEventListener('change',e=>ls.set('pr.noIntro',!e.target.checked));
+  $('#pfTours').addEventListener('click',()=>{ try{ Object.keys(localStorage).filter(k=>k.startsWith('pr.tour.')).forEach(k=>localStorage.removeItem(k)); }catch(_){} App.emit('page'); App.toast('Le guide sono di nuovo da vedere'); });
+}
 function accountDialog(){
   const d=$('#dlg2'), body=$('#dlg2Body');
   if(!sb){ body.innerHTML=`<h2>Account</h2><p>L’accesso non è ancora attivo su questo sito: mazzi e tornei restano salvati in questo browser.</p><div class="row"><button class="btn" value="close">Chiudi</button></div>`; d.showModal(); return; }
@@ -254,8 +269,9 @@ function accountDialog(){
     body.innerHTML=`<h2>Accedi</h2>
       <p class="hint">Inserisci la tua email: ti mandiamo un link per entrare, senza password. Aprilo su questo stesso dispositivo e browser.</p>
       <div class="form"><label class="full">Email<input id="lgMail" type="email" autocomplete="email" placeholder="nome@esempio.it"></label></div>
-      <div class="row"><span class="hint" id="lgMsg"></span><button class="btn" value="close">Annulla</button><button class="btn primary" type="button" id="lgGo">Mandami il link</button></div>`;
-    d.showModal();
+      <div class="row"><span class="hint" id="lgMsg"></span><button class="btn" value="close">Annulla</button><button class="btn primary" type="button" id="lgGo">Mandami il link</button></div>
+      <div class="pf-body" style="margin-top:12px">${settingsHtml()}</div>`;
+    d.showModal(); bindSettings();
     $('#lgGo').addEventListener('click', async ()=>{
       const email=$('#lgMail').value.trim(); if(!/^\S+@\S+\.\S+$/.test(email)){ $('#lgMsg').textContent='Controlla l’indirizzo email.'; return; }
       $('#lgGo').disabled=true; $('#lgMsg').textContent='Invio in corso…';
@@ -266,28 +282,29 @@ function accountDialog(){
     return;
   }
   const p=Store.profile||{};
-  body.innerHTML=`<h2>Il tuo profilo</h2>
-    <p class="hint">Accesso con ${esc(Store.user.email)}. Mazzi, tornei e preferenze sono salvati sul tuo account.</p>
-    <div class="pf-photo">
-      <div class="pf-av" id="pfAv">${App.avatar(p.display_name||Store.user.email, p.avatar_url, 84)}</div>
-      <div class="pf-photo-acts">
-        <b>Foto del profilo</b>
-        <span class="hint">La vedono i tuoi amici nel gruppo. Viene ritagliata al centro in un quadrato.</span>
-        <div class="pf-btns"><label class="btn small" for="pfFile"><svg class="i"><use href="#i-img"/></svg><span id="pfPick">${p.avatar_url?'Cambia foto':'Scegli una foto'}</span></label>
-          <input type="file" id="pfFile" accept="image/*" hidden>
-          <button class="btn small" type="button" id="pfRm"${p.avatar_url?'':' hidden'}>Rimuovi</button></div>
-        <span class="hint" id="pfAvMsg" aria-live="polite"></span>
-      </div>
-    </div>
-    <div class="form">
+  body.innerHTML=`<div class="dlg-h"><div class="pf-head"><div class="pf-av" id="pfAv">${App.avatar(p.display_name||Store.user.email, p.avatar_url, 64)}</div>
+      <div><h2>${esc(p.display_name||'Il tuo profilo')}</h2><p class="hint">${esc(Store.user.email)}</p></div></div>
+      <button class="xclose" type="button" value="close" aria-label="Chiudi">✕</button></div>
+    <div class="pf-body">
+    <section class="pf-sec"><h3>Profilo</h3>
+      <div class="pf-row"><div><b>Foto</b><span class="hint">La vedono i tuoi amici nel gruppo, ritagliata al centro.</span><span class="hint" id="pfAvMsg" aria-live="polite"></span></div>
+        <div class="pf-btns"><label class="btn small" for="pfFile"><svg class="i"><use href="#i-img"/></svg><span id="pfPick">${p.avatar_url?'Cambia':'Scegli'}</span></label>
+          <input type="file" id="pfFile" accept="image/*" hidden><button class="btn small" type="button" id="pfRm"${p.avatar_url?'':' hidden'}>Rimuovi</button></div></div>
+      <div class="form">
       <label class="full">Nome visibile agli amici<input id="pfName" maxlength="40" value="${esc(p.display_name||'')}"></label>
-      <label class="full">Codice del gruppo<input id="pfGroup" maxlength="40" placeholder="es. amici-pokemon-torino" value="${esc(p.group_code||'')}"><small class="src">Chi inserisce lo stesso codice entra nel tuo gruppo e vede la classifica. Sceglilo difficile da indovinare e condividilo solo con i tuoi amici.</small></label>
-      <label class="full">Pokémon preferito <small class="src">(compare al centro del menu a ruota sul telefono)</small>
+      <label class="full">Pokémon preferito <small class="src">(compare all'apertura, accanto ai titoli e nel menu a ruota)</small>
         <span class="pf-mon"><span id="pfMonPrev"></span><input id="pfMon" list="pfMonList" autocomplete="off" placeholder="Cerca un Pokémon (nome italiano o inglese)…" value="${esc((App.prefs().favMon||{}).n||'')}"><button type="button" class="btn small" id="pfMonX"${App.prefs().favMon?'':' hidden'}>Togli</button></span>
         <datalist id="pfMonList"></datalist></label>
+      </div>
+    </section>
+    <section class="pf-sec"><h3>Gruppo</h3><div class="form">
+      <label class="full">Codice del gruppo<input id="pfGroup" maxlength="40" placeholder="es. amici-pokemon-torino" value="${esc(p.group_code||'')}"><small class="src">Chi inserisce lo stesso codice entra nel tuo gruppo e vede la classifica. Sceglilo difficile da indovinare e condividilo solo con i tuoi amici.</small></label>
       <label class="switch inline full" for="pfShare"><input type="checkbox" id="pfShare" role="switch"${p.share_stats!==false?' checked':''}><span class="track" aria-hidden="true"></span><span>Mostra i miei tornei al gruppo</span></label>
+    </div></section>
+    ${settingsHtml()}
     </div>
     <div class="row"><button class="btn" type="button" id="pfOut">Esci</button><span class="hint" id="pfMsg"></span><button class="btn" value="close">Chiudi</button><button class="btn primary" type="button" id="pfSave">Salva</button></div>`;
+  d.classList.add('sheet'); d.addEventListener('close',()=>d.classList.remove('sheet'),{once:true}); bindSettings();
   d.showModal();
   $('#pfSave').addEventListener('click', async ()=>{
     const group=$('#pfGroup').value.trim().toLowerCase().replace(/\s+/g,'-');
@@ -302,8 +319,8 @@ function accountDialog(){
     if(!m){ if(v) App.toast('Pokémon non trovato: sceglilo dai suggerimenti'); return; } App.prefs().favMon={n:m.n, sd:m.sd, id:m.id}; App.Store.savePrefs(); monPrev(); App.drawMascots&&App.drawMascots(); });
   $('#pfMonX').addEventListener('click',()=>{ delete App.prefs().favMon; try{ localStorage.removeItem('pr.mon'); }catch(_){} App.Store.savePrefs(); $('#pfMon').value=''; monPrev(); App.drawMascots&&App.drawMascots(); });
   const avMsg = t => { $('#pfAvMsg').textContent = t; };
-  const refreshPhoto = () => { const q=Store.profile||{}; $('#pfAv').innerHTML = App.avatar(q.display_name||Store.user.email, q.avatar_url, 84);
-    $('#pfPick').textContent = q.avatar_url ? 'Cambia foto' : 'Scegli una foto'; $('#pfRm').hidden = !q.avatar_url; renderAccount(); App.emit('group'); };
+  const refreshPhoto = () => { const q=Store.profile||{}; $('#pfAv').innerHTML = App.avatar(q.display_name||Store.user.email, q.avatar_url, 64);
+    $('#pfPick').textContent = q.avatar_url ? 'Cambia' : 'Scegli'; $('#pfRm').hidden = !q.avatar_url; renderAccount(); App.emit('group'); };
   $('#pfFile').addEventListener('change', async e=>{
     const f=e.target.files[0]; e.target.value=''; if(!f) return;
     if(f.size > 25e6){ avMsg('La foto è troppo grande (massimo 25 MB).'); return; }
