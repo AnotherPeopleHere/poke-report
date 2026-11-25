@@ -1151,3 +1151,42 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 .tour-tip p{margin:6px 0 12px;font-size:13.5px;line-height:1.45;color:var(--muted)}
 .tt-a{display:flex;gap:6px;align-items:center} .tt-a span{flex:1}
 @media (prefers-reduced-motion:reduce){ .tour-hole,.tour-tip,.tour-btn.new::after{transition:none;animation:none} }
+
+/* ---------- phone: Poké Ball wheel navigation (assets/wheel.js) ---------- */
+.wfab,.wheel{display:none}
+@media (max-width:760px){
+  body.wheelnav .bnav,body.wheelnav .bmore{display:none!important}
+  body.wheelnav{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  .wfab{display:grid;place-items:center;position:fixed;z-index:60;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:64px;height:64px;margin-left:-32px;border-radius:50%;border:0;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;
+    background:linear-gradient(#e33a48 0 46%,#1a1c22 46% 54%,#f2f2f2 54%);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 3px #1a1c22;transition:transform .3s cubic-bezier(.3,1.4,.5,1),opacity .2s}
+  .wfab .i{width:24px;height:24px;padding:6px;box-sizing:content-box;border-radius:50%;background:#f7f7f7;color:#1a1c22;box-shadow:0 0 0 3px #1a1c22}
+  .wfab:active{transform:scale(.92)}
+  .wfab.on{transform:scale(.7);opacity:0;pointer-events:none}
+  .wheel{display:block;position:fixed;inset:0;z-index:59;background:rgba(6,8,12,0);-webkit-backdrop-filter:blur(0);backdrop-filter:blur(0);transition:background .25s,backdrop-filter .25s}
+  .wheel[hidden]{display:none}
+  .wheel.on{background:rgba(6,8,12,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .wh-ring{--d:min(88vw,340px);position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:var(--d);height:var(--d);margin-left:calc(var(--d)/-2);touch-action:none;
+    transform:translateY(55%) scale(.2);opacity:0;transition:transform .38s cubic-bezier(.2,1.2,.4,1),opacity .2s}
+  .wheel.on .wh-ring{transform:none;opacity:1}
+  .wh-ring svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 14px 30px rgba(0,0,0,.45))}
+  .wh-rim{fill:#1a1c22}
+  .wh-s path{fill:#f2f2f2;stroke:#1a1c22;stroke-width:1.6;transition:fill .12s}
+  .wh-s.top path{fill:#e33a48}
+  .wh-s use{color:#1a1c22;pointer-events:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round} .wh-s.top use{color:#fff}
+  .wh-s text{font:700 8.5px var(--body);text-anchor:middle;fill:#1a1c22;pointer-events:none} .wh-s.top text{fill:#fff}
+  .wh-s.cur path{fill:#ffd34f} .wh-s.cur use{color:#1a1c22} .wh-s.cur text{fill:#1a1c22}
+  .wh-s.hot path{fill:#ffd34f;stroke-width:2.4} .wh-s.hot use,.wh-s.hot text{color:#1a1c22;fill:#1a1c22}
+  .wh-s{cursor:pointer;outline:none} .wh-s:focus-visible path{stroke:#ffd34f;stroke-width:3}
+  .wh-band{fill:#1a1c22;pointer-events:none}
+  .wh-c{position:absolute;left:50%;top:50%;width:38%;height:38%;transform:translate(-50%,-50%);border-radius:50%;border:5px solid #1a1c22;background:#f7f7f7;color:#1a1c22;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 -6px 0 rgba(0,0,0,.08)}
+  .wh-x{font-size:22px;font-weight:700;transition:opacity .12s}
+  .wh-sel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;opacity:0;transition:opacity .12s}
+  .wh-sel .i{width:26px;height:26px} .wh-sel b{font:800 12px var(--display)}
+  .wheel.picking .wh-x{opacity:0} .wheel.picking .wh-sel{opacity:1}
+  .wh-sub{position:absolute;left:12px;right:12px;bottom:calc(min(88vw,340px) + 36px + env(safe-area-inset-bottom,0px));opacity:0;transform:translateY(10px);transition:opacity .25s .1s,transform .25s .1s}
+  .wheel.on .wh-sub{opacity:1;transform:none}
+  .wh-sub:empty{display:none}
+  .wh-sub .bsub-h{color:#fff;opacity:.85}
+  .wh-sub .bsub{background:rgba(20,22,30,.85)} .wh-sub .bsub button{color:#fff}
+}
+@media (max-width:760px) and (prefers-reduced-motion:reduce){ .wfab,.wheel,.wh-ring,.wh-sub{transition:none} }

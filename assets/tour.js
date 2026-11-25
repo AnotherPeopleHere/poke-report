@@ -12,6 +12,7 @@ const TOURS = {
     ['#wgrid', 'La tua plancia', 'La Home è fatta di widget: mazzo in lavorazione, rendimento, meta, notizie, Championship Points e altro.'],
     ['#bEditHome', 'Personalizza', 'Aggiungi, togli, riordina e allarga i widget. La disposizione resta salvata nel tuo profilo.'],
     ['#acct', 'Il tuo account', 'Accedi con la tua email: mazzi, tornei e preferenze si salvano online e li ritrovi su ogni dispositivo. Qui imposti anche nome, foto e codice gruppo.'],
+    ['#wfab', 'Il menu', 'Tocca il tasto Home per aprire la ruota delle sezioni. Puoi anche tenerlo premuto e scorrere col dito fino alla sezione: quando lo lasci, ci vai.'],
     ['#bnav', 'Le sezioni', 'Dal telefono ti muovi con questa barra. In “Altro” trovi Gruppo, Notizie, Consigli e Metafy.'],
     ['#sitenav', 'Le sezioni', 'Da qui raggiungi tutte le pagine del sito.'],
   ],
@@ -55,6 +56,7 @@ const TOURS = {
     ['.gfbtn', 'Filtri', 'Filtra per giocatore, mazzo, periodo, tornei o partite TCG Live, Bo1 o Bo3.'],
     ['.gfilters', 'Filtri', 'Filtra per giocatore, mazzo, periodo, tornei o partite TCG Live, Bo1 o Bo3.'],
     ['#bnMore', 'Sezioni del gruppo', 'Tocca qui per passare da Panoramica a Matchup, Giocatori e Tornei.'],
+    ['#wfab', 'Sezioni del gruppo', 'Apri la ruota con il tasto Home: sopra trovi Panoramica, Matchup, Giocatori e Tornei.'],
     ['#gExplorer', 'Esplora un archetipo', 'Tocca un archetipo per vedere i suoi matchup nel gruppo; “Statistiche complete” mostra tutti i dettagli.'],
   ],
   metafy: [
