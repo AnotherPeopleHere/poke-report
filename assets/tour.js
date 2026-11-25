@@ -10,7 +10,7 @@ const phone = () => matchMedia('(max-width:760px)').matches;
 const TOURS = {
   home: [
     ['#wgrid', 'La tua plancia', 'La Home è fatta di widget: mazzo in lavorazione, rendimento, meta, notizie, Championship Points e altro.'],
-    ['#bEditHome', 'Personalizza', 'Aggiungi, togli, riordina e allarga i widget. La disposizione resta salvata nel tuo profilo.'],
+    ['#bEditHome', 'Personalizza', 'Aggiungi, togli, riordina e allarga i widget: trascina un widget su un altro per scambiarli, sul pannello in alto per toglierlo, o dal pannello alla plancia per aggiungerlo. C’è anche un widget Note per i tuoi promemoria.'],
     ['#acct', 'Il tuo account', 'Accedi con la tua email: mazzi, tornei e preferenze si salvano online e li ritrovi su ogni dispositivo. Qui imposti anche nome, foto e codice gruppo.'],
     ['#wfab', 'Il menu', 'Tocca il tasto Home per aprire la ruota delle sezioni, poi tocca quella che ti serve. Scorrendo verso il basso il tasto si nasconde: torna scorrendo verso l’alto.'],
     ['#bnav', 'Le sezioni', 'Dal telefono ti muovi con questa barra. In “Altro” trovi Gruppo, Notizie, Consigli e Metafy.'],

@@ -377,7 +377,10 @@ function cpSave(total, goal, rank, player, region){
   d.total=total; d.goal=goal||null; d.rank=rank||null; d.player=player||''; d.region=region||'Europe'; d.updated=today; d.history=(d.history||[]).filter(x=>x.date!==today).concat([rank?{date:today,total,rank}:{date:today,total}]).slice(-24);
   p.cp=d; App.Store.savePrefs(); cpEditing=false; renderHome(); App.toast('Championship Points salvati');
 }
+const NOTE_MAX = 600;
 const W = {
+  notes:{title:'Note', desc:'Un promemoria tutto tuo: liste da provare, matchup, cose da ricordare', go:null, render:()=>{ const t=App.prefs().notes||'';
+    return `<textarea class="wnote" id="wNote" maxlength="${NOTE_MAX}" placeholder="Scrivi qui le tue note: le ritrovi su ogni dispositivo.">${esc(t)}</textarea><div class="wnote-c src"><span id="wNoteS"></span><span id="wNoteN">${t.length}/${NOTE_MAX}</span></div>`; }},
   cp:{title:'Championship Points', desc:'I tuoi punti Play! Pokémon del GCC e l’obiettivo', go:null, render:cpWidget},
   quick:{title:'Accesso rapido', desc:'Scorciatoie alle sezioni del sito', go:null, render:()=>`<div class="qlinks">
     <a href="#deck"><svg class="i"><use href="#i-grid"/></svg>I miei mazzi</a><a href="#tornei"><svg class="i"><use href="#i-trophy"/></svg>Registra un torneo</a>
@@ -413,19 +416,23 @@ const W = {
   metafy:{title:'Coach e link', desc:'I tuoi link Metafy salvati', go:'#metafy', render:()=>{ const L=App.prefs().links||[];
     return L.length ? L.slice(0,5).map(l=>`<a class="btn small" style="margin:0 6px 6px 0" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)} ↗</a>`).join('') : `<p class="src">Salva i tuoi coach nella pagina <a class="link" href="#metafy">Metafy</a>.</p>`; }}
 };
-const DEFAULT = [{id:'quick'},{id:'cp'},{id:'deck'},{id:'perf'},{id:'reco'},{id:'meta'},{id:'news'},{id:'regionals'},{id:'recent'}];
+const DEFAULT = [{id:'quick'},{id:'cp'},{id:'notes'},{id:'deck'},{id:'perf'},{id:'reco'},{id:'meta'},{id:'news'},{id:'regionals'},{id:'recent'}];
 const layout = () => { const p=App.prefs(); if(!Array.isArray(p.widgets)) p.widgets = DEFAULT.map(x=>({...x}));
   if(!p.cpOffered){ p.cpOffered=true; if(!p.widgets.some(w=>w.id==='cp')) p.widgets.splice(1,0,{id:'cp'}); }   // new widget: shown once to existing users too
   p.widgets = p.widgets.filter(w=>W[w.id]); return p.widgets; };
 function renderHome(){
   const L = layout();
   $('#wgrid').innerHTML = L.map((w,i)=>{ const def=W[w.id]; let inner; try{ inner=def.render(); }catch(e){ inner='<p class="src">Contenuto non disponibile.</p>'; }
-    return `<section class="widget${w.wide?' wide':''}" data-w="${i}"><header><h3>${esc(def.title)}</h3>${def.go?`<a class="link go" href="${def.go}">Apri →</a>`:''}
+    return `<section class="widget${w.wide?' wide':''}" data-w="${i}"><header><span class="wgrip" aria-hidden="true" title="Trascina per spostare">⋮⋮</span><h3>${esc(def.title)}</h3>${def.go?`<a class="link go" href="${def.go}">Apri →</a>`:''}
       <span class="wctl"><button type="button" data-wa="up" aria-label="Sposta su" ${i===0?'disabled':''}>↑</button><button type="button" data-wa="down" aria-label="Sposta giù" ${i===L.length-1?'disabled':''}>↓</button><button type="button" data-wa="wide" aria-label="Allarga o stringi">⇔</button><button type="button" class="rm" data-wa="rm" aria-label="Togli widget">✕</button></span></header>${inner}</section>`; }).join('')
     || '<div class="empty-state"><b>La plancia è vuota</b>Premi “Personalizza” e aggiungi i widget che ti servono.</div>';
   const used = new Set(L.map(w=>w.id));
-  $('#wcat').innerHTML = Object.entries(W).filter(([id])=>!used.has(id)).map(([id,d])=>`<button type="button" data-addw="${id}"><b>+ ${esc(d.title)}</b><span>${esc(d.desc)}</span></button>`).join('') || '<p class="src">Hai già aggiunto tutti i widget.</p>';
+  $('#wcat').innerHTML = Object.entries(W).filter(([id])=>!used.has(id)).map(([id,d])=>`<button type="button" data-addw="${id}" class="wcat-i"><b>+ ${esc(d.title)}</b><span>${esc(d.desc)}</span></button>`).join('') || '<p class="src">Hai già aggiunto tutti i widget.</p>';
 }
+let noteT=null;
+$('#wgrid').addEventListener('input',e=>{ if(e.target.id!=='wNote') return; const v=e.target.value.slice(0,NOTE_MAX);
+  $('#wNoteN').textContent=`${v.length}/${NOTE_MAX}`; $('#wNoteS').textContent='Salvataggio…'; clearTimeout(noteT);
+  noteT=setTimeout(()=>{ App.prefs().notes=v; App.Store.savePrefs(); const s=$('#wNoteS'); if(s) s.textContent='Salvato'; }, 700); });
 $('#wgrid').addEventListener('submit',e=>{ if(e.target.id!=='cpForm') return; e.preventDefault();
   const t=Math.max(0,Math.round(+$('#cpTotal').value||0)), g=Math.round(+$('#cpGoal').value||0), r=Math.round(+$('#cpRank').value||0); cpSave(t, g>0?g:null, r>0?r:null, $('#cpPlayer').value.trim(), $('#cpRegion').value); });
 $('#wgrid').addEventListener('click',e=>{
@@ -439,6 +446,47 @@ $('#wgrid').addEventListener('click',e=>{
   App.Store.savePrefs(); renderHome();
 });
 $('#wcat').addEventListener('click',e=>{ const b=e.target.closest('[data-addw]'); if(!b) return; layout().push({id:b.dataset.addw}); App.Store.savePrefs(); renderHome(); });
+/* drag and drop while customising: drag a widget onto another to swap them, onto the panel above to remove it,
+   or drag a widget from the panel into the grid to add it there. Mouse and touch (pointer events). */
+let drag=null;
+function dropTarget(x,y){ const el=document.elementFromPoint(x,y); if(!el) return null;
+  const w=el.closest('#wgrid .widget'); if(w) return {kind:'w', el:w, i:+w.dataset.w};
+  if(el.closest('#wgrid')) return {kind:'end', el:$('#wgrid')};
+  if(el.closest('#addPanel')) return {kind:'rm', el:$('#addPanel')};
+  return null; }
+function dragStart(e, src){
+  if(!document.body.classList.contains('editing') || e.button>0) return;
+  if(e.target.closest('button:not(.wcat-i),a,input,textarea,select')) return;
+  const r=src.getBoundingClientRect();
+  drag={src, x0:e.clientX, y0:e.clientY, dx:e.clientX-r.left, dy:e.clientY-r.top, w:r.width, h:Math.min(r.height,260), on:false, add:src.dataset.addw||null, i:src.dataset.w!=null?+src.dataset.w:null, tgt:null};
+}
+function dragMove(e){
+  if(!drag) return;
+  if(!drag.on){ if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<8) return; drag.on=true;
+    const g=drag.src.cloneNode(true); g.classList.add('wghost'); g.style.width=drag.w+'px'; g.style.height=drag.h+'px'; document.body.appendChild(g); drag.g=g; drag.src.classList.add('wdragging'); document.body.classList.add('wdrag'); }
+  e.preventDefault();
+  drag.g.style.transform=`translate(${e.clientX-drag.dx}px,${e.clientY-drag.dy}px) rotate(1.5deg)`;
+  const t=dropTarget(e.clientX,e.clientY);
+  document.querySelectorAll('.wdrop').forEach(x=>x.classList.remove('wdrop'));
+  if(t && !(t.kind==='w' && t.i===drag.i) && !(t.kind==='rm' && drag.add)) t.el.classList.add('wdrop');
+  drag.tgt=t;
+}
+function dragEnd(){
+  if(!drag) return; const d=drag; drag=null;
+  document.querySelectorAll('.wdrop').forEach(x=>x.classList.remove('wdrop')); document.body.classList.remove('wdrag');
+  if(!d.on) return; d.g.remove(); d.src.classList.remove('wdragging');
+  const L=layout(), t=d.tgt; if(!t) return;
+  if(d.add){ const item={id:d.add}; if(t.kind==='w') L.splice(t.i,0,item); else if(t.kind==='end') L.push(item); else return; }
+  else if(t.kind==='rm') L.splice(d.i,1);
+  else if(t.kind==='w' && t.i!==d.i) [L[d.i],L[t.i]]=[L[t.i],L[d.i]];
+  else if(t.kind==='end'){ const [x]=L.splice(d.i,1); L.push(x); }
+  else return;
+  App.Store.savePrefs(); renderHome(); window.__wdragClick=Date.now();
+}
+$('#wgrid').addEventListener('pointerdown',e=>{ const w=e.target.closest('.widget'); if(w) dragStart(e,w); });
+$('#wcat').addEventListener('pointerdown',e=>{ const b=e.target.closest('[data-addw]'); if(b) dragStart(e,b); });
+addEventListener('pointermove',dragMove,{passive:false}); addEventListener('pointerup',dragEnd); addEventListener('pointercancel',dragEnd);
+$('#wcat').addEventListener('click',e=>{ if(Date.now()-(window.__wdragClick||0)<300) e.stopImmediatePropagation(); },true);
 $('#bEditHome').addEventListener('click',()=>{ const on=document.body.classList.toggle('editing'); $('#bEditHome span').textContent = on?'Fatto':'Personalizza'; $('#bEditHome').classList.toggle('primary',on); });
 
 /* ---------- wiring ---------- */
