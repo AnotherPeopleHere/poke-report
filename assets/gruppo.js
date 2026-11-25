@@ -107,7 +107,7 @@ function render(){
       <div><span>Andando primo</span><b class="${rateCls(a.fW,a.fN)}">${rate(a.fW,a.fN)}</b><small>${a.fN} game</small></div>
       <div><span>Andando secondo</span><b class="${rateCls(a.sW,a.sN)}">${rate(a.sW,a.sN)}</b><small>${a.sN} game</small></div>
       <div><span>Bo1 · Bo3</span><b>${rate(a.b1W,a.b1N)} · ${rate(a.b3W,a.b3N)}</b><small>round vinti per formato</small></div>
-    </div>`)}
+    </div>${overview(rs, ts)}`)}
     ${sec('match', `<div class="panel" id="gExplorer">
       <h3>Esplora un archetipo <span class="meta">i filtri qui sopra valgono anche qui</span></h3>
       <div class="gexp-bar">
@@ -124,6 +124,33 @@ function render(){
       + (F.src==='tour' ? '' : `<div class="panel"><h3>Sessioni TCG Live <span class="meta">partite importate o veloci, raggruppate per giorno</span></h3>${recent(ts.filter(isLive))}</div>`))}`);
   moveTabInd(false);
   drawSub();
+}
+// overview: highlights (best player, decks, toughest opponent, last tournament) and the group's ranking
+function overview(rs, ts){
+  const rr = rs.filter(r=>!r.bye && !r.id && r.res), wr = a => a.R ? a.W/a.R : 0;
+  if(!rr.length) return '<div class="panel"><div class="empty-state"><b>Ancora nessun round</b>Quando il gruppo registra i tornei, qui trovi chi è in forma, i mazzi migliori e la classifica.</div></div>';
+  const best = (list, min, dir=1) => list.filter(x=>x.a.R>=min).sort((x,y)=>dir*(wr(y.a)-wr(x.a)) || y.a.R-x.a.R)[0];
+  const byP = groupBy(rr, r=>r.player), byD = groupBy(rr, r=>r.deck), byO = groupBy(rr, r=>r.opp);
+  const topP = best(byP, 4) || best(byP, 1), most = byD[0], topD = best(byD, 4), bad = best(byO, 3, -1), good = best(byO, 3);
+  const last = realT(ts).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  const w = a => `<b class="hl-w num ${wrCls(a)}">${wrPct(a)}%</b>`, sub = a => `${a.W}-${a.L}-${a.T} in ${a.R} round`;
+  const card = (attrs, ic, lbl, who, a, extra) => `<button type="button" class="hl" ${attrs}><span class="hl-l"><svg class="i"><use href="#${ic}"/></svg>${lbl}</span>
+      <span class="hl-m">${who}</span><span class="hl-s src">${extra||sub(a)}</span>${a?w(a):''}</button>`;
+  const H = [
+    topP && card('data-hl="players"', 'i-star', 'Il più in forma', `<span class="arch">${av(topP.k)}<span class="t"><b>${esc(nameOf(topP.k))}</b></span></span>`, topP.a),
+    most && card(`data-hl="match" data-harch="${esc(most.k)}" data-hside="played"`, 'i-grid', 'Il mazzo del gruppo', archN(most.k, true), most.a),
+    topD && topD.k!==(most&&most.k) && card(`data-hl="match" data-harch="${esc(topD.k)}" data-hside="played"`, 'i-trophy', 'Il mazzo che vince di più', archN(topD.k, true), topD.a),
+    bad && card(`data-hl="match" data-harch="${esc(bad.k)}" data-hside="faced"`, 'i-chart', 'La bestia nera', archN(bad.k, true), bad.a, `contro: ${sub(bad.a)}`),
+    good && good.k!==(bad&&bad.k) && card(`data-hl="match" data-harch="${esc(good.k)}" data-hside="faced"`, 'i-chart', 'L’avversario preferito', archN(good.k, true), good.a, `contro: ${sub(good.a)}`),
+    last && card('data-hl="tours"', 'i-trophy', 'L’ultimo torneo', `<span class="arch">${av(last.user_id)}<span class="t"><b>${esc(last.name)}</b></span></span>`, null,
+      `${esc(nameOf(last.user_id))} · ${esc(T.fmtDate?T.fmtDate(last.date):last.date)} · ${T.recStr(T.record(last))}${last.placement?` · ${esc(last.placement)}°`:''}`),
+  ].filter(Boolean);
+  const rank = byP.slice().sort((x,y)=>wr(y.a)-wr(x.a) || y.a.R-x.a.R), me = App.Store.user && App.Store.user.id;
+  const nTour = id => realT(ts).filter(t=>t.user_id===id).length;
+  return `<div class="panel"><h3>In evidenza <span class="meta">nei filtri scelti · tocca per i dettagli</span></h3><div class="hls">${H.join('')}</div></div>
+    <div class="panel"><h3>Classifica del gruppo <span class="meta">round vinti, BYE e ID esclusi</span></h3><div class="grank">${rank.map((x,i)=>`<button type="button" class="grk${x.k===me?' me':''}" data-hl="players">
+      <span class="grk-p num">${i+1}</span><span class="arch">${av(x.k)}<span class="t"><b>${esc(nameOf(x.k))}</b><small class="src">${nTour(x.k)} ${nTour(x.k)===1?'torneo':'tornei'} · ${x.a.W}-${x.a.L}-${x.a.T}</small></span></span>
+      <b class="num ${wrCls(x.a)}">${wrPct(x.a)}%</b><span class="grk-bar"><i style="width:${wrPct(x.a)}%"></i></span></button>`).join('')}</div></div>`;
 }
 // compact views: tiles to pick an archetype, then its matchups as simple rows (full stats behind a switch)
 const wrPct = a => a.R ? Math.round(a.W/a.R*100) : null;
@@ -261,6 +288,7 @@ window.addEventListener('resize',()=>moveTabInd(false));
 
 /* ---------- events ---------- */
 $('#pg-gruppo').addEventListener('click',e=>{
+  const hl=e.target.closest('[data-hl]'); if(hl){ const k=hl.dataset.hl; if(hl.dataset.harch){ F.arch=hl.dataset.harch; F.side=hl.dataset.hside; F.tab=k; render(); } else showTab(k); window.scrollTo({top:0,behavior:'smooth'}); return; }
   const gh=e.target.closest('.gtl-h'); if(gh){ gh.parentNode.classList.toggle('open'); return; }
   if(e.target.closest('[data-acct]')){ App.accountDialog(); return; }
   const tb=e.target.closest('[data-gtab]'); if(tb){ showTab(tb.dataset.gtab); return; }
