@@ -1,6 +1,6 @@
 /* ===== Phone navigation: a Poké Ball wheel. One Home button at the bottom; pressing it raises a ring of sections.
-   Press and slide over the ring: the section under the finger lights up and shows in the centre; release to go there.
-   A plain tap on a section works too; the centre (X) or a tap outside closes it. Home is the bottom slice.
+   Tap a section to go there; the centre (X) or a tap outside closes it. Home is the bottom slice.
+   The button hides while scrolling down and comes back when scrolling up.
    To go back to the previous bottom bar, remove this file from the list of scripts in index.html. */
 (function(){
 "use strict";
@@ -35,13 +35,13 @@ ov.innerHTML=`<div class="wh-sub" id="whSub"></div>
   </div>`;
 document.body.append(ov, fab);
 const ring=ov.querySelector('.wh-ring'), sel=ov.querySelector('.wh-sel');
-let open=false, hot=-1, dragging=false, moved=false, downAt=0;
+let open=false, hot=-1;
 
-function show(){ if(open) return; open=true; ov.hidden=false; requestAnimationFrame(()=>ov.classList.add('on')); fab.classList.add('on'); fab.setAttribute('aria-expanded','true'); drawSub(); mark(); }
+function show(){ if(open) return; open=true; fab.classList.remove('away'); ov.hidden=false; requestAnimationFrame(()=>ov.classList.add('on')); fab.classList.add('on'); fab.setAttribute('aria-expanded','true'); drawSub(); mark(); }
 function hide(){ if(!open) return; open=false; ov.classList.remove('on'); fab.classList.remove('on'); fab.setAttribute('aria-expanded','false'); light(-1); setTimeout(()=>{ if(!open) ov.hidden=true; },260); }
 function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('hot',k===i));
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
-  if(i>=0 && navigator.vibrate) try{ navigator.vibrate(8); }catch(e){} }
+}
 function mark(){ ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('cur', slices[k].it[0]===App.page)); }
 function go(i){ const p=slices[i].it[0]; hide(); if(location.hash.replace('#','')!==p) location.hash=p; else window.scrollTo({top:0,behavior:'smooth'}); }
 function sliceAt(x,y){
@@ -50,13 +50,14 @@ function sliceAt(x,y){
   let a=Math.atan2(dx,-dy)*180/Math.PI; if(a<0) a+=360;
   return slices.findIndex(s=>{ const a0=((s.a0%360)+360)%360, a1=((s.a1%360)+360)%360; return a0<a1 ? (a>=a0&&a<a1) : (a>=a0||a<a1); });
 }
-// press on the Home button: the wheel opens, and the same press can slide onto a section
-fab.addEventListener('pointerdown',e=>{ e.preventDefault(); if(open){ hide(); return; } show(); dragging=true; moved=false; downAt=Date.now(); try{ fab.setPointerCapture(e.pointerId); }catch(_){} });
-ring.addEventListener('pointerdown',e=>{ if(e.target.closest('.wh-c')) return; e.preventDefault(); dragging=true; moved=false; downAt=Date.now(); try{ ring.setPointerCapture(e.pointerId); }catch(_){} light(sliceAt(e.clientX,e.clientY)); });
-const onMove=e=>{ if(!dragging) return; moved=true; light(sliceAt(e.clientX,e.clientY)); };
-const onUp=e=>{ if(!dragging) return; dragging=false; const i=sliceAt(e.clientX,e.clientY);
-  if(i>=0 && (moved || e.currentTarget===ring)) go(i); else light(-1); };   // a quick tap on Home only opens the wheel
-[fab,ring].forEach(el=>{ el.addEventListener('pointermove',onMove); el.addEventListener('pointerup',onUp); el.addEventListener('pointercancel',()=>{ dragging=false; light(-1); }); });
+// taps only (a long press triggers system features on some phones, e.g. Samsung's search)
+fab.addEventListener('click',()=>{ open ? hide() : show(); });
+ring.addEventListener('click',e=>{ if(e.target.closest('.wh-c')) return; const i=sliceAt(e.clientX,e.clientY); if(i>=0){ light(i); setTimeout(()=>go(i),120); } });
+fab.addEventListener('contextmenu',e=>e.preventDefault()); ring.addEventListener('contextmenu',e=>e.preventDefault());
+// the button hides while scrolling down and comes back when scrolling up
+let lastY=scrollY;
+addEventListener('scroll',()=>{ const y=scrollY, d=y-lastY; if(Math.abs(d)<6) return;
+  fab.classList.toggle('away', d>0 && y>80 && !open); lastY=y; },{passive:true});
 ov.querySelector('.wh-c').addEventListener('click',hide);
 ov.addEventListener('click',e=>{ if(e.target===ov) hide(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
