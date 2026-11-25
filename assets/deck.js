@@ -110,6 +110,7 @@ function renderResults(){
   const list = filtered();
   $('#resCount').textContent = list.length.toLocaleString('it-IT') + (list.length===1?' carta':' carte');
   const n=advCount(); $('#advCnt').hidden=!n; $('#advCnt').textContent=n;
+  const nf=n+(kind?1:0)+typeSel.size; $('#poolFiltCnt').hidden=!nf; $('#poolFiltCnt').textContent=nf;   // phone: filters behind a button
   $('#results').innerHTML = list.slice(0,shown).map(c=>{ const own=countKey(c.key);
     return `<li class="res${c===selected?' sel':''}" data-key="${esc(c.key)}" draggable="true">
       <span class="mini ty-${c.color}">${scan(c,false,'m-img')}</span><span class="nm">${esc(c.name)}${c.itName?`<small class="it">${esc(c.itName)}</small>`:''}</span>
@@ -122,6 +123,7 @@ let tmr; const onFilter = () => { shown=120; clearTimeout(tmr); tmr=setTimeout(r
 ['q','sort',...ADV].forEach(id=>$('#'+id).addEventListener('input',onFilter));
 $('#kindChips').addEventListener('click',e=>{ const b=e.target.closest('[data-kind]'); if(!b) return; kind=b.dataset.kind; document.querySelectorAll('#kindChips [data-kind]').forEach(x=>x.setAttribute('aria-pressed',x===b)); onFilter(); });
 $('#typeBtns').addEventListener('click',e=>{ const b=e.target.closest('[data-type]'); if(!b) return; const t=b.dataset.type; typeSel.has(t)?typeSel.delete(t):typeSel.add(t); b.setAttribute('aria-pressed',typeSel.has(t)); onFilter(); });
+$('#poolFilt').addEventListener('click',()=>{ const s=$('#pool .search'), o=!s.classList.contains('fopen'); s.classList.toggle('fopen',o); $('#poolFilt').setAttribute('aria-expanded',o); });
 $('#advToggle').addEventListener('click',()=>{ const a=$('#adv'); a.hidden=!a.hidden; $('#advToggle').setAttribute('aria-expanded',!a.hidden); store.set('sdl.adv',!a.hidden); });
 if(store.get('sdl.adv',false)){ $('#adv').hidden=false; $('#advToggle').setAttribute('aria-expanded','true'); }
 function resetFilters(){ ADV.forEach(id=>{ const el=$('#'+id); if(el.type==='checkbox') el.checked=false; else el.value=''; }); $('#q').value=''; kind=''; typeSel.clear();
@@ -673,7 +675,9 @@ App.on(w=>{ if(w==='data' && dview==='lib') renderLib(); if(w==='page' && App.pa
 const mq=window.matchMedia('(max-width:760px)');
 function showTab(t){ document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t)); ['pool','deck'].forEach(id=>$('#'+id).classList.toggle('on',id===t)); if(mq.matches) window.scrollTo({top:0}); }
 $('#tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) showTab(b.dataset.t); });
-function syncTabs(){ if(mq.matches) showTab(document.querySelector('#tabs [aria-selected="true"]')?.dataset.t||'pool'); else ['pool','deck'].forEach(id=>$('#'+id).classList.add('on')); }
+// phone: the deck tools (undo, statistics, export) sit in the sticky bar next to Carte / Mazzo
+function placeTools(){ const g=$('#deckTools'); if(mq.matches){ if(g.parentNode.id!=='tabs') $('#tabs').append(g); } else if(g.parentNode.id==='tabs') $('#dvEdit .deckname').after(g); }
+function syncTabs(){ placeTools(); if(mq.matches) showTab(document.querySelector('#tabs [aria-selected="true"]')?.dataset.t||'pool'); else ['pool','deck'].forEach(id=>$('#'+id).classList.add('on')); }
 mq.addEventListener?mq.addEventListener('change',syncTabs):mq.addListener(syncTabs); syncTabs();
 
 let toastT;
