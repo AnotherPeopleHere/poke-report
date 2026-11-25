@@ -45,7 +45,8 @@ function monImg(m){ const id=m.sd || String(m.n).toLowerCase().replace(/[^a-z0-9
 function drawMon(){ const m=App.prefs().favMon, box=document.getElementById('whMon'); box.innerHTML = m ? monImg(m) : ''; ov.classList.toggle('has-mon', !!m); }
 // desktop: the favourite Pokémon next to each page title; remembered for the opening animation too
 function mascots(){ const m=App.prefs().favMon;
-  try{ if(m && m.sd) localStorage.setItem('pr.mon', JSON.stringify({sd:m.sd, id:m.id||m.dex})); else localStorage.removeItem('pr.mon'); }catch(_){}
+  // remember it for the opening animation (only set here: prefs may not be loaded yet; the profile's "Togli" clears it)
+  try{ if(m && m.sd) localStorage.setItem('pr.mon', JSON.stringify({sd:m.sd, id:m.id||m.dex})); }catch(_){}
   document.querySelectorAll('.page .pg-head h2, #greet').forEach(h=>{ let s=h.querySelector('.mascot'); if(!m){ if(s) s.remove(); return; }
     if(!s){ s=document.createElement('span'); s.className='mascot'; s.setAttribute('aria-hidden','true'); h.appendChild(s); }
     if(s.dataset.sd!==m.sd){ s.dataset.sd=m.sd; s.innerHTML=monImg(m); } }); }

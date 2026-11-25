@@ -300,7 +300,7 @@ function accountDialog(){
   let DEX=[]; if(App.monList) App.monList().then(L=>{ DEX=L; const o=[]; L.forEach(m=>{ o.push(`<option value="${esc(m.n)}">`); if(m.it!==m.n) o.push(`<option value="${esc(m.it)}">`); }); $('#pfMonList').innerHTML=o.join(''); }).catch(()=>{});
   $('#pfMon').addEventListener('change',()=>{ const v=$('#pfMon').value.trim().toLowerCase(); const m=DEX.find(x=>x.n.toLowerCase()===v||x.it.toLowerCase()===v);
     if(!m){ if(v) App.toast('Pokémon non trovato: sceglilo dai suggerimenti'); return; } App.prefs().favMon={n:m.n, sd:m.sd, id:m.id}; App.Store.savePrefs(); monPrev(); App.drawMascots&&App.drawMascots(); });
-  $('#pfMonX').addEventListener('click',()=>{ delete App.prefs().favMon; App.Store.savePrefs(); $('#pfMon').value=''; monPrev(); App.drawMascots&&App.drawMascots(); });
+  $('#pfMonX').addEventListener('click',()=>{ delete App.prefs().favMon; try{ localStorage.removeItem('pr.mon'); }catch(_){} App.Store.savePrefs(); $('#pfMon').value=''; monPrev(); App.drawMascots&&App.drawMascots(); });
   const avMsg = t => { $('#pfAvMsg').textContent = t; };
   const refreshPhoto = () => { const q=Store.profile||{}; $('#pfAv').innerHTML = App.avatar(q.display_name||Store.user.email, q.avatar_url, 84);
     $('#pfPick').textContent = q.avatar_url ? 'Cambia foto' : 'Scegli una foto'; $('#pfRm').hidden = !q.avatar_url; renderAccount(); App.emit('group'); };
@@ -327,7 +327,7 @@ App.boot = async function(){
     const u = session ? session.user : null;
     if((u && Store.user && u.id===Store.user.id) || (!u && !Store.user)) return;
     Store.user = u; Store.profile = null;
-    App.data = await Store.load(); rememberWho(); if(!u){ try{ localStorage.removeItem('pr.who'); }catch(_){} } renderAccount(); App.emit('data'); App.emit('group');
+    App.data = await Store.load(); rememberWho(); if(!u){ try{ localStorage.removeItem('pr.who'); localStorage.removeItem('pr.mon'); }catch(_){} } renderAccount(); App.emit('data'); App.emit('group');
     if(u) App.toast('Accesso effettuato'); else App.toast('Sei uscito: ora vedi i dati di questo browser.');
   });
 };
