@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-25.8">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-25.9">
 </head>
 <body>
 <!-- opening animation: an original Pokédex-style device (drawn in CSS) that opens while the data loads, then zooms into its screen -->
@@ -345,7 +345,7 @@ function dexOpen(){
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD='2026-11-25.8';               // bump on every change to assets/ so browsers load the new files
+  const BUILD='2026-11-25.9';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));

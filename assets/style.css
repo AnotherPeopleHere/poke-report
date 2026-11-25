@@ -1178,7 +1178,7 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
   .wh-s.hot use{color:var(--accent)} .wh-s.hot text{fill:var(--accent)} .wh-s.hot path{fill:var(--sunk)}
   .wh-s{cursor:pointer;outline:none} .wh-s:focus-visible path{stroke:var(--accent);stroke-width:2}
   .wh-band{fill:#1a1c22;pointer-events:none}
-  .wh-c{position:absolute;left:50%;top:50%;width:38%;height:38%;transform:translate(-50%,-50%);border-radius:50%;border:3px solid var(--accent);background:var(--sunk);color:var(--fg);display:grid;place-items:center;cursor:pointer;}
+  .wh-c{position:absolute;left:50%;top:50%;width:43%;height:43%;transform:translate(-50%,-50%);border-radius:50%;border:3px solid var(--accent);background:var(--sunk);color:var(--fg);display:grid;place-items:center;cursor:pointer;}
   .wh-x{font-size:22px;font-weight:700;transition:opacity .12s}
   .wh-sel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;opacity:0;transition:opacity .12s}
   .wh-sel .i{width:26px;height:26px} .wh-sel b{font:800 12px var(--display)}
