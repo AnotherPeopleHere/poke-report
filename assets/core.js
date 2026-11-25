@@ -299,8 +299,8 @@ function accountDialog(){
   monPrev();
   let DEX=[]; if(App.monList) App.monList().then(L=>{ DEX=L; const o=[]; L.forEach(m=>{ o.push(`<option value="${esc(m.n)}">`); if(m.it!==m.n) o.push(`<option value="${esc(m.it)}">`); }); $('#pfMonList').innerHTML=o.join(''); }).catch(()=>{});
   $('#pfMon').addEventListener('change',()=>{ const v=$('#pfMon').value.trim().toLowerCase(); const m=DEX.find(x=>x.n.toLowerCase()===v||x.it.toLowerCase()===v);
-    if(!m){ if(v) App.toast('Pokémon non trovato: sceglilo dai suggerimenti'); return; } App.prefs().favMon={n:m.n, sd:m.sd, id:m.id}; App.Store.savePrefs(); monPrev(); });
-  $('#pfMonX').addEventListener('click',()=>{ delete App.prefs().favMon; App.Store.savePrefs(); $('#pfMon').value=''; monPrev(); });
+    if(!m){ if(v) App.toast('Pokémon non trovato: sceglilo dai suggerimenti'); return; } App.prefs().favMon={n:m.n, sd:m.sd, id:m.id}; App.Store.savePrefs(); monPrev(); App.drawMascots&&App.drawMascots(); });
+  $('#pfMonX').addEventListener('click',()=>{ delete App.prefs().favMon; App.Store.savePrefs(); $('#pfMon').value=''; monPrev(); App.drawMascots&&App.drawMascots(); });
   const avMsg = t => { $('#pfAvMsg').textContent = t; };
   const refreshPhoto = () => { const q=Store.profile||{}; $('#pfAv').innerHTML = App.avatar(q.display_name||Store.user.email, q.avatar_url, 84);
     $('#pfPick').textContent = q.avatar_url ? 'Cambia foto' : 'Scegli una foto'; $('#pfRm').hidden = !q.avatar_url; renderAccount(); App.emit('group'); };

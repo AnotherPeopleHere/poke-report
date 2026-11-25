@@ -43,6 +43,13 @@ function monImg(m){ const id=m.sd || String(m.n).toLowerCase().replace(/[^a-z0-9
   return `<img src="https://play.pokemonshowdown.com/sprites/ani/${id}.gif" alt="${App.esc(m.n)}" data-fb="https://play.pokemonshowdown.com/sprites/gen5/${id}.png" data-fb2="${pid?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pid}.png`:''}"
     onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else if(this.dataset.fb2){this.src=this.dataset.fb2;this.dataset.fb2='';}else this.remove()">`; }
 function drawMon(){ const m=App.prefs().favMon, box=document.getElementById('whMon'); box.innerHTML = m ? monImg(m) : ''; ov.classList.toggle('has-mon', !!m); }
+// desktop: the favourite Pokémon next to each page title; remembered for the opening animation too
+function mascots(){ const m=App.prefs().favMon;
+  try{ if(m && m.sd) localStorage.setItem('pr.mon', JSON.stringify({sd:m.sd, id:m.id||m.dex})); else localStorage.removeItem('pr.mon'); }catch(_){}
+  document.querySelectorAll('.page .pg-head h2, #greet').forEach(h=>{ let s=h.querySelector('.mascot'); if(!m){ if(s) s.remove(); return; }
+    if(!s){ s=document.createElement('span'); s.className='mascot'; s.setAttribute('aria-hidden','true'); h.appendChild(s); }
+    if(s.dataset.sd!==m.sd){ s.dataset.sd=m.sd; s.innerHTML=monImg(m); } }); }
+App.drawMascots=mascots;
 App.monList=monList; App.monImg=monImg; App.drawMon=drawMon;
 const ring=ov.querySelector('.wh-ring'), sel=ov.querySelector('.wh-sel');
 let open=false, hot=-1;
@@ -88,5 +95,6 @@ document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.
 const ICON={home:'i-home',deck:'i-grid',meta:'i-chart',consigli:'i-star',news:'i-news',tornei:'i-trophy',gruppo:'i-group',metafy:'i-coach'};
 const setIcon=()=>fab.querySelector('use').setAttribute('href','#'+(ICON[App.page]||'i-home'));
 setIcon();
-App.on(w=>{ if(w==='page'){ setIcon(); mark(); if(keep){ keep=false; setTimeout(drawSub,50); } else hide(); } });
+mascots();
+App.on(w=>{ if(w==='data') mascots(); if(w==='page'){ setIcon(); mark(); if(keep){ keep=false; setTimeout(drawSub,50); } else hide(); } });
 })();
