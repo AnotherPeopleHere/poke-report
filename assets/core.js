@@ -208,20 +208,52 @@ App.avatar = (name, url, size) => {
   return `<span class="av" style="${st}background:hsl(${hue(name)} 55% 45%)">${esc(String(name||'?').trim().charAt(0).toUpperCase()||'?')}</span>`;
 };
 // square-crop and shrink a picture on the device before uploading it (keeps uploads to a few KB)
-async function squareImage(file, side){
+async function squareImage(file, side, crop){
   const bmp = await createImageBitmap(file);
   const s = Math.min(bmp.width, bmp.height), cv = document.createElement('canvas'); cv.width = cv.height = side;
   const ctx = cv.getContext('2d'); ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(bmp, (bmp.width - s)/2, (bmp.height - s)/2, s, s, 0, 0, side, side); if(bmp.close) bmp.close();
+  const c = crop || {x:(bmp.width - s)/2, y:(bmp.height - s)/2, s};   // the square chosen in the editor, or the centre
+  ctx.drawImage(bmp, c.x, c.y, c.s, c.s, 0, 0, side, side); if(bmp.close) bmp.close();
   let blob = await new Promise(r => cv.toBlob(r, 'image/webp', .86));
   if(!blob || blob.type !== 'image/webp') blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', .88));   // Safari without WebP encoding
   return blob;
 }
+/* photo editor: drag to move, slider (or wheel / pinch) to zoom; resolves with the square to keep, in pixels of the original */
+function cropEditor(file){
+  return new Promise(async resolve=>{
+    let bmp; try{ bmp = await createImageBitmap(file); }catch(e){ App.toast('Non riesco ad aprire questa immagine'); return resolve(null); }
+    const W=bmp.width, H=bmp.height, url=URL.createObjectURL(file), box=document.createElement('div'); box.className='crop';
+    box.innerHTML=`<div class="crop-in"><b>Posiziona la foto</b><span class="hint">Trascina per spostarla, usa il cursore per ingrandirla.</span>
+      <div class="crop-v"><img src="${url}" alt="" draggable="false"></div>
+      <input type="range" class="crop-z" min="1" max="4" step="0.01" value="1" aria-label="Ingrandimento">
+      <div class="row"><button type="button" class="btn" data-c="no">Annulla</button><button type="button" class="btn primary" data-c="ok">Usa questa foto</button></div></div>`;
+    $('#dlg2Body').appendChild(box);
+    const v=box.querySelector('.crop-v'), im=box.querySelector('img'), zr=box.querySelector('.crop-z');
+    let V=0, base=1, z=1, ox=0, oy=0;
+    const clamp=()=>{ const sc=base*z; ox=Math.min(0,Math.max(V-W*sc,ox)); oy=Math.min(0,Math.max(V-H*sc,oy)); };
+    const draw=()=>{ const sc=base*z; clamp(); im.style.width=W*sc+'px'; im.style.height=H*sc+'px'; im.style.transform=`translate(${ox}px,${oy}px)`; };
+    const init=()=>{ V=v.clientWidth; base=V/Math.min(W,H); ox=(V-W*base)/2; oy=(V-H*base)/2; draw(); };
+    requestAnimationFrame(init);
+    const zoomTo=(nz,cx,cy)=>{ nz=Math.min(4,Math.max(1,nz)); const a=base*z, b=base*nz; ox=cx-(cx-ox)*b/a; oy=cy-(cy-oy)*b/a; z=nz; zr.value=z; draw(); };
+    zr.addEventListener('input',()=>zoomTo(+zr.value,V/2,V/2));
+    v.addEventListener('wheel',e=>{ e.preventDefault(); const r=v.getBoundingClientRect(); zoomTo(z*(e.deltaY<0?1.08:1/1.08),e.clientX-r.left,e.clientY-r.top); },{passive:false});
+    const pts=new Map(); let last=null, pinch=0;
+    v.addEventListener('pointerdown',e=>{ v.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); last=[e.clientX,e.clientY]; });
+    v.addEventListener('pointermove',e=>{ if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,[e.clientX,e.clientY]);
+      if(pts.size===2){ const [a,b]=[...pts.values()], d=Math.hypot(a[0]-b[0],a[1]-b[1]); if(pinch){ const r=v.getBoundingClientRect(); zoomTo(z*d/pinch,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top); } pinch=d; return; }
+      ox+=e.clientX-last[0]; oy+=e.clientY-last[1]; last=[e.clientX,e.clientY]; draw(); });
+    const up=e=>{ pts.delete(e.pointerId); pinch=0; if(pts.size===1) last=[...pts.values()][0]; };
+    v.addEventListener('pointerup',up); v.addEventListener('pointercancel',up);
+    const end=val=>{ box.remove(); URL.revokeObjectURL(url); if(bmp.close) bmp.close(); resolve(val); };
+    box.addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; if(b.dataset.c==='no') return end(null);
+      const sc=base*z; end({x:-ox/sc, y:-oy/sc, s:V/sc}); });
+  });
+}
 const AVATAR_BUCKET = 'avatars';
 const avatarPath = url => { const m = String(url||'').match(/\/storage\/v1\/object\/public\/avatars\/(.+?)(\?|$)/); return m ? decodeURIComponent(m[1]) : null; };
-async function uploadAvatar(file){
+async function uploadAvatar(file, crop){
   if(!/^image\//.test(file.type)) throw new Error('Scegli un file immagine (JPG, PNG, WebP, HEIC…).');
-  const blob = await squareImage(file, 256);
+  const blob = await squareImage(file, 256, crop);
   const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
   const path = `${Store.user.id}/avatar-${Date.now()}.${ext}`;
   const up = await sb.storage.from(AVATAR_BUCKET).upload(path, blob, {contentType: blob.type, cacheControl: '31536000', upsert: false});
@@ -254,12 +286,14 @@ function settingsHtml(){
     <div class="pf-row"><div><b>Tema</b><span class="hint">Vale su questo dispositivo.</span></div>
       <span class="seg" id="pfTheme">${[['light','i-sun','Chiaro'],['system','i-auto','Sistema'],['dark','i-moon','Scuro']].map(([k,ic,l])=>`<button type="button" data-theme-set="${k}" aria-pressed="${th===k}"><svg class="i"><use href="#${ic}"/></svg>${l}</button>`).join('')}</span></div>
     <label class="switch inline pf-sw" for="pfIntro"><input type="checkbox" id="pfIntro" role="switch"${intro?' checked':''}><span class="track" aria-hidden="true"></span><span><b>Animazione d'apertura</b><small class="hint">Il Pokédex che si apre all'avvio</small></span></label>
-    <div class="pf-row"><div><b>Guide delle pagine</b><span class="hint">Rimette il puntino sul “?” per rivederle.</span></div><button type="button" class="btn small" id="pfTours">Mostra di nuovo</button></div>
+    <label class="switch inline pf-sw" for="pfDot"><input type="checkbox" id="pfDot" role="switch"${ls.get('pr.noTourDot',false)!==true?' checked':''}><span class="track" aria-hidden="true"></span><span><b>Segnala le guide da vedere</b><small class="hint">Il puntino colorato sul “?” delle pagine</small></span></label>
+    <div class="pf-row"><div><b>Guide delle pagine</b><span class="hint">Segna di nuovo tutte le guide come da vedere.</span></div><button type="button" class="btn small" id="pfTours">Mostra di nuovo</button></div>
   </section>`;
 }
 function bindSettings(){
   $('#pfTheme').addEventListener('click',e=>{ const b=e.target.closest('[data-theme-set]'); if(!b) return; ls.set('hub.theme',b.dataset.themeSet); applyTheme(b.dataset.themeSet); });
   $('#pfIntro').addEventListener('change',e=>ls.set('pr.noIntro',!e.target.checked));
+  $('#pfDot').addEventListener('change',e=>{ ls.set('pr.noTourDot',!e.target.checked); App.emit('page'); });
   $('#pfTours').addEventListener('click',()=>{ try{ Object.keys(localStorage).filter(k=>k.startsWith('pr.tour.')).forEach(k=>localStorage.removeItem(k)); }catch(_){} App.emit('page'); App.toast('Le guide sono di nuovo da vedere'); });
 }
 function accountDialog(){
@@ -324,8 +358,10 @@ function accountDialog(){
   $('#pfFile').addEventListener('change', async e=>{
     const f=e.target.files[0]; e.target.value=''; if(!f) return;
     if(f.size > 25e6){ avMsg('La foto è troppo grande (massimo 25 MB).'); return; }
+    if(!/^image\//.test(f.type)){ avMsg('Scegli un file immagine (JPG, PNG, WebP, HEIC…).'); return; }
+    const crop = await cropEditor(f); if(!crop) return;   // the user positions the photo first
     $('#pfAv').classList.add('busy'); avMsg('Carico la foto…');
-    try{ await uploadAvatar(f); refreshPhoto(); avMsg('Foto aggiornata.'); }
+    try{ await uploadAvatar(f, crop); refreshPhoto(); avMsg('Foto aggiornata.'); }
     catch(err){ console.error(err); avMsg(err && err.message && /immagine/.test(err.message) ? err.message : (err && /bucket|not found|policy|row-level/i.test(err.message||'') ? 'Le foto non sono ancora attive su questo sito.' : 'Non sono riuscito a caricare la foto: riprova.')); }
     $('#pfAv').classList.remove('busy');
   });

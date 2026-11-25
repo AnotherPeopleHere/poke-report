@@ -1282,3 +1282,13 @@ button,a,label,summary,select,[role="button"],[data-key],.card,.res,.libcard,.gt
 .pf-sw{display:flex;align-items:center;gap:10px}
 .pf-sw > span:last-child{display:flex;flex-direction:column;font-size:14px}
 .pf-sw small{font-size:12px}
+
+/* photo position editor */
+.crop{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:color-mix(in srgb,var(--panel) 94%,transparent);border-radius:inherit;padding:16px}
+.crop-in{display:flex;flex-direction:column;gap:10px;align-items:center;width:min(100%,320px);text-align:center}
+.crop-v{position:relative;width:min(100%,240px);aspect-ratio:1;border-radius:50%;overflow:hidden;background:var(--sunk);touch-action:none;cursor:grab;box-shadow:0 0 0 3px var(--accent)}
+.crop-v:active{cursor:grabbing}
+.crop-v img{position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.crop-z{width:100%;accent-color:var(--accent)}
+.crop .row{width:100%;justify-content:center}
+#dlg2Body{position:relative}
