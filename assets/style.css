@@ -1309,3 +1309,77 @@ header.site #theme{display:none}
 @media (max-width:760px){ dialog.sheet.closing{animation:sheetOut .24s cubic-bezier(.4,0,1,1) forwards} dialog.sheet.closing::backdrop{opacity:0;transition:opacity .24s} }
 @keyframes sheetOut{from{transform:none}to{transform:translateY(100%)}}
 @media (max-width:760px){ header.site .tour-btn{margin-left:auto} }
+
+/* ---------- Tornei on phones: one section at a time ---------- */
+.tmbar,.m-only,.tchev{display:none}
+.tsum{display:none}
+@media (max-width:760px){
+  #pg-tornei .pg-head .acts{display:none}
+  .tmbar{display:flex;gap:8px;justify-content:space-between}
+  .tmbar .btn{display:inline-flex;align-items:center;gap:6px}
+  .tmbar .cnt{background:var(--accent);color:var(--accent-fg);border-radius:99px;padding:0 6px;font-size:11px;font-weight:700}
+  #pg-tornei .filterbar{display:none}
+  #pg-tornei.fopen .filterbar{display:flex;flex-wrap:wrap;gap:8px;animation:pageIn .25s}
+  #pg-tornei .filterbar select{flex:1 1 140px}
+  #pg-tornei #tKpis,#pg-tornei .d-only{display:none}
+  #pg-tornei .m-only{display:flex}
+  #pg-tornei [data-tsec]{display:none}
+  #pg-tornei[data-ttab="over"] [data-tsec="over"],#pg-tornei[data-ttab="decks"] [data-tsec="decks"],#pg-tornei[data-ttab="match"] [data-tsec="match"],#pg-tornei[data-ttab="hist"] [data-tsec="hist"]{display:flex;flex-direction:column}
+  #pg-tornei .cols{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+  .tsum{gap:12px}
+  .ts-top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+  .ts-top > div:first-child{display:flex;flex-direction:column}
+  .ts-rec{font:800 40px/1 var(--display)}
+  .ts-wr{display:flex;flex-direction:column;align-items:flex-end} .ts-wr b{font:800 30px/1 var(--display)} .ts-wr.good b{color:var(--ok)} .ts-wr.bad b{color:var(--bad)}
+  .ts-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px;scroll-snap-type:x mandatory}
+  .ts-strip::-webkit-scrollbar{display:none}
+  .ts-strip > div{flex:none;min-width:92px;scroll-snap-align:start;background:var(--sunk);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:1px}
+  .ts-strip span{font-size:11.5px;color:var(--muted)} .ts-strip b{font:800 19px var(--display)} .ts-strip small{font-size:11px;color:var(--muted)}
+  #pg-tornei .gr-n{display:flex;flex-direction:column;gap:1px} #pg-tornei .gr-n small{font-size:11px;padding-left:34px}
+  /* history: compact rows, tap to open */
+  #pg-tornei .trow{position:relative;cursor:pointer;padding-right:34px}
+  #pg-tornei .tchev{display:block;position:absolute;right:12px;top:18px;font-size:22px;color:var(--muted);transition:transform .2s}
+  #pg-tornei .trow.open .tchev{transform:rotate(90deg)}
+  #pg-tornei .trow:not(.open) .mlist,#pg-tornei .trow:not(.open) .tnote,#pg-tornei .trow:not(.open) .ops,#pg-tornei .trow:not(.open) .recbox small{display:none}
+}
+
+/* live tournament */
+.live-badge{display:inline-flex;align-items:center;gap:4px;font:700 11px var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--bad);background:var(--bad-soft);border-radius:99px;padding:2px 8px;width:max-content}
+.reg-list{display:flex;flex-direction:column;gap:8px}
+.reg-i{display:flex;align-items:center;gap:12px;text-align:left;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--sunk);color:var(--fg);cursor:pointer}
+.reg-i .i{width:24px;height:24px;color:var(--accent);flex:none}
+.reg-i span{display:flex;flex-direction:column} .reg-i b{font-size:15px} .reg-i small{color:var(--muted);font-size:12.5px}
+.reg-i.live{border-color:var(--accent)}
+dialog.livedlg{overflow:hidden;display:flex;flex-direction:column;max-height:min(92vh,900px)}
+dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
+.lv-body{display:flex;flex-direction:column;gap:12px}
+.lv-sum{display:flex;flex-direction:column;gap:8px;background:var(--sunk);border-radius:14px;padding:12px}
+.lv-sum > b{font:800 34px/1 var(--display)}
+.lv-pills{display:flex;flex-wrap:wrap;gap:6px}
+.lv-pills.sm{gap:3px}
+.lv-r{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--muted);padding:2px;border-radius:8px;cursor:pointer;font-size:10.5px}
+.lv-r .res-pill{width:30px;height:30px;font-size:12px}
+.lv-r.on{background:var(--accent-soft);color:var(--fg)}
+.lv-r.add .res-pill{background:var(--panel);border:1px dashed var(--line);color:var(--muted)}
+.lv-round{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:12px}
+.lv-round h3{margin:0;font-family:var(--display);font-size:18px}
+.lv-opp{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:16px}
+.lv-mode{width:100%} .lv-mode button{flex:1;padding:8px 4px}
+.lv-g{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center}
+.lv-g .src{grid-row:1/3;min-width:52px}
+.lv-wlt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lv-wlt button{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:800 16px var(--mono)}
+.lv-wlt button.W[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.lv-wlt button.L[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.lv-wlt button.T[aria-pressed="true"]{background:var(--muted);border-color:var(--muted);color:#fff}
+.lv-save{height:46px;font-size:15px}
+.lv-foot .danger{border-color:var(--bad);color:var(--bad)}
+.lv-box{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;padding:12px 14px;border:1px solid var(--accent);border-radius:14px;background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.lv-bi{display:flex;flex-direction:column;min-width:0} .lv-bi b{font-size:15px}
+.lv-box .lv-pills{grid-column:1/3}
+.lv-box .btn{grid-row:1/3;grid-column:3}
+#tLiveBox{display:flex;flex-direction:column;gap:8px}
+#tLiveBox:empty{display:none}
+.glive{display:flex;flex-direction:column;gap:8px}
+.glive-i{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--sunk)}
+.glive-i:last-child{border-bottom:0} .glive-i .lv-pills{grid-column:1/-1}

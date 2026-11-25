@@ -44,6 +44,9 @@ const TOURS = {
     ['#newsGrid', 'Notizie', 'Aggiornate ogni mattina da PokéBeach, Limitless e dal sito ufficiale italiano. Tocca una notizia per l’articolo completo.'],
   ],
   tornei: [
+    ['#tRegM', 'Registra', 'Da qui scegli: torneo live (segni i round mentre giochi), torneo completo, partita veloce o import da TCG Live.'],
+    ['#wfab', 'Sezioni', 'Apri la ruota: sopra trovi Riepilogo, Mazzi, Matchup e Storico. Nello storico tocca un torneo per aprirlo.'],
+    ['#bLiveT', 'Torneo live', 'Segni i round mentre giochi. Il gruppo vede l’andamento ma non il tuo mazzo, finché non chiudi il torneo.'],
     ['#bAddT', 'Nuovo torneo', 'Registra un torneo round per round: Bo1 o Bo3, chi ha iniziato, ID e BYE, top cut e note.'],
     ['#bTL', 'Importa da TCG Live', 'Incolla il registro di una partita di TCG Live: il sito riconosce mazzi, risultato e chi ha iniziato.'],
     ['#bQuick', 'Partita veloce', 'Per segnare in un attimo una partita giocata, senza un torneo.'],

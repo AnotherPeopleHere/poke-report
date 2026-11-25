@@ -21,7 +21,9 @@ async function load(){
   if(!p.group_code){ state('<div class="empty-state"><b>Non sei ancora in un gruppo</b>Scegli un codice (es. “amici-pokemon-torino”) e condividilo con i tuoi amici: chi lo inserisce entra nel gruppo.<br><br><button class="btn primary" type="button" data-acct>Imposta il codice gruppo</button></div>'); return; }
   if(loading) return; loading = true;
   if(!cache) state('<p class="src">Carico il gruppo…</p>');
-  try{ cache = await App.Store.group(); render(); }
+  try{ cache = await App.Store.group();
+    // live tournaments of friends: shown on their own (rounds and record, no deck) and kept out of the statistics
+    cache.live = cache.tournaments.filter(t=>t.ongoing); cache.tournaments = cache.tournaments.filter(t=>!t.ongoing); render(); }
   catch(e){ console.error(e); state('<div class="empty-state"><b>Non riesco a caricare il gruppo</b>Controlla la connessione e riprova.</div>'); }
   loading = false;
 }
@@ -96,7 +98,9 @@ function render(){
       <span class="gcode" title="Codice del gruppo">${esc(code)} · ${members.length} ${members.length===1?'membro':'membri'}</span>
     </div>
     <nav class="gtabs" id="gTabs" role="tablist" aria-label="Sezioni del gruppo">${TABS.map(([k,l])=>`<button type="button" role="tab" data-gtab="${k}" aria-selected="${F.tab===k}">${l}</button>`).join('')}</nav>
-    ${sec('over', `<div class="kpis">
+    ${sec('over', `${(cache.live||[]).length?`<div class="panel"><h3>Tornei in corso <span class="meta">il mazzo si vede quando il torneo finisce</span></h3><div class="glive">${cache.live.map(t=>{ const r=T.record(t);
+        return `<div class="glive-i"><span class="arch">${av(t.user_id)}<span class="t"><b>${esc(nameOf(t.user_id))}</b> · ${esc(t.name)}</span></span><span class="live-badge">● ${T.recStr(r)}</span>
+          <div class="lv-pills sm">${(t.rounds||[]).map(x=>{ const q=T.roundRes(x); return `<span class="res-pill ${q||'T'}${x.id||x.bye?' id':''}" title="${x.opp?esc(x.opp):''}">${x.bye?'BYE':x.id?'ID':q?({W:'V',L:'S',T:'P'})[q]:'·'}</span>`; }).join('')||'<span class="src">nessun round ancora</span>'}</div></div>`; }).join('')}</div></div>`:''}<div class="kpis">
       <div><span>Tornei</span><b>${realT(ts).length}</b><small>${liveN(ts)?`+ ${liveN(ts)} ${liveN(ts)===1?'sessione':'sessioni'} TCG Live · `:''}${a.R} round registrati</small></div>
       <div><span>Round vinti</span><b class="${rateCls(a.W,a.R)}">${rate(a.W,a.R)}</b><small>record ${a.W}-${a.L}-${a.T}</small></div>
       <div><span>Game vinti</span><b class="${rateCls(a.gW,a.gW+a.gL+a.gT)}">${rate(a.gW,a.gW+a.gL+a.gT)}</b><small>${a.gW}-${a.gL}${a.gT?'-'+a.gT:''} nei game</small></div>

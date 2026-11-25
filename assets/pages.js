@@ -160,6 +160,7 @@ function gameText(x){ return (x.games||[]).map((g,j)=>g.res?`G${j+1} ${GL[g.res]
 function tFiltered(){
   const deck = $('#tFilter').value, per = $('#tPeriod').value, now = new Date();
   return App.data.tournaments.filter(t=>{
+    if(t.ongoing) return false;   // live tournament: shown in its own box until closed
     if(deck && t.deckName!==deck) return false;
     if(per==='season' && t.date < '2026-09-01') return false;
     if(per && per!=='season' && (now - new Date(t.date))/864e5 > +per) return false;
@@ -190,6 +191,23 @@ function renderTornei(){
     <div><span>Andando primo</span><b>${games(s.first)?pct(wr(s.first),0):'—'}</b><small>${games(s.first)?recStr(s.first)+' in '+games(s.first)+' game':'nessun dato'}</small></div>
     <div><span>Andando secondo</span><b>${games(s.second)?pct(wr(s.second),0):'—'}</b><small>${games(s.second)?recStr(s.second)+' in '+games(s.second)+' game':'nessun dato'}</small></div>
     <div><span>Miglior piazzamento</span><b>${s.best?esc(s.best.placement)+'°':'—'}</b><small>${s.best?esc(s.best.name):'registra la posizione finale'}</small></div>`;
+  // phone: one summary card instead of seven tiles, compact rows instead of tables
+  const real=list.filter(t=>!isLiveT(t)).length, lv=list.length-real, p0=games(s.tot)?wr(s.tot):null;
+  $('#tSum').innerHTML = `<div class="ts-top"><div><span class="src">Record</span><b class="ts-rec num">${recStr(s.tot)}</b></div>
+      <div class="ts-wr ${p0==null?'':p0>=.55?'good':p0<.45?'bad':''}"><b>${p0==null?'—':pct(p0,0)}</b><span class="src">vittorie</span></div></div>
+    <div class="ts-strip">
+      <div><span>Tornei</span><b>${real}</b>${lv?`<small>+ ${lv} live</small>`:''}</div>
+      <div><span>Game</span><b class="num">${recStr(s.g)}</b></div>
+      <div><span>Da primo</span><b>${games(s.first)?pct(wr(s.first),0):'—'}</b></div>
+      <div><span>Da secondo</span><b>${games(s.second)?pct(wr(s.second),0):'—'}</b></div>
+      <div><span>Top cut</span><b>${s.cuts}</b></div>
+      <div><span>Migliore</span><b>${s.best?esc(s.best.placement)+'°':'—'}</b></div></div>`;
+  const nf=[$('#tFilter').value,$('#tPeriod').value].filter(Boolean).length; $('#tFiltN').hidden=!nf; $('#tFiltN').textContent=nf;
+  const mrow = (name, r, extra) => { const n=games(r), p=n?wr(r):null, cls=p==null?'':p>=.55?'good':p<.45?'bad':'';
+    return `<div class="grow"><span class="gr-n">${archLink(name||'—','')}${extra?`<small class="src">${extra}</small>`:''}</span><span class="gr-r num">${recStr(r)}</span><span class="gr-bar"><i class="${cls}" style="width:${p==null?0:Math.round(p*100)}%"></i></span><b class="gr-w num ${cls}">${p==null?'—':pct(p,0)}</b></div>`; };
+  $('#tDecksM').innerHTML = s.byDeck.length ? s.byDeck.map(d=>mrow(d.name, d, `${d.n} ${d.n===1?'torneo':'tornei'}${d.live?` + ${d.live} live`:''}${d.best?` · migliore ${d.best}°`:''}`)).join('') : '<p class="src">Nessun torneo nel filtro scelto.</p>';
+  $('#tMatchM').innerHTML = s.byOpp.length ? s.byOpp.map(o=>mrow(o.name, o, o.gW+o.gL+o.gT?`game ${o.gW}-${o.gL}${o.gT?'-'+o.gT:''}`:'')).join('') : '<p class="src">Registra i round con l’archetipo avversario per vedere i matchup.</p>';
+  if(App.renderLiveBox) App.renderLiveBox();
   if(!App.data.tournaments.length){
     const empty = `<div class="empty-state"><b>Nessun torneo registrato</b>Premi “Nuovo torneo” per aggiungere il primo: mazzo, round e risultato.</div>`;
     $('#tLast').innerHTML = empty; $('#tLastMeta').textContent=''; $('#tDecks').innerHTML=''; $('#tMatch').innerHTML=''; $('#tList').innerHTML = '';
@@ -212,11 +230,15 @@ function renderTornei(){
     return `<div class="trow" data-tid="${esc(t.id)}"><div class="date"><b>${+d}</b>${MONTHS[+m-1]} ${y.slice(2)}</div>
       <div style="min-width:0"><h4>${esc(t.name)}</h4><div class="sub"><span class="badge">${esc(t.type)}</span>${archLink(t.deckName||'—','')}${t.placement?`<span>${esc(t.placement)}°${t.players?' su '+esc(t.players):''}</span>`:''}${cutOf(t)==='made'?`<span class="badge w">${esc(cutLabel(t))}</span>`:''}</div>
         ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `${cutSep(t,i)}<span class="res-pill ${rr}${x.id||x.bye?' id':''}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${x.bye?'BYE (vittoria senza avversario)':x.id?'ID (pareggio concordato)':GL[rr]}${gt?' · '+esc(gt):''}">${resL(x)}</span>`; }).join('')}</div>`) : ''}
-        ${t.notes?`<div class="sub" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div>
+        ${t.notes?`<div class="sub tnote" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div><span class="tchev" aria-hidden="true">›</span>
       <div class="recbox"><div class="rec num">${recStr(r)}<small>${games(r)?pct(wr(r),0)+' vittorie':'nessuna partita'}</small></div>
         <div class="ops"><button class="btn small" type="button" data-edit="${esc(t.id)}">Modifica</button><button class="btn small" type="button" data-del="${esc(t.id)}">Elimina</button></div></div></div>`; }).join('') || '<p class="src">Nessun torneo nel filtro scelto.</p>';
 }
 ['#tFilter','#tPeriod'].forEach(s=>$(s).addEventListener('change',renderTornei));
+// phone: one section at a time (chosen from the wheel), filters behind a button, history rows that open on tap
+App.tornTab = k => { const pg=$('#pg-tornei'); if(k){ pg.dataset.ttab=k; window.scrollTo({top:0}); } return pg.dataset.ttab; };
+$('#tFiltBtn').addEventListener('click',e=>{ const on=!$('#pg-tornei').classList.contains('fopen'); $('#pg-tornei').classList.toggle('fopen',on); e.currentTarget.setAttribute('aria-expanded',on); });
+$('#tList').addEventListener('click',e=>{ if(!matchMedia('(max-width:760px)').matches || e.target.closest('button,a')) return; const r=e.target.closest('.trow'); if(r) r.classList.toggle('open'); },true);
 // "Ultimi risultati": jump to the history, or to one tournament in it (briefly highlighted)
 $('#tLast').addEventListener('click',e=>{
   if(e.target.closest('#tToList')){ $('#tStorico').scrollIntoView({behavior:'smooth',block:'start'}); return; }
@@ -393,12 +415,12 @@ const W = {
       ${stars.length?`<p class="src" style="margin:0">Attaccanti: ${stars.map(esc).join(', ')}</p>`:''}${v.issues[0]?`<p class="src" style="margin:0;color:var(--bad)">${esc(v.issues[0])}</p>`:''}`; }},
   decks:{title:'I miei mazzi', desc:'Mazzi salvati nel deck builder', go:'#deck', render:()=>{ const L=App.data.decks.slice().sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,5);
     return L.length ? `<table class="tbl"><tbody>${L.map(d=>`<tr><td>${archLink(d.name,'')}</td><td class="n">${d.cards.length} carte</td><td class="n"><button class="btn small" type="button" data-opendeck="${esc(d.id)}">Apri</button></td></tr>`).join('')}</tbody></table>` : '<p class="src">Nessun mazzo salvato. Nel deck builder usa “Mazzi” → “Salva”.</p>'; }},
-  perf:{title:'Il mio rendimento', desc:'Record e percentuale di vittorie nei tornei', go:'#tornei', render:()=>{ const s=stats(App.data.tournaments);
+  perf:{title:'Il mio rendimento', desc:'Record e percentuale di vittorie nei tornei', go:'#tornei', render:()=>{ const s=stats(App.data.tournaments.filter(t=>!t.ongoing));
     if(!App.data.tournaments.length) return '<p class="src">Ancora nessun torneo. <a class="link" href="#tornei">Registra il primo</a>.</p>';
     const fav = s.byDeck[0];
     return `<div class="mini-stats"><div><span>Tornei</span><b>${App.data.tournaments.filter(t=>!isLiveT(t)).length}</b></div><div><span>Record</span><b class="num" style="font-family:var(--display)">${recStr(s.tot)}</b></div><div><span>Vittorie</span><b>${games(s.tot)?pct(wr(s.tot),0):'—'}</b></div></div>
       ${fav?`<p class="src" style="margin:0">Mazzo più giocato: <b style="color:var(--fg)">${esc(fav.name||'—')}</b> (${fav.n} ${fav.n===1?'torneo':'tornei'}${fav.live?` + ${fav.live} live`:''}, ${games(fav)?pct(wr(fav),0):'—'})</p>`:''}`; }},
-  recent:{title:'Ultimi tornei giocati', desc:'I tuoi tornei più recenti', go:'#tornei', render:()=>{ const L=App.data.tournaments.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
+  recent:{title:'Ultimi tornei giocati', desc:'I tuoi tornei più recenti', go:'#tornei', render:()=>{ const L=App.data.tournaments.filter(t=>!t.ongoing).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
     return L.length ? `<table class="tbl"><tbody>${L.map(t=>{ const r=record(t); return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${fmtDate(t.date)} · ${esc(t.deckName||'—')}</div></td><td class="n">${recStr(r)}</td></tr>`; }).join('')}</tbody></table>` : '<p class="src">Nessun torneo registrato.</p>'; }},
   matchups:{title:'Matchup', desc:'I tuoi matchup migliori e peggiori', go:'#tornei', render:()=>{ const o=stats(App.data.tournaments).byOpp.filter(x=>games(x)>=1);
     if(!o.length) return '<p class="src">Registra i round con l\'archetipo avversario per vedere i matchup.</p>';
@@ -542,5 +564,5 @@ async function attachLists(){
   }
 }
 App.on(what=>{ if(what==='data'){ renderAll(); DL.onData && DL.onData(); attachLists(); } if(what==='deck' && App.page==='home') renderHome(); if(what==='page' && App.page==='home') renderHome(); });
-App.T = {stats, record, roundRes, wr, games, recStr};
+App.T = {stats, record, roundRes, wr, games, recStr, normRound, cutOf, GL, BIG_EVENTS, TYPES, archLink, fmtDate, metaNames:()=>META.map(m=>m.name)};
 })();

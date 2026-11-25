@@ -61,7 +61,7 @@ function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEa
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
 }
 function mark(){ ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('cur', slices[k].it[0]===App.page)); }
-const HAS_SUB = new Set(['gruppo']);   // sections with their own sub-menu: the wheel stays open on it
+const HAS_SUB = new Set(['gruppo','tornei']);   // sections with their own sub-menu: the wheel stays open on it
 let keep=false;
 function go(i){ const p=slices[i].it[0];
   if(HAS_SUB.has(p)){ light(-1); if(location.hash.replace('#','')!==p){ keep=true; location.hash=p; } else drawSub(); return; }
@@ -87,11 +87,12 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
 ov.querySelectorAll('.wh-s').forEach((g,i)=>{ g.setAttribute('tabindex','0'); g.setAttribute('role','menuitem'); g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(i); } }); });
 
 // on the group page the wheel also offers the group's sections
-const SUB = {gruppo:[['over','Panoramica'],['match','Matchup'],['players','Giocatori'],['tours','Tornei']]};
-function drawSub(){ const box=document.getElementById('whSub'), L=SUB[App.page];
-  if(!L || !App.groupTab){ box.innerHTML=''; return; } const cur=App.groupTab();
-  box.innerHTML = `<div class="bsub-h">Sezioni del gruppo</div><div class="bsub">${L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${cur===k}">${l}</button>`).join('')}</div>`; }
-document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; App.groupTab(b.dataset.gtab); hide(); window.scrollTo({top:0,behavior:'smooth'}); });
+const SUB = {gruppo:{h:'Sezioni del gruppo', fn:()=>App.groupTab, L:[['over','Panoramica'],['match','Matchup'],['players','Giocatori'],['tours','Tornei']]},
+  tornei:{h:'I miei tornei', fn:()=>App.tornTab, L:[['over','Riepilogo'],['decks','Mazzi'],['match','Matchup'],['hist','Storico']]}};
+function drawSub(){ const box=document.getElementById('whSub'), S=SUB[App.page], fn=S&&S.fn();
+  if(!S || !fn){ box.innerHTML=''; return; } const cur=fn();
+  box.innerHTML = `<div class="bsub-h">${S.h}</div><div class="bsub">${S.L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${cur===k}">${l}</button>`).join('')}</div>`; }
+document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; SUB[App.page].fn()(b.dataset.gtab); hide(); window.scrollTo({top:0,behavior:'smooth'}); });
 // closed button: the icon of the section you are on
 const ICON={home:'i-home',deck:'i-grid',meta:'i-chart',consigli:'i-star',news:'i-news',tornei:'i-trophy',gruppo:'i-group',metafy:'i-coach'};
 const setIcon=()=>fab.querySelector('use').setAttribute('href','#'+(ICON[App.page]||'i-home'));
