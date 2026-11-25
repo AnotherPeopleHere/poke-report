@@ -1245,3 +1245,12 @@ body.wdrag,body.wdrag *{cursor:grabbing!important}
 .wnote{width:100%;min-height:130px;resize:vertical;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--fg);font:14px/1.5 var(--body)}
 .wnote:focus{outline:none;border-color:var(--accent)}
 .wnote-c{display:flex;justify-content:space-between;font-size:11.5px;margin-top:-4px}
+
+/* desktop: free columns */
+#wgrid.wcols{display:grid;grid-template-columns:repeat(var(--wc),minmax(0,1fr));gap:14px;align-items:start}
+.wcol{display:flex;flex-direction:column;gap:14px;min-width:0;min-height:40px}
+.wcol-drop{display:none}
+body.editing .wcol-drop{display:grid;place-items:center;min-height:70px;border:2px dashed var(--line);border-radius:14px;color:var(--muted);font-size:12.5px}
+.wcol.wdrop .wcol-drop{border-color:var(--accent);color:var(--fg)}
+.widget.wdrop-b{box-shadow:0 -4px 0 var(--accent),var(--shadow)!important}
+.widget.wdrop-a{box-shadow:0 4px 0 var(--accent),var(--shadow)!important}

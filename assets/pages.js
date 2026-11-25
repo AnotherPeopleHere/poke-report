@@ -420,12 +420,20 @@ const DEFAULT = [{id:'quick'},{id:'cp'},{id:'notes'},{id:'deck'},{id:'perf'},{id
 const layout = () => { const p=App.prefs(); if(!Array.isArray(p.widgets)) p.widgets = DEFAULT.map(x=>({...x}));
   if(!p.cpOffered){ p.cpOffered=true; if(!p.widgets.some(w=>w.id==='cp')) p.widgets.splice(1,0,{id:'cp'}); }   // new widget: shown once to existing users too
   p.widgets = p.widgets.filter(w=>W[w.id]); return p.widgets; };
+// desktop: free columns (each widget remembers its column, stacked in order, no overlaps); phone: one list
+const homeCols = () => { const w=$('#wgrid').clientWidth||innerWidth; return innerWidth<=900 ? 1 : Math.max(2, Math.min(4, Math.floor((w+14)/334))); };
+let lastCols=0;
+function wHtml(w,i,L,cols){ const def=W[w.id]; let inner; try{ inner=def.render(); }catch(e){ inner='<p class="src">Contenuto non disponibile.</p>'; }
+  const same = cols>1 ? L.map((x,k)=>[x,k]).filter(([x])=>x.col===w.col).map(([,k])=>k) : L.map((x,k)=>k), pos=same.indexOf(i);
+  return `<section class="widget${w.wide&&cols===1?' wide':''}" data-w="${i}"><header><span class="wgrip" aria-hidden="true" title="Trascina per spostare">⋮⋮</span><h3>${esc(def.title)}</h3>${def.go?`<a class="link go" href="${def.go}">Apri →</a>`:''}
+      <span class="wctl"><button type="button" data-wa="up" aria-label="Sposta su" ${pos===0?'disabled':''}>↑</button><button type="button" data-wa="down" aria-label="Sposta giù" ${pos===same.length-1?'disabled':''}>↓</button>${cols===1?'<button type="button" data-wa="wide" aria-label="Allarga o stringi">⇔</button>':''}<button type="button" class="rm" data-wa="rm" aria-label="Togli il widget">✕</button></span></header>${inner}</section>`; }
 function renderHome(){
-  const L = layout();
-  $('#wgrid').innerHTML = L.map((w,i)=>{ const def=W[w.id]; let inner; try{ inner=def.render(); }catch(e){ inner='<p class="src">Contenuto non disponibile.</p>'; }
-    return `<section class="widget${w.wide?' wide':''}" data-w="${i}"><header><span class="wgrip" aria-hidden="true" title="Trascina per spostare">⋮⋮</span><h3>${esc(def.title)}</h3>${def.go?`<a class="link go" href="${def.go}">Apri →</a>`:''}
-      <span class="wctl"><button type="button" data-wa="up" aria-label="Sposta su" ${i===0?'disabled':''}>↑</button><button type="button" data-wa="down" aria-label="Sposta giù" ${i===L.length-1?'disabled':''}>↓</button><button type="button" data-wa="wide" aria-label="Allarga o stringi">⇔</button><button type="button" class="rm" data-wa="rm" aria-label="Togli widget">✕</button></span></header>${inner}</section>`; }).join('')
-    || '<div class="empty-state"><b>La plancia è vuota</b>Premi “Personalizza” e aggiungi i widget che ti servono.</div>';
+  const L = layout(), cols = homeCols(); lastCols=cols;
+  const g=$('#wgrid'); g.classList.toggle('wcols', cols>1); g.style.setProperty('--wc', cols);
+  if(!L.length){ g.innerHTML='<div class="empty-state"><b>La plancia è vuota</b>Premi “Personalizza” e aggiungi i widget che ti servono.</div>'; }
+  else if(cols===1) g.innerHTML = L.map((w,i)=>wHtml(w,i,L,1)).join('');
+  else { L.forEach((w,i)=>{ if(w.col==null || w.col>=cols) w.col = w.col==null ? i%cols : w.col%cols; });
+    g.innerHTML = Array.from({length:cols},(_,c)=>`<div class="wcol" data-col="${c}">${L.map((w,i)=>w.col===c?wHtml(w,i,L,cols):'').join('')}<div class="wcol-drop">Trascina qui un widget</div></div>`).join(''); }
   const used = new Set(L.map(w=>w.id));
   $('#wcat').innerHTML = Object.entries(W).filter(([id])=>!used.has(id)).map(([id,d])=>`<button type="button" data-addw="${id}" class="wcat-i"><b>+ ${esc(d.title)}</b><span>${esc(d.desc)}</span></button>`).join('') || '<p class="src">Hai già aggiunto tutti i widget.</p>';
 }
@@ -439,18 +447,24 @@ $('#wgrid').addEventListener('click',e=>{
   const cp=e.target.closest('[data-cp]'); if(cp){ cpEditing = cp.dataset.cp==='edit'; renderHome(); if(cpEditing) setTimeout(()=>{ const i=$('#cpTotal'); if(i){ i.focus(); i.select(); } },30); return; }
   const od=e.target.closest('[data-opendeck]'); if(od){ DL.openDeck(App.data.decks.find(d=>d.id===od.dataset.opendeck)); location.hash='deck'; return; }
   const b=e.target.closest('[data-wa]'); if(!b) return; const i=+b.closest('[data-w]').dataset.w, L=layout();
-  if(b.dataset.wa==='up' && i>0) [L[i-1],L[i]]=[L[i],L[i-1]];
-  if(b.dataset.wa==='down' && i<L.length-1) [L[i+1],L[i]]=[L[i],L[i+1]];
+  // up/down: swap with the previous/next widget of the same column (desktop) or of the list (phone)
+  const same = lastCols>1 ? L.map((x,k)=>[x,k]).filter(([x])=>x.col===L[i].col).map(([,k])=>k) : L.map((x,k)=>k), pos=same.indexOf(i);
+  const sw = j => { if(j==null) return; [L[i],L[j]]=[L[j],L[i]]; };
+  if(b.dataset.wa==='up') sw(same[pos-1]);
+  if(b.dataset.wa==='down') sw(same[pos+1]);
   if(b.dataset.wa==='wide') L[i].wide=!L[i].wide;
   if(b.dataset.wa==='rm') L.splice(i,1);
   App.Store.savePrefs(); renderHome();
 });
-$('#wcat').addEventListener('click',e=>{ const b=e.target.closest('[data-addw]'); if(!b) return; layout().push({id:b.dataset.addw}); App.Store.savePrefs(); renderHome(); });
+$('#wcat').addEventListener('click',e=>{ const b=e.target.closest('[data-addw]'); if(!b) return;
+  const L0=layout(), cnt=Array.from({length:Math.max(1,lastCols)},(_,c)=>L0.filter(x=>x.col===c).length);   // new widget: in the shortest column
+  layout().push(lastCols>1?{id:b.dataset.addw, col:cnt.indexOf(Math.min(...cnt))}:{id:b.dataset.addw}); App.Store.savePrefs(); renderHome(); });
 /* drag and drop while customising: drag a widget onto another to swap them, onto the panel above to remove it,
    or drag a widget from the panel into the grid to add it there. Mouse and touch (pointer events). */
 let drag=null;
 function dropTarget(x,y){ const el=document.elementFromPoint(x,y); if(!el) return null;
-  const w=el.closest('#wgrid .widget'); if(w) return {kind:'w', el:w, i:+w.dataset.w};
+  const w=el.closest('#wgrid .widget'); if(w){ const r=w.getBoundingClientRect(), col=w.closest('.wcol'); return {kind:'w', el:w, i:+w.dataset.w, col:col?+col.dataset.col:null, before:y<r.top+r.height/2}; }
+  const c=el.closest('#wgrid .wcol'); if(c) return {kind:'col', el:c, col:+c.dataset.col};
   if(el.closest('#wgrid')) return {kind:'end', el:$('#wgrid')};
   if(el.closest('#addPanel')) return {kind:'rm', el:$('#addPanel')};
   return null; }
@@ -468,14 +482,24 @@ function dragMove(e){
   drag.g.style.transform=`translate(${e.clientX-drag.dx}px,${e.clientY-drag.dy}px) rotate(1.5deg)`;
   const t=dropTarget(e.clientX,e.clientY);
   document.querySelectorAll('.wdrop').forEach(x=>x.classList.remove('wdrop'));
-  if(t && !(t.kind==='w' && t.i===drag.i) && !(t.kind==='rm' && drag.add)) t.el.classList.add('wdrop');
+  document.querySelectorAll('.wdrop-b,.wdrop-a').forEach(x=>x.classList.remove('wdrop-b','wdrop-a'));
+  if(t && !(t.kind==='w' && t.i===drag.i) && !(t.kind==='rm' && drag.add)){ if(t.kind==='w' && t.col!=null) t.el.classList.add(t.before?'wdrop-b':'wdrop-a'); else t.el.classList.add('wdrop'); }
   drag.tgt=t;
 }
 function dragEnd(){
   if(!drag) return; const d=drag; drag=null;
-  document.querySelectorAll('.wdrop').forEach(x=>x.classList.remove('wdrop')); document.body.classList.remove('wdrag');
+  document.querySelectorAll('.wdrop,.wdrop-b,.wdrop-a').forEach(x=>x.classList.remove('wdrop','wdrop-b','wdrop-a')); document.body.classList.remove('wdrag');
   if(!d.on) return; d.g.remove(); d.src.classList.remove('wdragging');
   const L=layout(), t=d.tgt; if(!t) return;
+  // desktop columns: place the widget before/after the one it was dropped on, or at the end of a column
+  if(lastCols>1 && (t.kind==='col' || (t.kind==='w' && t.col!=null))){
+    if(t.kind==='w' && t.i===d.i) return;
+    let item; if(d.add) item={id:d.add}; else { item=L.splice(d.i,1)[0]; }
+    item.col=t.col;
+    if(t.kind==='col'){ let at=-1; L.forEach((x,k)=>{ if(x.col===t.col) at=k; }); L.splice(at+1,0,item); }
+    else { const tgt=d.add||d.i>t.i ? t.i : t.i-1; L.splice(t.before?tgt:tgt+1,0,item); }
+    App.Store.savePrefs(); renderHome(); window.__wdragClick=Date.now(); return;
+  }
   if(d.add){ const item={id:d.add}; if(t.kind==='w') L.splice(t.i,0,item); else if(t.kind==='end') L.push(item); else return; }
   else if(t.kind==='rm') L.splice(d.i,1);
   else if(t.kind==='w' && t.i!==d.i) [L[d.i],L[t.i]]=[L[t.i],L[d.i]];
@@ -487,6 +511,7 @@ $('#wgrid').addEventListener('pointerdown',e=>{ const w=e.target.closest('.widge
 $('#wcat').addEventListener('pointerdown',e=>{ const b=e.target.closest('[data-addw]'); if(b) dragStart(e,b); });
 addEventListener('pointermove',dragMove,{passive:false}); addEventListener('pointerup',dragEnd); addEventListener('pointercancel',dragEnd);
 $('#wcat').addEventListener('click',e=>{ if(Date.now()-(window.__wdragClick||0)<300) e.stopImmediatePropagation(); },true);
+addEventListener('resize',()=>{ if(App.page==='home' && homeCols()!==lastCols) renderHome(); });
 $('#bEditHome').addEventListener('click',()=>{ const on=document.body.classList.toggle('editing'); $('#bEditHome span').textContent = on?'Fatto':'Personalizza'; $('#bEditHome').classList.toggle('primary',on); });
 
 /* ---------- wiring ---------- */
