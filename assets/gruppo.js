@@ -235,6 +235,7 @@ function drawSub(){ const box=document.getElementById('bmoreSub'); if(!box) retu
   box.innerHTML = `<div class="bsub-h">Sezioni del gruppo</div><div class="bsub">${Object.entries(TAB_L).map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${F.tab===k}">${l}</button>`).join('')}</div>`;
   const lbl=document.querySelector('#bnMore .bn-sub'); if(lbl) lbl.textContent=TAB_L[F.tab]||''; }
 document.getElementById('bmoreSub')?.addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; showTab(b.dataset.gtab); App.bmoreOpen && App.bmoreOpen(false); window.scrollTo({top:0,behavior:'smooth'}); });
+App.groupTab = k => { if(k) showTab(k); return F.tab; };   // used by the phone wheel menu
 function showTab(k){
   F.tab=k; drawSub();
   document.querySelectorAll('#gTabs [data-gtab]').forEach(b=>b.setAttribute('aria-selected', b.dataset.gtab===k));

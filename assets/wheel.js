@@ -43,7 +43,11 @@ function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEa
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
 }
 function mark(){ ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('cur', slices[k].it[0]===App.page)); }
-function go(i){ const p=slices[i].it[0]; hide(); if(location.hash.replace('#','')!==p) location.hash=p; else window.scrollTo({top:0,behavior:'smooth'}); }
+const HAS_SUB = new Set(['gruppo']);   // sections with their own sub-menu: the wheel stays open on it
+let keep=false;
+function go(i){ const p=slices[i].it[0];
+  if(HAS_SUB.has(p)){ light(-1); if(location.hash.replace('#','')!==p){ keep=true; location.hash=p; } else drawSub(); return; }
+  hide(); if(location.hash.replace('#','')!==p) location.hash=p; else window.scrollTo({top:0,behavior:'smooth'}); }
 function sliceAt(x,y){
   const r=ring.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, dx=x-cx, dy=y-cy, d=Math.hypot(dx,dy)/(r.width/2);
   if(d<RI*.75 || d>R*1.3) return -1;
@@ -65,8 +69,10 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') hide(); });
 ov.querySelectorAll('.wh-s').forEach((g,i)=>{ g.setAttribute('tabindex','0'); g.setAttribute('role','menuitem'); g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(i); } }); });
 
 // on the group page the wheel also offers the group's sections
-function drawSub(){ const box=document.getElementById('whSub'); const src=document.getElementById('bmoreSub');
-  box.innerHTML = App.page==='gruppo' && src ? src.innerHTML : ''; }
-document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; const t=document.querySelector(`#bmoreSub [data-gtab="${b.dataset.gtab}"]`); if(t) t.click(); hide(); });
-App.on(w=>{ if(w==='page'){ mark(); hide(); } });
+const SUB = {gruppo:[['over','Panoramica'],['match','Matchup'],['players','Giocatori'],['tours','Tornei']]};
+function drawSub(){ const box=document.getElementById('whSub'), L=SUB[App.page];
+  if(!L || !App.groupTab){ box.innerHTML=''; return; } const cur=App.groupTab();
+  box.innerHTML = `<div class="bsub-h">Sezioni del gruppo</div><div class="bsub">${L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${cur===k}">${l}</button>`).join('')}</div>`; }
+document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; App.groupTab(b.dataset.gtab); hide(); window.scrollTo({top:0,behavior:'smooth'}); });
+App.on(w=>{ if(w==='page'){ mark(); if(keep){ keep=false; setTimeout(drawSub,50); } else hide(); } });
 })();

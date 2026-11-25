@@ -1190,3 +1190,4 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
   .wh-sub .bsub{background:var(--panel);border:1px solid var(--line)}
 }
 @media (max-width:760px) and (prefers-reduced-motion:reduce){ .wfab,.wheel,.wh-ring,.wh-sub{transition:none} }
+@media (max-width:760px){ .wheel,.wheel *,.wfab{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none} .wh-s:focus,.wh-s:focus-visible,.wh-c:focus{outline:none} }
