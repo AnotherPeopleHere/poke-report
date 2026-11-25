@@ -337,7 +337,8 @@ function accountDialog(){
     </div></section>
     ${settingsHtml()}
     </div>
-    <div class="row"><button class="btn" type="button" id="pfOut">Esci</button><span class="hint" id="pfMsg"></span><button class="btn" value="close">Chiudi</button><button class="btn primary" type="button" id="pfSave">Salva</button></div>`;
+    <div class="row pf-foot"><button class="btn pf-out" type="button" id="pfOut"><svg class="i"><use href="#i-power"/></svg><span>Esci</span></button><span class="hint" id="pfMsg"></span><button class="btn" value="close">Chiudi</button><button class="btn primary" type="button" id="pfSave">Salva</button></div>`;
+  d.classList.add('sheet','pfdlg'); d.addEventListener('close',()=>d.classList.remove('pfdlg'),{once:true});
   d.classList.add('sheet'); d.addEventListener('close',()=>d.classList.remove('sheet'),{once:true}); bindSettings();
   d.showModal();
   $('#pfSave').addEventListener('click', async ()=>{
@@ -345,7 +346,11 @@ function accountDialog(){
     const ok = await Store.saveProfile({display_name:$('#pfName').value.trim()||null, group_code:group||null, share_stats:$('#pfShare').checked});
     if(ok){ d.close(); renderAccount(); App.toast('Profilo salvato'); App.emit('group'); }
   });
-  $('#pfOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); d.close(); });
+  // sign out asks for a confirmation (second tap within a few seconds)
+  $('#pfOut').addEventListener('click', async e=>{ const b=e.currentTarget;
+    if(!b.dataset.confirm){ b.dataset.confirm='1'; b.classList.add('danger'); b.querySelector('span').textContent='Confermi l’uscita?';
+      setTimeout(()=>{ if(b.isConnected){ delete b.dataset.confirm; b.classList.remove('danger'); b.querySelector('span').textContent='Esci'; } },4000); return; }
+    await sb.auth.signOut(); d.close(); });
   const monPrev=()=>{ const m=App.prefs().favMon; $('#pfMonPrev').innerHTML = m && App.monImg ? App.monImg(m) : ''; $('#pfMonX').hidden=!m; };
   monPrev();
   let DEX=[]; if(App.monList) App.monList().then(L=>{ DEX=L; const o=[]; L.forEach(m=>{ o.push(`<option value="${esc(m.n)}">`); if(m.it!==m.n) o.push(`<option value="${esc(m.it)}">`); }); $('#pfMonList').innerHTML=o.join(''); }).catch(()=>{});

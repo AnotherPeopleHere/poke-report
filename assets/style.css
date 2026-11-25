@@ -1292,3 +1292,14 @@ button,a,label,summary,select,[role="button"],[data-key],.card,.res,.libcard,.gt
 .crop-z{width:100%;accent-color:var(--accent)}
 .crop .row{width:100%;justify-content:center}
 #dlg2Body{position:relative}
+
+/* profile: name and buttons stay put, only the sections scroll */
+dialog.pfdlg{overflow:hidden;display:flex;flex-direction:column;max-height:min(88vh,860px)}
+dialog.pfdlg[open]{display:flex}
+dialog.pfdlg #dlg2Body{flex:1;min-height:0;overflow:hidden}
+dialog.pfdlg .pf-body{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain;margin:0 -4px;padding:0 4px 2px}
+.pf-foot{flex:none;padding-top:10px;border-top:1px solid var(--line);margin-top:0}
+.pf-out{display:inline-flex;align-items:center;gap:6px}
+.pf-out .i{width:16px;height:16px}
+.pf-out.danger{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+@media (max-width:760px){ dialog.pfdlg{max-height:88svh} }
