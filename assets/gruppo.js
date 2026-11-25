@@ -178,14 +178,24 @@ function favorite(userId, tournaments){
 function playersTable(members, tournaments){
   const me = App.Store.user.id;
   const rows = members.map(m=>({m, f:favorite(m.id, tournaments), all:tournaments.filter(t=>t.user_id===m.id && inPeriod(t.date) && (!F.src || (F.src==='live')===isLive(t)))})).map(x=>({...x, total:realT(x.all).length, live:liveN(x.all)}));
-  return `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total,live})=>`<tr${m.id===me?' class="me"':''}>
+  return `<div class="tbl-wrap d-only"><table class="tbl gtbl stack"><thead><tr><th>Giocatore</th><th class="n">Tornei</th><th>Mazzo più giocato</th><th class="n">Con quel mazzo</th><th class="n">Vittorie</th><th></th></tr></thead><tbody>${rows.map(({m,f,total,live})=>`<tr${m.id===me?' class="me"':''}>
       <td><span class="arch">${av(m.id)}<span class="t">${esc(m.display_name||'Amico')}${m.id===me?' <span class="badge">tu</span>':''}</span></span>${m.share_stats===false?'<div class="src">non condivide i tornei</div>':''}</td>
       <td class="n">${total}${live?`<div class="src">+ ${live} live</div>`:''}</td><td>${f?archN(f.name):'<span class="src">—</span>'}</td><td class="n">${f?nT(f.n,f.live):'—'}</td>${f?cell(f.a.W,f.a.R,'Round vinti'):'<td class="n muted">—</td>'}
-      <td class="n">${f&&f.list?`<button class="btn small" type="button" data-list="${esc(m.id)}">Vedi lista</button>`:f?'<span class="src" title="Nel registro tornei scegli il mazzo salvato usato, così la lista viene condivisa">lista non collegata</span>':''}</td></tr>`).join('')}</tbody></table></div>`;
+      <td class="n">${f&&f.list?`<button class="btn small" type="button" data-list="${esc(m.id)}">Vedi lista</button>`:f?'<span class="src" title="Nel registro tornei scegli il mazzo salvato usato, così la lista viene condivisa">lista non collegata</span>':''}</td></tr>`).join('')}</tbody></table></div>
+    <div class="gpl m-only">${rows.map(({m,f,total,live})=>`<div class="gpl-i${m.id===me?' me':''}">
+      <div class="gpl-h"><span class="arch">${av(m.id)}<span class="t"><b>${esc(m.display_name||'Amico')}</b>${m.id===me?' <span class="badge">tu</span>':''}</span></span><span class="src">${total} ${total===1?'torneo':'tornei'}${live?` + ${live} live`:''}</span></div>
+      ${m.share_stats===false?'<span class="src">non condivide i tornei</span>':f?`<div class="gpl-d">${archN(f.name)}<span class="gpl-r num">${nT(f.n,f.live)}</span><b class="gr-w num ${f.a.R?(f.a.W/f.a.R>=.55?'good':f.a.W/f.a.R<.45?'bad':''):''}">${f.a.R?Math.round(f.a.W/f.a.R*100)+'%':'—'}</b></div>
+        ${f.list?`<button class="btn small" type="button" data-list="${esc(m.id)}">Vedi lista</button>`:'<span class="src">lista non collegata</span>'}`:'<span class="src">nessun torneo nel periodo</span>'}</div>`).join('')}</div>`;
 }
 function recent(ts){
   const list = ts.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12);
-  return list.length ? `<div class="tbl-wrap"><table class="tbl gtbl stack"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);
+  // phone: compact rows that open on tap
+  const mob = `<div class="gtl m-only">${list.map(t=>{ const r=T.record(t), [y,m,d]=String(t.date).split('-');
+    return `<div class="gtl-i"><div class="gtl-h"><span class="gtl-d"><b>${+d}</b>${['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][+m-1]||''}</span>
+        <span class="gtl-n"><b>${esc(t.name)}</b><span class="src">${esc(nameOf(t.user_id))}${t.placement?` · ${esc(t.placement)}°`:''}</span></span><b class="num">${T.recStr(r)}</b><span class="tchev">›</span></div>
+      <div class="gtl-x"><span class="src">${esc(t.type||'')}</span>${t.deckName?archN(t.deckName):''}<div class="lv-pills sm">${(t.rounds||[]).map(x=>{ const q=T.roundRes(x); return `<span class="res-pill ${q||'T'}${x.id||x.bye?' id':''}" title="${x.opp?esc(x.opp):''}">${x.bye?'BYE':x.id?'ID':q?({W:'V',L:'S',T:'P'})[q]:'·'}</span>`; }).join('')}</div>
+        ${Array.isArray(t.list)&&t.list.length?`<button type="button" class="btn small" data-tlist="${esc(t.id)}">Vedi lista</button>`:''}</div></div>`; }).join('')}</div>`;
+  return list.length ? mob+`<div class="tbl-wrap d-only"><table class="tbl gtbl stack"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);
     return `<tr><td><b style="font-weight:600">${esc(t.name)}</b><div class="src">${esc(t.date)} · ${esc(t.type||'')}</div></td><td class="wide">${esc(nameOf(t.user_id))}</td><td class="wide"><div class="dk">${t.deckName?archN(t.deckName):'—'}${Array.isArray(t.list)&&t.list.length?`<button type="button" class="btn small" data-tlist="${esc(t.id)}">Vedi lista</button>`:''}</div></td><td class="n">${T.recStr(r)}</td><td class="n">${t.placement?esc(t.placement)+'°':'—'}</td></tr>`; }).join('')}</tbody></table></div>`
     : '<p class="src">Nessun torneo nei filtri scelti.</p>';
 }
@@ -251,6 +261,7 @@ window.addEventListener('resize',()=>moveTabInd(false));
 
 /* ---------- events ---------- */
 $('#pg-gruppo').addEventListener('click',e=>{
+  const gh=e.target.closest('.gtl-h'); if(gh){ gh.parentNode.classList.toggle('open'); return; }
   if(e.target.closest('[data-acct]')){ App.accountDialog(); return; }
   const tb=e.target.closest('[data-gtab]'); if(tb){ showTab(tb.dataset.gtab); return; }
   const fb=e.target.closest('[data-gfilters]'); if(fb){ F.fopen=!F.fopen; fb.setAttribute('aria-expanded',F.fopen); $('#gBody .gfilters').classList.toggle('open',F.fopen); return; }

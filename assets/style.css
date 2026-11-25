@@ -1472,3 +1472,33 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
   #newsGrid .news.open .nchev{transform:translateY(-50%) rotate(90deg)}
 }
 @media (max-width:760px){ #newsGrid .news .top > span{white-space:nowrap} #newsGrid .news .top > span:last-child{overflow:hidden;text-overflow:ellipsis;min-width:0} }
+
+/* ---------- Gruppo on phones: players as cards, tournaments as rows that open ---------- */
+#pg-gruppo .m-only{display:none}
+@media (max-width:760px){
+  #pg-gruppo .d-only{display:none}
+  #pg-gruppo .m-only{display:flex;flex-direction:column}
+  .gpl{gap:8px}
+  .gpl-i{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:12px;background:var(--sunk)}
+  .gpl-i.me{box-shadow:inset 3px 0 0 var(--accent)}
+  .gpl-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .gpl-h .arch{display:flex;align-items:center;min-width:0} .gpl-h .src{white-space:nowrap;font-size:12px}
+  .gpl-d{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;font-size:13.5px}
+  .gpl-d .arch{display:flex;align-items:center;min-width:0} .gpl-r{color:var(--muted);font-size:12px}
+  .gpl-i .btn{align-self:flex-start}
+  .gtl{gap:0}
+  .gtl-i{border-bottom:1px solid var(--sunk)} .gtl-i:last-child{border-bottom:0}
+  .gtl-h{display:grid;grid-template-columns:40px minmax(0,1fr) auto 16px;gap:10px;align-items:center;padding:10px 2px;cursor:pointer}
+  .gtl-d{display:flex;flex-direction:column;align-items:center;line-height:1.05;font-size:11px;color:var(--muted);text-transform:uppercase} .gtl-d b{font:700 17px var(--display);color:var(--fg)}
+  .gtl-n{display:flex;flex-direction:column;min-width:0} .gtl-n b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .gtl-n .src{font-size:12px}
+  .gtl-h .tchev{display:block;color:var(--muted);font-size:20px;transition:transform .2s}
+  .gtl-i.open .tchev{transform:rotate(90deg)}
+  .gtl-x{display:none;flex-direction:column;gap:8px;padding:0 4px 12px 52px}
+  .gtl-i.open .gtl-x{display:flex}
+  .gtl-x .arch{display:flex;align-items:center} .gtl-x .btn{align-self:flex-start}
+}
+@media (max-width:760px){
+  #pg-gruppo .gsec .kpis{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+  #pg-gruppo .gsec .kpis::-webkit-scrollbar{display:none}
+  #pg-gruppo .gsec .kpis > div{flex:none;min-width:44%;scroll-snap-align:start}
+}
