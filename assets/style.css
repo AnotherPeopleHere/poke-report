@@ -1383,3 +1383,11 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
 .glive{display:flex;flex-direction:column;gap:8px}
 .glive-i{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--sunk)}
 .glive-i:last-child{border-bottom:0} .glive-i .lv-pills{grid-column:1/-1}
+/* computer: panels open with a soft rise and close the reverse way */
+@media (min-width:761px){
+  dialog[open]{animation:dlgIn .3s cubic-bezier(.2,.8,.2,1)}
+  dialog.closing{animation:dlgOut .22s cubic-bezier(.4,0,1,1) forwards}
+  dialog.closing::backdrop{animation:fadeOut .22s ease forwards}
+}
+@keyframes dlgOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(14px) scale(.97)}}
+@keyframes fadeOut{to{opacity:0}}

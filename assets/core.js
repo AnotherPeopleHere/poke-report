@@ -49,12 +49,13 @@ function rememberWho(){ try{ if(Store.user && Store.profile && Store.profile.dis
 /* bottom sheets (dialogs with .sheet) slide down when closed, like they slide up when opened */
 (function(){
   const d=document.getElementById('dlg2'); if(!d) return; const nativeClose=d.close.bind(d);
-  const slide=()=>d.classList.contains('sheet') && matchMedia('(max-width:760px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // phone: sheets slide down; computer: every panel fades and shrinks a little, the reverse of how it opens
+  const slide=()=>!matchMedia('(prefers-reduced-motion: reduce)').matches && (d.classList.contains('sheet') || !matchMedia('(max-width:760px)').matches);
   d.close=function(v){ if(!d.open || d.classList.contains('closing')) return; if(!slide()) return nativeClose(v);
     d.classList.add('closing'); setTimeout(()=>{ d.classList.remove('closing'); nativeClose(v); },240); };
   d.addEventListener('cancel',e=>{ if(slide()){ e.preventDefault(); d.close(); } });
   d.addEventListener('submit',e=>{ if(e.target.method==='dialog' && slide()){ e.preventDefault(); d.close(); } });
-  d.addEventListener('click',e=>{ if((e.target===d && slide()) || e.target.closest('button[type=button][value=close]')) d.close(); });
+  d.addEventListener('click',e=>{ if(e.target===d || e.target.closest('button[type=button][value=close]')) d.close(); });
 })();
 
 /* ---------- phone bottom navigation: "Altro" sheet ---------- */
