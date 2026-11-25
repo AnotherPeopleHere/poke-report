@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="assets/style.css?v=2026-11-26.4">
+<link rel="stylesheet" href="assets/style.css?v=2026-11-26.5">
 </head>
 <body>
 <!-- opening animation: an original Pokédex-style device (drawn in CSS) that opens while the data loads, then zooms into its screen -->
@@ -232,16 +232,16 @@
     <div id="trendBody"></div></div>
 </section>
 
-<section class="page" id="pg-consigli" data-page="consigli">
+<section class="page" id="pg-consigli" data-page="consigli" data-ctab="you">
   <div class="pg-head">
     <div><h2>Consigli</h2><p>I mazzi in forma migliore, le pick esotiche e quelli adatti al tuo stile, calcolati sulle partite dei tornei online di <a class="link" href="https://play.limitlesstcg.com" target="_blank" rel="noopener">Limitless</a>: <span id="recoWindow"></span>.</p></div>
     <label class="switch" for="recoDrag" title="Mostra anche Dragapult e le sue varianti tra i mazzi consigliati"><input type="checkbox" id="recoDrag" role="switch"><span class="track" aria-hidden="true"></span><span class="sw-lbl">Includi Dragapult</span></label>
   </div>
-  <div class="panel"><h3>Il tuo stile di gioco <span class="meta">le risposte restano salvate nel tuo profilo</span></h3><div id="quiz" class="quiz"></div></div>
-  <h3 class="sec-title">Per il tuo stile</h3><div class="recos" id="recoYou"></div>
-  <h3 class="sec-title">In forma adesso</h3><div class="recos" id="recoForm"></div>
-  <h3 class="sec-title">Pick esotiche <span class="src">poco giocati, ma vincono più della media</span></h3><div class="recos" id="recoExotic"></div>
-  <div class="panel"><h3>Tutti gli archetipi <span class="meta">almeno 40 partite · vittorie esclusi i mirror</span></h3><div class="tbl-wrap"><table class="tbl stack" id="recoTable"></table></div>
+  <div class="panel" data-csec="you"><h3>Il tuo stile di gioco <span class="meta">le risposte restano salvate nel tuo profilo</span></h3><div id="quiz" class="quiz"></div><div class="qz-nav m-only" id="qzNav"></div></div>
+  <h3 class="sec-title" data-csec="you">Per il tuo stile</h3><div class="recos" id="recoYou" data-csec="you"></div>
+  <h3 class="sec-title" data-csec="form">In forma adesso</h3><div class="recos" id="recoForm" data-csec="form"></div>
+  <h3 class="sec-title" data-csec="exotic">Pick esotiche <span class="src">poco giocati, ma vincono più della media</span></h3><div class="recos" id="recoExotic" data-csec="exotic"></div>
+  <div class="panel" data-csec="all"><h3>Tutti gli archetipi <span class="meta">almeno 40 partite · vittorie esclusi i mirror</span></h3><div class="tbl-wrap d-only"><table class="tbl stack" id="recoTable"></table></div><div class="mrows m-only" id="recoRowsM"></div>
     <p class="src" style="margin-top:8px">“Vittorie” è corretta per il numero di partite: con pochi dati si avvicina al 50%. I pareggi valgono mezza vittoria. Lo stile è ricavato dalle carte della lista più vincente di ogni archetipo.</p></div>
 </section>
 
@@ -354,7 +354,7 @@ function dexOpen(){
 /* Load the data files, expose them to the app as JSON script blocks, then start the app scripts in order. */
 (async function(){
   const files = {cardData:'cards.json', sampleData:'sample.json', metaData:'meta.json', tourData:'tourneys.json', newsData:'news.json', coachData:'coaches.json', recoData:'reco.json', snapData:'snap.json', namesData:'names.json'};
-  const BUILD='2026-11-26.4';               // bump on every change to assets/ so browsers load the new files
+  const BUILD='2026-11-26.5';               // bump on every change to assets/ so browsers load the new files
   const v = Math.floor(Date.now()/36e5);
   try{
     const texts = await Promise.all(Object.values(files).map(f=>fetch('data/'+f+'?v='+v).then(r=>{ if(!r.ok) throw new Error(f); return r.text(); })));

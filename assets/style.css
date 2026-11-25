@@ -1429,3 +1429,27 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
   #pg-meta .tc{flex:none;width:112px;scroll-snap-align:start}
   #pg-meta .adrop{max-width:none}
 }
+
+/* ---------- Consigli on phones ---------- */
+@media (max-width:760px){
+  #pg-consigli .d-only{display:none}
+  #pg-consigli .m-only{display:flex}
+  #pg-consigli [data-csec]{display:none}
+  #pg-consigli[data-ctab="you"] [data-csec="you"],#pg-consigli[data-ctab="form"] [data-csec="form"],#pg-consigli[data-ctab="exotic"] [data-csec="exotic"],#pg-consigli[data-ctab="all"] [data-csec="all"]{display:flex}
+  #pg-consigli .panel[data-csec]{flex-direction:column}
+  #pg-consigli .sec-title{margin:0}
+  /* quiz: one question at a time */
+  #pg-consigli .quiz .qz:not(.cur){display:none}
+  .qz-nav{align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+  /* recommended decks: cards side by side, scrolling */
+  #pg-consigli .recos{display:none;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 6px;scrollbar-width:none}
+  #pg-consigli .recos::-webkit-scrollbar{display:none}
+  #pg-consigli[data-ctab="you"] #recoYou,#pg-consigli[data-ctab="form"] #recoForm,#pg-consigli[data-ctab="exotic"] #recoExotic{display:flex}
+  #pg-consigli .recos > .reco{flex:none;width:84%;scroll-snap-align:center}
+  #pg-consigli .recos > .empty-state{flex:1}
+  #recoRowsM .mrow{grid-template-columns:48px minmax(0,1fr) auto;grid-template-rows:auto}
+  #recoRowsM .mr-k{grid-row:auto;font-weight:800;font-size:15px} #recoRowsM .mr-k.good{color:var(--ok)} #recoRowsM .mr-k.bad{color:var(--bad)}
+  #recoRowsM .mr-n{display:flex;flex-direction:column} #recoRowsM .mr-n small{font-size:11.5px}
+  #recoRowsM .mr-s{font-size:11.5px;font-weight:400;text-align:right;max-width:90px}
+  #recoRowsM .mrow.dim{opacity:.5}
+}

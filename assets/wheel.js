@@ -61,7 +61,7 @@ function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEa
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
 }
 function mark(){ ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('cur', slices[k].it[0]===App.page)); }
-const HAS_SUB = new Set(['gruppo','tornei','meta']);   // sections with their own sub-menu: the wheel stays open on it
+const HAS_SUB = new Set(['gruppo','tornei','meta','consigli']);   // sections with their own sub-menu: the wheel stays open on it
 let keep=false;
 function go(i){ const p=slices[i].it[0];
   if(HAS_SUB.has(p)){ light(-1); if(location.hash.replace('#','')!==p){ keep=true; location.hash=p; } else drawSub(); return; }
@@ -88,6 +88,7 @@ ov.querySelectorAll('.wh-s').forEach((g,i)=>{ g.setAttribute('tabindex','0'); g.
 
 // on the group page the wheel also offers the group's sections
 const SUB = {gruppo:{h:'Sezioni del gruppo', fn:()=>App.groupTab, L:[['over','Panoramica'],['match','Matchup'],['players','Giocatori'],['tours','Tornei']]},
+  consigli:{h:'Consigli', fn:()=>App.consTab, L:[['you','Per te'],['form','In forma'],['exotic','Esotiche'],['all','Tutti']]},
   meta:{h:'Meta report', fn:()=>App.metaTab, L:[['arch','Archetipi'],['reg','Regional'],['trend','Tendenze']]},
   tornei:{h:'I miei tornei', fn:()=>App.tornTab, L:[['over','Riepilogo'],['decks','Mazzi'],['match','Matchup'],['hist','Storico']]}};
 function drawSub(){ const box=document.getElementById('whSub'), S=SUB[App.page], fn=S&&S.fn();

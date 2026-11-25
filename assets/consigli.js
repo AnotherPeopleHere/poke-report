@@ -63,7 +63,9 @@ function render(){
   $('#recoWindow').textContent = `${R.window.tournaments} tornei online · ${R.window.matches.toLocaleString('it-IT')} partite · ${fmtDate(R.window.from)} – ${fmtDate(R.window.to)}`;
   $('#recoDrag').checked = !!p.withDragapult;
   // quiz
-  $('#quiz').innerHTML = QUIZ.map(q=>`<div class="qz"><b>${esc(q.q)}</b><div class="seg wrap">${q.opts.map(([v,l])=>`<button type="button" data-q="${q.k}:${v}" aria-pressed="${p.playstyle[q.k]===v}">${esc(l)}</button>`).join('')}</div></div>`).join('');
+  // phone: one question at a time (qStep), moving on by itself after each answer
+  if(qStep>=QUIZ.length) qStep=QUIZ.length-1;
+  $('#quiz').innerHTML = QUIZ.map((q,i)=>`<div class="qz${i===qStep?' cur':''}"><b>${esc(q.q)}</b><div class="seg wrap">${q.opts.map(([v,l])=>`<button type="button" data-q="${q.k}:${v}" aria-pressed="${p.playstyle[q.k]===v}">${esc(l)}</button>`).join('')}</div></div>`).join('');
   const answered = Object.keys(p.playstyle).length;
   // in form
   const inForm = P.filter(a=>a.games>=300).sort((a,b)=>b.score-a.score).slice(0,4);
@@ -83,9 +85,17 @@ function render(){
   }
   // full table
   const all = R.archetypes.filter(a=>a.recommendable).sort((a,b)=>b.wrAdj-a.wrAdj);
+  $('#qzNav').innerHTML = `<button type="button" class="btn small" data-qs="-1" ${qStep===0?'disabled':''}>← Indietro</button><span class="src">Domanda ${qStep+1} di ${QUIZ.length}</span><button type="button" class="btn small" data-qs="1" ${qStep===QUIZ.length-1?'disabled':''}>Avanti →</button>`;
+  $('#recoRowsM').innerHTML = all.map(a=>{ const c=a.wrAdj>=.53?'good':a.wrAdj<.47?'bad':''; return `<a class="mrow${a.excluded&&!p.withDragapult?' dim':''}" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="mr-k num ${c}">${pct(a.wrAdj,0)}</span>
+      <span class="mr-n"><span class="arch"><span class="t">${esc(a.name)}</span></span><small class="src">${pct(a.share,1)} dei giocatori · ${a.games} partite${a.trend!=null&&Math.abs(a.trend)>=.005?` · ${a.trend>0?'↑':'↓'} ${pct(Math.abs(a.trend),1)}`:''}</small></span>
+      <span class="mr-s src">${a.style.styles.slice(0,2).map(x=>STYLE_IT[x]||x).join(', ')}</span></a>`; }).join('');
   $('#recoTable').innerHTML = `<thead><tr><th>Archetipo</th><th class="n">Giocatori</th><th class="n">Partite</th><th class="n">Vittorie</th><th class="n">7 giorni</th><th>Stile</th></tr></thead><tbody>${all.map(a=>`<tr class="${a.excluded&&!p.withDragapult?'dim':''}"><td><span class="arch"><span class="av" style="background:hsl(${hue(a.name)} 55% 45%)">${esc(a.name.charAt(0))}</span><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.name)}</a></span></td><td class="n">${pct(a.share,1)}</td><td class="n">${a.games}</td><td class="n" style="font-weight:600;color:${a.wrAdj>=.53?'var(--ok)':a.wrAdj<.47?'var(--bad)':'var(--fg)'}">${pct(a.wrAdj,1)}</td><td class="n">${a.trend==null?'—':(a.trend>0?'+':'')+pct(a.trend,1)}</td><td class="src">${a.style.styles.map(s=>STYLE_IT[s]||s).join(', ')}</td></tr>`).join('')}</tbody>`;
 }
-$('#quiz').addEventListener('click',e=>{ const b=e.target.closest('[data-q]'); if(!b) return; const [k,v]=b.dataset.q.split(':'); const ps=prefs().playstyle; ps[k] = ps[k]===v ? undefined : v; if(ps[k]===undefined) delete ps[k]; App.Store.savePrefs(); render(); });
+let qStep=0;
+$('#quiz').addEventListener('click',e=>{ const b=e.target.closest('[data-q]'); if(!b) return; const [k,v]=b.dataset.q.split(':'); const ps=prefs().playstyle; ps[k] = ps[k]===v ? undefined : v; if(ps[k]===undefined) delete ps[k]; App.Store.savePrefs();
+  if(ps[k]!==undefined && matchMedia('(max-width:760px)').matches && qStep<QUIZ.length-1) setTimeout(()=>{ qStep++; render(); },220); render(); });
+$('#qzNav').addEventListener('click',e=>{ const b=e.target.closest('[data-qs]'); if(!b) return; qStep=Math.max(0,Math.min(QUIZ.length-1,qStep+(+b.dataset.qs))); render(); });
+App.consTab = k => { const pg=document.getElementById('pg-consigli'); if(k){ pg.dataset.ctab=k; window.scrollTo({top:0}); } return pg.dataset.ctab; };
 $('#recoDrag').addEventListener('change',e=>{ prefs().withDragapult = e.target.checked; App.Store.savePrefs(); render(); });
 $('#pg-consigli').addEventListener('click',e=>{ const b=e.target.closest('[data-import]'); if(!b) return; const a=R.archetypes.find(x=>x.id===b.dataset.import); if(!a||!a.list) return;
   const text = a.list.lines.map(l=>`${l.q} ${l.name} ${l.set} ${l.num}`).join('\n');

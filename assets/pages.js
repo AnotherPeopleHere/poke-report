@@ -91,7 +91,7 @@ function renderTrends(){
       <div class="tc-n"><span>${esc(r.name)}</span><small>${pct(r.now,0)} delle liste</small></div></div>`; };
   const group = (label, rows, cls) => rows.length ? `<div class="tc-grp"><h4 class="${cls}">${label}</h4><div class="tc-grid">${rows.map(tile).join('')}</div></div>` : '';
   $('#trendBody').innerHTML = `<div class="tc-head"><a class="link" href="${esc(a.url)}" target="_blank" rel="noopener">Liste su Limitless ↗</a>
-      ${d==null?'':`<span class="tc-share">utilizzo ${pct(a.sharePrev,1)} → ${pct(a.share7,1)} <b class="${d>=0?'good':'bad'}">${d>=0?'↑ +':'↓ −'}${(Math.abs(d)*100).toLocaleString('it-IT',{maximumFractionDigits:1})}</b></span>`}
+      ${d==null?'':`<span class="tc-share">utilizzo ${pct(a.sharePrev,1)} → ${pct(a.share7,1)} ${Math.abs(d)<.0005?'<b class="src">stabile</b>':`<b class="${d>=0?'good':'bad'}">${d>=0?'↑ +':'↓ −'}${(Math.abs(d)*100).toLocaleString('it-IT',{maximumFractionDigits:1})}</b>`}</span>`}
       <span class="src">${c.lists} liste questa settimana, ${c.listsPrev} la precedente</span></div>
     <div class="tc-cols">${group('In crescita', c.up, 'up')}${group('In calo', c.down, 'down')}</div>`;
 }
