@@ -1234,8 +1234,8 @@ button.sync.has-av .av{width:26px;height:26px;border-radius:50%;display:grid;pla
 
 /* widgets: drag and drop while customising, notes */
 .wgrip{display:none;cursor:grab;color:var(--muted);font-size:13px;letter-spacing:-3px;margin-right:2px;user-select:none}
-body.editing .wgrip{display:inline}
-body.editing .widget,body.editing .wcat-i{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}
+@media (min-width:761px){ body.editing .wgrip{display:inline} }
+@media (min-width:761px){ body.editing .widget,body.editing .wcat-i{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none} }
 body.wdrag,body.wdrag *{cursor:grabbing!important}
 .wghost{position:fixed;left:0;top:0;z-index:200;pointer-events:none;opacity:.9;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.45)!important;outline:2px solid var(--accent)!important}
 .widget.wdragging,.wcat-i.wdragging{opacity:.35}
@@ -1254,3 +1254,5 @@ body.editing .wcol-drop{display:grid;place-items:center;min-height:70px;border:2
 .wcol.wdrop .wcol-drop{border-color:var(--accent);color:var(--fg)}
 .widget.wdrop-b{box-shadow:0 -4px 0 var(--accent),var(--shadow)!important}
 .widget.wdrop-a{box-shadow:0 4px 0 var(--accent),var(--shadow)!important}
+.widget.wmoving{z-index:2;box-shadow:0 12px 30px rgba(0,0,0,.3),0 0 0 2px var(--accent)!important}
+@media (max-width:760px){ body.editing .wctl button{width:34px;height:34px;font-size:15px} }

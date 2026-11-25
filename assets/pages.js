@@ -454,7 +454,15 @@ $('#wgrid').addEventListener('click',e=>{
   if(b.dataset.wa==='down') sw(same[pos+1]);
   if(b.dataset.wa==='wide') L[i].wide=!L[i].wide;
   if(b.dataset.wa==='rm') L.splice(i,1);
+  // slide the widgets to their new places (FLIP: remember positions, re-render, animate from the old ones)
+  const before=new Map([...document.querySelectorAll('#wgrid .widget')].map(el=>[L.find((x,k)=>k===+el.dataset.w)?.id||el.querySelector('h3').textContent, el.getBoundingClientRect()]));
+  const moved=L[i]&&L[i].id;
   App.Store.savePrefs(); renderHome();
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches) document.querySelectorAll('#wgrid .widget').forEach(el=>{
+    const id=L[+el.dataset.w]&&L[+el.dataset.w].id, r0=before.get(id); if(!r0) return; const r1=el.getBoundingClientRect(), dx=r0.left-r1.left, dy=r0.top-r1.top;
+    if(!dx && !dy) return; el.style.transition='none'; el.style.transform=`translate(${dx}px,${dy}px)`; if(id===moved) el.classList.add('wmoving');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.transition='transform .35s cubic-bezier(.2,.8,.2,1)'; el.style.transform=''; setTimeout(()=>{ el.style.transition=''; el.classList.remove('wmoving'); },380); })); });
+  if(b.dataset.wa!=='rm'){ const m=document.querySelector(`#wgrid .widget[data-w="${L.findIndex(x=>x.id===moved)}"]`); if(m && matchMedia('(max-width:760px)').matches) setTimeout(()=>m.scrollIntoView({block:'nearest',behavior:'smooth'}),360); }
 });
 $('#wcat').addEventListener('click',e=>{ const b=e.target.closest('[data-addw]'); if(!b) return;
   const L0=layout(), cnt=Array.from({length:Math.max(1,lastCols)},(_,c)=>L0.filter(x=>x.col===c).length);   // new widget: in the shortest column
@@ -469,7 +477,7 @@ function dropTarget(x,y){ const el=document.elementFromPoint(x,y); if(!el) retur
   if(el.closest('#addPanel')) return {kind:'rm', el:$('#addPanel')};
   return null; }
 function dragStart(e, src){
-  if(!document.body.classList.contains('editing') || e.button>0) return;
+  if(!document.body.classList.contains('editing') || e.button>0 || matchMedia('(max-width:760px)').matches) return;   // phone: arrows only, so scrolling stays easy
   if(e.target.closest('button:not(.wcat-i),a,input,textarea,select')) return;
   const r=src.getBoundingClientRect();
   drag={src, x0:e.clientX, y0:e.clientY, dx:e.clientX-r.left, dy:e.clientY-r.top, w:r.width, h:Math.min(r.height,260), on:false, add:src.dataset.addw||null, i:src.dataset.w!=null?+src.dataset.w:null, tgt:null};
