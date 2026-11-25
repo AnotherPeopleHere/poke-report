@@ -36,22 +36,11 @@ ov.innerHTML=`<div class="wh-sub" id="whSub"></div>
 document.body.append(ov, fab);
 
 /* favourite Pokémon (chosen in the profile): shown animated in the centre of the open wheel, above the X */
-const SKIP=/^(team rocket's|[a-z]+'s|radiant|tera)\s+/i;
-function monList(){
-  const seen=new Map();
-  (window.DeckLab?DeckLab.CARDS:[]).forEach(c=>{ if(c.sup!=='P') return; let n=c.name.replace(/\s+ex$/i,'').replace(SKIP,'').replace(SKIP,'').trim();
-    if(n && !seen.has(n.toLowerCase())) seen.set(n.toLowerCase(),{n, dex:c.dex}); });
-  return [...seen.values()].sort((a,b)=>a.n.localeCompare(b.n));
-}
-function showdownId(n){
-  let w=n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''), suf='';
-  const reg={alolan:'alola',galarian:'galar',hisuian:'hisui',paldean:'paldea'};
-  for(const k in reg) if(w.startsWith(k+' ')){ w=w.slice(k.length+1); suf='-'+reg[k]; }
-  if(w.startsWith('mega ')){ w=w.slice(5); const xy=w.match(/\s([xy])$/); if(xy) w=w.slice(0,-2); suf='-mega'+(xy?xy[1]:''); }
-  return w.replace(/[^a-z0-9]/g,'')+suf;
-}
-function monImg(m){ const id=showdownId(m.n);
-  return `<img src="https://play.pokemonshowdown.com/sprites/ani/${id}.gif" alt="${App.esc(m.n)}" data-fb="https://play.pokemonshowdown.com/sprites/gen5/${id}.png" data-fb2="${m.dex?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${m.dex}.png`:''}"
+// full Pokédex (data/pokedex.json, built from PokeAPI): [english, italian, showdown id, PokeAPI id]
+let DEX=null;
+async function monList(){ if(!DEX){ const r=await fetch('data/pokedex.json?v=1'); DEX=(await r.json()).map(([n,it,sd,id])=>({n,it,sd,id})); } return DEX; }
+function monImg(m){ const id=m.sd || String(m.n).toLowerCase().replace(/[^a-z0-9]/g,''), pid=m.id||m.dex;
+  return `<img src="https://play.pokemonshowdown.com/sprites/ani/${id}.gif" alt="${App.esc(m.n)}" data-fb="https://play.pokemonshowdown.com/sprites/gen5/${id}.png" data-fb2="${pid?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pid}.png`:''}"
     onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else if(this.dataset.fb2){this.src=this.dataset.fb2;this.dataset.fb2='';}else this.remove()">`; }
 function drawMon(){ const m=App.prefs().favMon, box=document.getElementById('whMon'); box.innerHTML = m ? monImg(m) : ''; ov.classList.toggle('has-mon', !!m); }
 App.monList=monList; App.monImg=monImg; App.drawMon=drawMon;

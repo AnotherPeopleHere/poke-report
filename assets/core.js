@@ -283,8 +283,8 @@ function accountDialog(){
       <label class="full">Nome visibile agli amici<input id="pfName" maxlength="40" value="${esc(p.display_name||'')}"></label>
       <label class="full">Codice del gruppo<input id="pfGroup" maxlength="40" placeholder="es. amici-pokemon-torino" value="${esc(p.group_code||'')}"><small class="src">Chi inserisce lo stesso codice entra nel tuo gruppo e vede la classifica. Sceglilo difficile da indovinare e condividilo solo con i tuoi amici.</small></label>
       <label class="full">Pokémon preferito <small class="src">(compare al centro del menu a ruota sul telefono)</small>
-        <span class="pf-mon"><span id="pfMonPrev"></span><input id="pfMon" list="pfMonList" autocomplete="off" placeholder="Cerca un Pokémon…" value="${esc((App.prefs().favMon||{}).n||'')}"><button type="button" class="btn small" id="pfMonX"${App.prefs().favMon?'':' hidden'}>Togli</button></span>
-        <datalist id="pfMonList">${(App.monList?App.monList():[]).map(m=>`<option value="${esc(m.n)}">`).join('')}</datalist></label>
+        <span class="pf-mon"><span id="pfMonPrev"></span><input id="pfMon" list="pfMonList" autocomplete="off" placeholder="Cerca un Pokémon (nome italiano o inglese)…" value="${esc((App.prefs().favMon||{}).n||'')}"><button type="button" class="btn small" id="pfMonX"${App.prefs().favMon?'':' hidden'}>Togli</button></span>
+        <datalist id="pfMonList"></datalist></label>
       <label class="switch inline full" for="pfShare"><input type="checkbox" id="pfShare" role="switch"${p.share_stats!==false?' checked':''}><span class="track" aria-hidden="true"></span><span>Mostra i miei tornei al gruppo</span></label>
     </div>
     <div class="row"><button class="btn" type="button" id="pfOut">Esci</button><span class="hint" id="pfMsg"></span><button class="btn" value="close">Chiudi</button><button class="btn primary" type="button" id="pfSave">Salva</button></div>`;
@@ -297,8 +297,9 @@ function accountDialog(){
   $('#pfOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); d.close(); });
   const monPrev=()=>{ const m=App.prefs().favMon; $('#pfMonPrev').innerHTML = m && App.monImg ? App.monImg(m) : ''; $('#pfMonX').hidden=!m; };
   monPrev();
-  $('#pfMon').addEventListener('change',()=>{ const v=$('#pfMon').value.trim().toLowerCase(); const m=(App.monList?App.monList():[]).find(x=>x.n.toLowerCase()===v);
-    if(!m){ if(v) App.toast('Pokémon non trovato: sceglilo dai suggerimenti'); return; } App.prefs().favMon=m; App.Store.savePrefs(); monPrev(); });
+  let DEX=[]; if(App.monList) App.monList().then(L=>{ DEX=L; const o=[]; L.forEach(m=>{ o.push(`<option value="${esc(m.n)}">`); if(m.it!==m.n) o.push(`<option value="${esc(m.it)}">`); }); $('#pfMonList').innerHTML=o.join(''); }).catch(()=>{});
+  $('#pfMon').addEventListener('change',()=>{ const v=$('#pfMon').value.trim().toLowerCase(); const m=DEX.find(x=>x.n.toLowerCase()===v||x.it.toLowerCase()===v);
+    if(!m){ if(v) App.toast('Pokémon non trovato: sceglilo dai suggerimenti'); return; } App.prefs().favMon={n:m.n, sd:m.sd, id:m.id}; App.Store.savePrefs(); monPrev(); });
   $('#pfMonX').addEventListener('click',()=>{ delete App.prefs().favMon; App.Store.savePrefs(); $('#pfMon').value=''; monPrev(); });
   const avMsg = t => { $('#pfAvMsg').textContent = t; };
   const refreshPhoto = () => { const q=Store.profile||{}; $('#pfAv').innerHTML = App.avatar(q.display_name||Store.user.email, q.avatar_url, 84);
