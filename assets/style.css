@@ -1263,3 +1263,4 @@ body.editing .wcol-drop{display:grid;place-items:center;min-height:70px;border:2
 html{-webkit-tap-highlight-color:transparent}
 button,a,label,summary,select,[role="button"],[data-key],.card,.res,.libcard,.gtile,.chip,.tbtn,.tc,.nav a,.sitenav a,img,svg{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 @media (hover:none){ button,a,label,summary,[role="button"],[data-key],.card,.res,.libcard,.gtile,.chip,.tbtn,.widget>header,img{-webkit-user-select:none;user-select:none} }
+.dexboot,.dexboot *{-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;outline:none}
