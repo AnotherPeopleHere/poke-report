@@ -46,6 +46,17 @@ addEventListener('pagehide',()=>Store.flushPrefs());
 // the opening animation greets signed-in users by name: remember it in this browser (it runs before the account loads)
 function rememberWho(){ try{ if(Store.user && Store.profile && Store.profile.display_name) localStorage.setItem('pr.who', Store.profile.display_name); }catch(_){} }
 
+/* bottom sheets (dialogs with .sheet) slide down when closed, like they slide up when opened */
+(function(){
+  const d=document.getElementById('dlg2'); if(!d) return; const nativeClose=d.close.bind(d);
+  const slide=()=>d.classList.contains('sheet') && matchMedia('(max-width:760px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  d.close=function(v){ if(!d.open || d.classList.contains('closing')) return; if(!slide()) return nativeClose(v);
+    d.classList.add('closing'); setTimeout(()=>{ d.classList.remove('closing'); nativeClose(v); },240); };
+  d.addEventListener('cancel',e=>{ if(slide()){ e.preventDefault(); d.close(); } });
+  d.addEventListener('submit',e=>{ if(e.target.method==='dialog' && slide()){ e.preventDefault(); d.close(); } });
+  d.addEventListener('click',e=>{ if((e.target===d && slide()) || e.target.closest('button[type=button][value=close]')) d.close(); });
+})();
+
 /* ---------- phone bottom navigation: "Altro" sheet ---------- */
 function bmoreOpen(open){ const m=document.getElementById('bmore'), b=document.getElementById('bnMore'); if(!m) return;
   if(open){ m.hidden=false; requestAnimationFrame(()=>m.classList.add('open')); } else { m.classList.remove('open'); setTimeout(()=>{ if(!m.classList.contains('open')) m.hidden=true; },220); }

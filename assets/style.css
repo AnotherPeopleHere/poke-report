@@ -1303,3 +1303,9 @@ dialog.pfdlg .pf-body{flex:1;min-height:0;max-height:none;overflow:auto;overscro
 .pf-out .i{width:16px;height:16px}
 .pf-out.danger{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
 @media (max-width:760px){ dialog.pfdlg{max-height:88svh} }
+
+/* header: the theme lives in the profile now */
+header.site #theme{display:none}
+@media (max-width:760px){ dialog.sheet.closing{animation:sheetOut .24s cubic-bezier(.4,0,1,1) forwards} dialog.sheet.closing::backdrop{opacity:0;transition:opacity .24s} }
+@keyframes sheetOut{from{transform:none}to{transform:translateY(100%)}}
+@media (max-width:760px){ header.site .tour-btn{margin-left:auto} }

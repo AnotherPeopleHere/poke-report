@@ -72,7 +72,7 @@ const visible = el => { if(!el) return false; const r=el.getBoundingClientRect()
 /* "?" button in the header */
 const btn=document.createElement('button');
 btn.type='button'; btn.id='tourBtn'; btn.className='tour-btn'; btn.title='Guida a questa pagina'; btn.setAttribute('aria-label','Guida a questa pagina'); btn.textContent='?';
-const theme=document.getElementById('theme'); theme.parentNode.insertBefore(btn, theme);
+const theme=document.getElementById('theme'); theme.parentNode.appendChild(btn);   // far right of the header
 const dotsOff=()=>{ try{ return localStorage.getItem('pr.noTourDot')==='true'; }catch(e){ return false; } };
 const mark=()=>btn.classList.toggle('new', !dotsOff() && !!TOURS[App.page] && !seen(App.page));
 App.on(w=>{ if(w==='page') mark(); }); mark();
