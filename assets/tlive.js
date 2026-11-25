@@ -44,15 +44,17 @@ function startForm(){
       <label>Tipo<select id="lvType">${T.TYPES.filter(x=>x!=='TCG Live').map(x=>`<option>${esc(x)}</option>`).join('')}</select></label>
       <label>Mazzo salvato<select id="lvDeck"><option value="">— Nessuno / scrivo l'archetipo —</option>${decks.map(d=>`<option value="${esc(d.id)}" ${d.id===fav?'selected':''}>${esc(d.name)}</option>`).join('')}</select></label>
       <label>Archetipo giocato<input id="lvArch" list="lvArchs" placeholder="es. Dragapult ex"></label>
+      ${'Notification' in window?`<label class="switch inline full" for="lvNotify"><input type="checkbox" id="lvNotify" role="switch"${wantsNotify()&&Notification.permission==='granted'?' checked':''}><span class="track" aria-hidden="true"></span><span>Mostra il round in corso nelle notifiche</span></label>`:''}
     </div><datalist id="lvArchs">${T.metaNames().map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
     <div class="row"><span class="hint" id="lvMsg"></span><button class="btn" value="close">Annulla</button><button type="button" class="btn primary" id="lvGo">Inizia torneo</button></div>`;
   sheet('livedlg');
   $('#lvGo').addEventListener('click',async()=>{
     const name=$('#lvName').value.trim(); if(!name){ $('#lvMsg').textContent='Dai un nome al torneo.'; $('#lvName').focus(); return; }
+    if($('#lvNotify')) await App.enableLiveNotify($('#lvNotify').checked);
     const type=$('#lvType').value, d=decks.find(x=>x.id===$('#lvDeck').value);
     const t={id:App.uid(), name, date:$('#lvDate').value||today(), type, players:'', deckId:'', deckName:'', placement:'', topcut:false, rounds:[], manual:null, notes:'', created:Date.now(), ongoing:true, bo:T.BIG_EVENTS.includes(type)?'bo3':'bo1'};
     setDeck(t.id, {deckId:d?d.id:'', deckName:$('#lvArch').value.trim()||(d?d.name:'')});
-    await save(t); view(t.id);
+    await save(t); view(t.id); notify();
   });
 }
 
@@ -77,7 +79,7 @@ function view(id){
   body.querySelector('.lv-pills').onclick=e=>{ const b=e.target.closest('[data-er]'); if(!b) return; edit=+b.dataset.er; view(t.id); };
   $('#lvEnd').onclick=()=>endForm(t);
   $('#lvDrop').onclick=async e=>{ const b=e.currentTarget; if(!b.dataset.c){ b.dataset.c=1; b.textContent='Sicuro? Tocca di nuovo'; b.classList.add('danger'); return; }
-    App.data.tournaments=App.data.tournaments.filter(x=>x.id!==t.id); setDeck(t.id,null); dlg.close(); App.renderAll(); await App.Store.del('tournaments',t.id); App.toast('Torneo annullato'); };
+    App.data.tournaments=App.data.tournaments.filter(x=>x.id!==t.id); setDeck(t.id,null); dlg.close(); App.renderAll(); await App.Store.del('tournaments',t.id); App.toast('Torneo annullato'); notify(); };
 }
 function drawRound(t){
   const x=cur, n=edit+1, box=$('#lvRound'), mode=x.bye?'bye':x.id?'id':x.bo;
@@ -101,7 +103,7 @@ async function saveRound(t){
   const x=cur; if(!x.bye && !x.id && !T.roundRes(x)){ App.toast('Segna il risultato di almeno una partita'); return; }
   if(edit<t.rounds.length) t.rounds[edit]=clean(x); else t.rounds.push(clean(x));
   if(x.bo==='bo3'||x.bo==='bo1') t.bo=x.bo;
-  edit=t.rounds.length; await save(t); view(t.id);
+  edit=t.rounds.length; await save(t); view(t.id); notify();
   if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
 }
 
@@ -129,7 +131,7 @@ function endForm(t){
     if(cut==='made'){ t.cutSize=+$('#lvCutSize').value||''; t.cutFrom=+$('#lvCutFrom').value||''; }
     if(d){ t.list=d.cards.slice(); t.listDate=today(); }
     delete t.ongoing; App.canonT(t);
-    await save(t); setDeck(t.id,null); dlg.close(); App.toast('Torneo salvato'); edit=-1;
+    await save(t); setDeck(t.id,null); dlg.close(); App.toast('Torneo salvato'); edit=-1; notify();
   };
 }
 
@@ -141,4 +143,45 @@ $('#tLiveBox').addEventListener('click',e=>{ const b=e.target.closest('[data-liv
 App.on(w=>{ if(w==='data') App.renderLiveBox(); });
 App.renderLiveBox();
 App.liveView = id => { edit=-1; view(id); };
+
+/* ---------- moving around the app while a tournament is live ---------- */
+// a small pill on every page brings you back to the live tournament
+const pillEl=document.createElement('button'); pillEl.type='button'; pillEl.className='live-pill'; pillEl.hidden=true; document.body.appendChild(pillEl);
+pillEl.addEventListener('click',()=>{ const t=live()[0]; if(t) App.liveView(t.id); });
+function drawPill(){ const t=live()[0], open=dlg.open && dlg.classList.contains('livedlg');
+  pillEl.hidden=!t || open; if(!t) return;
+  pillEl.innerHTML=`<span class="dot"></span><b>Live</b><span>${esc(t.name)}</span><span class="num">R${t.rounds.length+1} · ${T.recStr(T.record(t))}</span>`; }
+App.on(w=>{ if(w==='data'||w==='page') drawPill(); });
+dlg.addEventListener('close',()=>setTimeout(drawPill,260)); new MutationObserver(drawPill).observe(dlg,{attributes:true,attributeFilter:['open','class']});
+drawPill();
+
+/* ---------- notifications: the round in progress, updated after every round ---------- */
+const canNotify = () => 'Notification' in window && 'serviceWorker' in navigator;
+const wantsNotify = () => { try{ return localStorage.getItem('pr.liveNotify')==='true'; }catch(e){ return false; } };
+async function swReg(){ try{ await navigator.serviceWorker.register('sw.js'); return await navigator.serviceWorker.ready; }catch(e){ return null; } }
+App.enableLiveNotify = async on => {
+  if(!on){ try{ localStorage.setItem('pr.liveNotify','false'); }catch(e){} clearNotes(); return true; }
+  if(!canNotify()){ App.toast('Questo browser non supporta le notifiche'); return false; }
+  const perm = Notification.permission==='granted' ? 'granted' : await Notification.requestPermission();
+  if(perm!=='granted'){ App.toast('Notifiche non permesse: attivale dalle impostazioni del browser'); return false; }
+  await swReg(); try{ localStorage.setItem('pr.liveNotify','true'); }catch(e){} notify(); return true;
+};
+async function clearNotes(){ if(!canNotify()) return; const r=await navigator.serviceWorker.getRegistration(); if(!r) return; (await r.getNotifications()).filter(n=>String(n.tag).startsWith('pr-live')).forEach(n=>n.close()); }
+async function notify(){
+  if(!canNotify() || !wantsNotify() || Notification.permission!=='granted') return;
+  const r=await swReg(); if(!r) return; const L=live();
+  (await r.getNotifications()).filter(n=>String(n.tag).startsWith('pr-live') && !L.some(t=>n.tag==='pr-live-'+t.id)).forEach(n=>n.close());
+  L.forEach(t=>{ const last=t.rounds[t.rounds.length-1], lr=last?T.roundRes(last):null;
+    r.showNotification(`● ${t.name} · Round ${t.rounds.length+1}`, {tag:'pr-live-'+t.id, renotify:false, silent:true, requireInteraction:true, data:{id:t.id},
+      icon:'assets/icon-192.png', badge:'assets/favicon-64.png',
+      body:`Record ${T.recStr(T.record(t))}${last?` · ultimo round: ${last.bye?'BYE':last.id?'ID':GL[lr]||'—'}${last.opp?' vs '+last.opp:''}`:''}\nTocca per segnare il prossimo round.`}); });
+}
+App.on(w=>{ if(w==='data') notify(); });
+if(canNotify()){
+  navigator.serviceWorker.addEventListener('message',e=>{ if(e.data && e.data.type==='live'){ location.hash='tornei'; const id=e.data.id||(live()[0]||{}).id; if(id) setTimeout(()=>App.liveView(id),200); } });
+  if(wantsNotify()) swReg();
+}
+// opened from a notification while the app was closed
+const qid=new URLSearchParams(location.search).get('live');
+if(qid){ history.replaceState(null,'',location.pathname+location.hash); const go=()=>{ const t=live().find(x=>x.id===qid)||live()[0]; if(t) App.liveView(t.id); }; setTimeout(go,600); App.on(w=>{ if(w==='data' && !dlg.open) go(); }); }
 })();

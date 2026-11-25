@@ -298,6 +298,7 @@ function settingsHtml(){
     <div class="pf-row"><div><b>Tema</b><span class="hint">Vale su questo dispositivo.</span></div>
       <span class="seg" id="pfTheme">${[['light','i-sun','Chiaro'],['system','i-auto','Sistema'],['dark','i-moon','Scuro']].map(([k,ic,l])=>`<button type="button" data-theme-set="${k}" aria-pressed="${th===k}"><svg class="i"><use href="#${ic}"/></svg>${l}</button>`).join('')}</span></div>
     <label class="switch inline pf-sw" for="pfIntro"><input type="checkbox" id="pfIntro" role="switch"${intro?' checked':''}><span class="track" aria-hidden="true"></span><span><b>Animazione d'apertura</b><small class="hint">Il Pokédex che si apre all'avvio</small></span></label>
+    ${'Notification' in window?`<label class="switch inline pf-sw" for="pfNotify"><input type="checkbox" id="pfNotify" role="switch"${ls.get('pr.liveNotify',false)===true&&Notification.permission==='granted'?' checked':''}><span class="track" aria-hidden="true"></span><span><b>Notifiche del torneo live</b><small class="hint">Il round in corso e il record nelle notifiche del telefono</small></span></label>`:''}
     <label class="switch inline pf-sw" for="pfDot"><input type="checkbox" id="pfDot" role="switch"${ls.get('pr.noTourDot',false)!==true?' checked':''}><span class="track" aria-hidden="true"></span><span><b>Segnala le guide da vedere</b><small class="hint">Il puntino colorato sul “?” delle pagine</small></span></label>
     <div class="pf-row"><div><b>Guide delle pagine</b><span class="hint">Segna di nuovo tutte le guide come da vedere.</span></div><button type="button" class="btn small" id="pfTours">Mostra di nuovo</button></div>
   </section>`;
@@ -305,6 +306,7 @@ function settingsHtml(){
 function bindSettings(){
   $('#pfTheme').addEventListener('click',e=>{ const b=e.target.closest('[data-theme-set]'); if(!b) return; ls.set('hub.theme',b.dataset.themeSet); applyTheme(b.dataset.themeSet); });
   $('#pfIntro').addEventListener('change',e=>ls.set('pr.noIntro',!e.target.checked));
+  if($('#pfNotify')) $('#pfNotify').addEventListener('change',async e=>{ const ok=App.enableLiveNotify ? await App.enableLiveNotify(e.target.checked) : false; if(e.target.checked && !ok) e.target.checked=false; });
   $('#pfDot').addEventListener('change',e=>{ ls.set('pr.noTourDot',!e.target.checked); App.emit('page'); });
   $('#pfTours').addEventListener('click',()=>{ try{ Object.keys(localStorage).filter(k=>k.startsWith('pr.tour.')).forEach(k=>localStorage.removeItem(k)); }catch(_){} App.emit('page'); App.toast('Le guide sono di nuovo da vedere'); });
 }
