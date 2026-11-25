@@ -128,9 +128,13 @@ function renderNews(){
   const list = NEWS.filter(n=>!newsCat||n.cat===newsCat).sort((a,b)=>b.date.localeCompare(a.date));
   $('#newsGrid').innerHTML = list.map(n=>`<a class="news" href="${esc(n.url)}" target="_blank" rel="noopener">
     <div class="top"><span class="cat cat-${esc(n.cat)}">${esc(n.cat)}</span><span>${fmtDate(n.date)}</span><span style="margin-left:auto">${esc(n.source)}</span></div>
-    <h4>${esc(n.title)}</h4><p>${esc(n.summary)}</p><span class="go">Leggi su ${esc(n.source)} ↗</span></a>`).join('');
+    <h4>${esc(n.title)}</h4><p>${esc(n.summary)}</p><span class="go">Leggi su ${esc(n.source)} ↗</span><span class="nchev" aria-hidden="true">›</span></a>`).join('');
 }
 $('#newsChips').addEventListener('click',e=>{ const b=e.target.closest('[data-cat]'); if(!b) return; newsCat=b.dataset.cat; renderNews(); });
+// phone: a news item opens on the first tap (summary and link), the link then goes to the article
+$('#newsGrid').addEventListener('click',e=>{ if(!matchMedia('(max-width:760px)').matches) return; const n=e.target.closest('.news'); if(!n) return;
+  if(n.classList.contains('open') && e.target.closest('.go')) return;
+  e.preventDefault(); const was=n.classList.contains('open'); document.querySelectorAll('#newsGrid .news.open').forEach(x=>x.classList.remove('open')); if(!was) n.classList.add('open'); });
 
 /* ---------- TOURNAMENTS ---------- */
 const TYPES = ['League Challenge','League Cup','Regional','Special Event','International','Mondiali','Torneo online','TCG Live','Torneo locale / amichevole'];

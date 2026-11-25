@@ -1453,3 +1453,22 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
   #recoRowsM .mr-s{font-size:11.5px;font-weight:400;text-align:right;max-width:90px}
   #recoRowsM .mrow.dim{opacity:.5}
 }
+
+/* ---------- Notizie on phones: chips that scroll, compact items that open on tap ---------- */
+.nchev{display:none}
+@media (max-width:760px){
+  #newsChips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+  #newsChips::-webkit-scrollbar{display:none}
+  #newsChips .chip-btn{flex:none}
+  #newsGrid{gap:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  #newsGrid .news{border:0;border-bottom:1px solid var(--sunk);border-radius:0;box-shadow:none;padding:12px 40px 12px 14px;position:relative;gap:4px}
+  #newsGrid .news:last-child{border-bottom:0}
+  #newsGrid .news:hover{transform:none}
+  #newsGrid .news h4{font-size:15.5px}
+  #newsGrid .news:not(.open) p,#newsGrid .news:not(.open) .go{display:none}
+  #newsGrid .news.open{background:var(--sunk)}
+  #newsGrid .news .go{padding:6px 0 2px}
+  .nchev{display:block;position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--muted);transition:transform .2s}
+  #newsGrid .news.open .nchev{transform:translateY(-50%) rotate(90deg)}
+}
+@media (max-width:760px){ #newsGrid .news .top > span{white-space:nowrap} #newsGrid .news .top > span:last-child{overflow:hidden;text-overflow:ellipsis;min-width:0} }
