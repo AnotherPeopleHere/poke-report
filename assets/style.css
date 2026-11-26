@@ -1601,3 +1601,8 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
 .gt-spr{width:58px;min-width:58px;justify-content:center}
 .reco .rsp{width:66px;min-width:66px;justify-content:center}
 .lc-spr{min-width:84px;justify-content:center}
+
+/* phones: a row that scrolls sideways must never widen the page (Chrome would then zoom the whole page out) */
+.tc-grp{min-width:0}
+@media (max-width:980px){ .tc-cols{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){ html,body{overflow-x:clip} }
