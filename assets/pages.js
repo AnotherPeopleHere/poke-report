@@ -249,10 +249,13 @@ $('#tFiltBtn').addEventListener('click',e=>{ const on=!$('#pg-tornei').classList
 $('#tList').addEventListener('click',e=>{ if(!matchMedia('(max-width:760px)').matches || e.target.closest('button,a')) return; const r=e.target.closest('.trow'); if(r) r.classList.toggle('open'); },true);
 // "Ultimi risultati": jump to the history, or to one tournament in it (briefly highlighted)
 $('#tLast').addEventListener('click',e=>{
-  if(e.target.closest('#tToList')){ $('#tStorico').scrollIntoView({behavior:'smooth',block:'start'}); return; }
+  // phone: the history is its own section, so switch to it first (and open the tournament's row)
+  const phone=matchMedia('(max-width:760px)').matches;
+  if(e.target.closest('#tToList')){ if(phone) App.tornTab('hist'); else $('#tStorico').scrollIntoView({behavior:'smooth',block:'start'}); return; }
   const b=e.target.closest('[data-goto-t]'); if(!b) return;
   const row=document.querySelector(`#tList .trow[data-tid="${CSS.escape(b.dataset.gotoT)}"]`); if(!row) return;
-  row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+  if(phone){ App.tornTab('hist'); row.classList.add('open'); }
+  requestAnimationFrame(()=>{ row.scrollIntoView({behavior:'smooth',block:'center'}); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); });
 });
 $('#tList').addEventListener('click',async e=>{
   const ed=e.target.closest('[data-edit]'); if(ed){ openTournament(App.data.tournaments.find(t=>t.id===ed.dataset.edit)); return; }
