@@ -25,6 +25,9 @@ const CARDS = RAW.map(r=>{
   return c;
 });
 const BY_KEY = new Map(CARDS.map(c=>[c.key,c]));
+// Pokédex (english name -> number): fills the number missing on some cards (e.g. Raging Bolt ex) and gives sprites to Pokémon outside the card pool
+const DEXN = (()=>{ const m=new Map(); try{ JSON.parse(document.getElementById('dexData').textContent).forEach(([en,,,id])=>{ if(id && id<10000) m.set(String(en).toLowerCase(),id); }); }catch(e){} return m; })();
+CARDS.forEach(c=>{ if(c.sup==='P' && !c.dex){ const n=c.name.replace(/\s+ex$/i,'').toLowerCase(); c.dex = DEXN.get(n) || (CARDS.find(x=>x.dex && x.name.replace(/\s+ex$/i,'').toLowerCase()===n)||{}).dex || 0; } });
 const PRINT_IDX = new Map(); CARDS.forEach(c=>c.prints.forEach(p=>PRINT_IDX.set((p[0]+' '+p[1]).toUpperCase(), c)));
 // promo codes are written in two ways ("PR-SV 189" in TCG Live, "SVP 189" on Limitless): accept both
 CARDS.forEach(c=>c.prints.forEach(p=>{ if(p[0]==='PR-SV') PRINT_IDX.set('SVP '+String(p[1]).toUpperCase(), c); if(p[0]==='MEP') PRINT_IDX.set('PR-ME '+String(p[1]).toUpperCase(), c); }));
@@ -721,7 +724,9 @@ function iconCard(icon){
   if(ICON_CARD.has(icon)) return ICON_CARD.get(icon);
   const [base,...mods]=icon.split('-'), mega=mods.includes('mega'), extra=mods.filter(m=>m!=='mega');
   const c = CARDS.filter(c=>{ if(c.sup!=='P') return false; const w=nameWords(c.name); return w.includes(base) && mega===w.includes('mega') && extra.every(t=>w.some(x=>x.startsWith(t))); })
-    .sort((a,b)=>(b.sub.includes('ex')-a.sub.includes('ex')) || a.name.length-b.name.length)[0] || null;
+    .sort((a,b)=>(b.sub.includes('ex')-a.sub.includes('ex')) || a.name.length-b.name.length)[0]
+    // not in the card pool (e.g. Gardevoir after rotation): the Pokédex still knows it
+    || (!mega && DEXN.has([base,...extra].join(' ')) ? {name:[base,...extra].join(' ').replace(/\b\w/g,x=>x.toUpperCase()), dex:DEXN.get([base,...extra].join(' ')), sup:'P', sub:[]} : !mega && DEXN.has(base) ? {name:base.replace(/^\w/,x=>x.toUpperCase()), dex:DEXN.get(base), sup:'P', sub:[]} : null);
   ICON_CARD.set(icon,c); return c;
 }
 const ARCH_SPR = new Map();

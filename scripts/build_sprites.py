@@ -53,6 +53,9 @@ def main():
     cards = json.load(open(os.path.join(ROOT, 'data', 'cards.json'), encoding='utf-8'))
     mons = [c for c in cards if c.get('s') == 'P']
     jobs = {str(c['dex']): str(c['dex']) for c in mons if c.get('dex')}       # file name -> PokeAPI id
+    # every Pokémon of the Pokédex too (archetypes can name Pokémon that are not in the Standard pool, e.g. Gardevoir)
+    for row in json.load(open(os.path.join(ROOT, 'data', 'pokedex.json'), encoding='utf-8')):
+        if row[3]: jobs.setdefault(str(row[3]), str(row[3]))
     forms = {row['identifier']: row['id'] for row in csv.DictReader(io.StringIO(get(CSV).decode('utf-8')))}
     for c in mons:
         if 'mega' in words(c['n']):

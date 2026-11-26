@@ -1523,7 +1523,7 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
 .grk > b{font:800 17px var(--display)} .grk > b.good{color:var(--ok)} .grk > b.bad{color:var(--bad)}
 .grk-bar{grid-column:2/4;height:5px;border-radius:9px;background:var(--line);overflow:hidden} .grk-bar i{display:block;height:100%;background:var(--accent);border-radius:9px}
 .grk.me .grk-p{color:var(--fg)} .grk.me{box-shadow:inset 3px 0 0 var(--accent);padding-left:8px}
-@media (max-width:760px){ .hls{grid-template-columns:1fr 1fr;gap:8px} .hl{padding:10px 11px;grid-template-columns:minmax(0,1fr)} .hl-w{grid-column:1;grid-row:auto;font-size:19px} .hl-l{font-size:10.5px} .hl-m .dsp{display:none} .hl:last-child:nth-child(odd){grid-column:1/-1} }
+@media (max-width:760px){ .hls{grid-template-columns:1fr 1fr;gap:8px} .hl{padding:10px 11px;grid-template-columns:minmax(0,1fr)} .hl-w{grid-column:1;grid-row:auto;font-size:19px} .hl-l{font-size:10.5px} .hl:last-child:nth-child(odd){grid-column:1/-1} }
 
 /* ---------- Deck builder on phones ---------- */
 .srow{display:flex;gap:8px;align-items:center} .srow .sbox{flex:1;min-width:0}

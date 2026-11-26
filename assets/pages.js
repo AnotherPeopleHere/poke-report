@@ -18,7 +18,7 @@ const metaUrl = name => { const m = META.find(x=>x.name.toLowerCase()===String(n
 /* ---------- META ---------- */
 const RECO_M = J('recoData');
 // archetype sprites: the Limitless icons (the same pixel art Limitless and Trainer Hill show); a lettered dot if one is missing
-const sprites = (icons, name) => (icons&&icons.length) ? `<span class="sprs" title="${esc(name)}">${icons.slice(0,2).map(ic=>DL.iconSprite(ic)||`<img src="https://r2.limitlesstcg.net/pokemon/gen9/${esc(ic)}.png" alt="" loading="lazy" onerror="this.remove()">`).join('')}</span>` : avatar(name);
+const sprites = (icons, name) => (icons&&icons.length) ? `<span class="sprs" title="${esc(name)}">${icons.slice(0,2).map(ic=>DL.iconSprite(ic)||`<img src="https://r2.limitlesstcg.net/pokemon/gen9/${esc(ic)}.png" alt="" loading="lazy" onerror="this.remove()">`).join('')}</span>` : (()=>{ const sp=DL.archSprites?DL.archSprites(name):''; return sp ? `<span class="sprs" title="${esc(name)}">${sp}</span>` : avatar(name); })();   // no Limitless icons: the Pokémon named in the archetype
 const archS = (name, icons, url) => `<span class="arch">${sprites(icons,name)}${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>`:`<span class="t">${esc(name)}</span>`}</span>`;
 const iconKey = icons => (icons||[]).slice().sort().join('+');
 const ONLINE = new Map((RECO_M.archetypes||[]).map(a=>[iconKey(a.icons), a]));
