@@ -46,7 +46,8 @@ function card(a, reason){
   const vs = a.vs.filter(v=>!/dragapult/.test(v.id) || prefs().withDragapult).slice(0,4);
   const f = fit(a);
   return `<article class="reco">
-    <header><span class="av" style="background:hsl(${hue(a.name)} 55% 45%)">${esc(a.name.replace(/^(Mega |N's |Rocket's |Marnie's |Cynthia's |Hop's |Lillie's |Ethan's |Team Rocket's )/,'').charAt(0))}</span>
+    <header>${(()=>{ const sp=window.DeckLab&&DeckLab.archSprites?DeckLab.archSprites(a.name):'';   // the deck's pixel sprites (up to two), or its initial
+      return sp ? `<span class="rsp">${sp}</span>` : `<span class="av" style="background:hsl(${hue(a.name)} 55% 45%)">${esc(a.name.replace(/^(Mega |N's |Rocket's |Marnie's |Cynthia's |Hop's |Lillie's |Ethan's |Team Rocket's )/,'').charAt(0))}</span>`; })()}
       <div style="min-width:0"><h4>${esc(a.name)}</h4><div class="src">${pct(a.share,1)} dei giocatori · ${a.games.toLocaleString('it-IT')} partite</div></div>
       <div class="wrbig" title="Vittorie nelle partite non-mirror, corrette per il numero di partite"><b>${pct(a.wrAdj,1)}</b><span>vittorie</span></div></header>
     ${reason?`<p class="why">${reason}</p>`:''}
