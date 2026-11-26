@@ -587,11 +587,12 @@ function deckSummary(d){
   return {n,p,t,e,stars,issues:validate(d.cards).issues};
 }
 /* pixel sprites on the deck cards: up to 2 per deck, chosen by the user (saved in the preferences) or taken from the archetype */
+// sprites in one style, trimmed and the same size (assets/spr, made by scripts/build_sprites.py); the PokeAPI original as a fallback
 function spriteUrls(c){
   const w=nameWords(c.name), dex=c.dex||0, fb=dex?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`:'';
-  if(w.includes('mega')){ const base=w.filter(x=>!['mega','ex','x','y'].includes(x)).pop(), xy=w.includes('x')?'x':w.includes('y')?'y':'';
-    if(base) return [`https://play.pokemonshowdown.com/sprites/gen5/${base}-mega${xy}.png`, fb]; }
-  return [fb, ''];
+  if(w.includes('mega')){ const rest=w.filter(x=>!['mega','ex'].includes(x)), xy=['x','y'].includes(rest[rest.length-1])?rest.pop():'', base=rest.pop();
+    if(base) return [`assets/spr/mega-${base}${xy?'-'+xy:''}.png?v=1`, dex?`assets/spr/${dex}.png?v=1`:fb]; }
+  return dex ? [`assets/spr/${dex}.png?v=1`, fb] : ['', ''];
 }
 const spriteImg = c => { const [u,fb]=spriteUrls(c); return u ? `<img class="spr" src="${u}" alt="${esc(c.name)}" title="${esc(c.name)}" loading="lazy" ${fb?`data-fb="${fb}" `:''}onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.removeAttribute('data-fb');}else this.remove()">` : ''; };
 function autoSprites(cards){
@@ -756,7 +757,7 @@ document.addEventListener('contextmenu',e=>{
   if(!c) return; e.preventDefault(); zoomCard(c);
 });
 $('#detail').addEventListener('click',e=>{ if(e.target.closest('.big .card')) zoomCard(selected); });
-window.DeckLab = { NAMES, zoomCard, byPrint:k=>PRINT_IDX.get(String(k).toUpperCase()), thumb:c=>scan(c,false,'sc-scan')||`<span class="mini ty-${c.color}"></span>`, archOf, archSprites, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
+window.DeckLab = { NAMES, zoomCard, byPrint:k=>PRINT_IDX.get(String(k).toUpperCase()), thumb:c=>scan(c,false,'sc-scan')||`<span class="mini ty-${c.color}"></span>`, archOf, archSprites, iconSprite:ic=>{ const c=iconCard(ic); return c?spriteImg(c):''; }, cardFace, getDeck:()=>deck, validate, BY_KEY, CARDS, kindGrid, imagePanel, artOf, parse:t=>parseList(t), byName:byAnyName,
   openDeck:x=>{ if(x){ openDeck(x,'edit'); pendingView='edit'; } },
   importList:(text,name)=>{ const {out,unknown}=parseList(text); if(!out.length){ toast('Non sono riuscito a leggere la lista'); return; }
     openDeck({id:App.uid(), name, cards:out}, 'edit', true); pendingView='edit';
