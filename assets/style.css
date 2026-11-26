@@ -1590,3 +1590,14 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
 .reco .rsp{display:flex;align-items:center;min-width:38px;height:38px}
 .reco .rsp .spr{width:34px;height:34px;object-fit:contain}
 .reco .rsp .spr + .spr{margin-left:-4px}
+
+/* sprites: always a slot as wide as two, so names line up whether a deck has one sprite or two (one is centred) */
+.sprs,.dsp{width:50px;min-width:50px;justify-content:center}
+.dsp:empty{width:26px;min-width:26px;margin:0 12px}
+.tl-s .dsp{width:38px;min-width:38px} .tl-s .dsp:empty{width:20px;min-width:20px;margin:0 9px}
+.reg-chips .sprs{width:42px;min-width:42px}
+.adrop-btn .sprs{width:54px;min-width:54px}
+.adrop li .sprs{width:46px;min-width:46px}
+.gt-spr{width:58px;min-width:58px;justify-content:center}
+.reco .rsp{width:66px;min-width:66px;justify-content:center}
+.lc-spr{min-width:84px;justify-content:center}
