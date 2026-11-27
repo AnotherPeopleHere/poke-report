@@ -69,12 +69,13 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') bmoreOpen(false); });
 
 /* ---------- storage ---------- */
+const isNet = e => !navigator.onLine || /fetch|network|load failed|timeout|offline/i.test(String((e&&(e.message||e.details))||e));
 const Store = {
   mode:'local', user:null, profile:null,
   local(){ return {prefs:ls.get('hub.prefs',null), decks:ls.get('hub.decks',[]), tournaments:ls.get('hub.tournaments',[]).map(canonT)}; },
   async load(){
     if(!sb || !this.user) { this.mode='local'; return this.local(); }
-    const uid = this.user.id;
+    const uid = this.user.id; this.liveDecks={};
     try{
       const [p,d,t] = await Promise.all([
         sb.from('profiles').select('*').eq('id',uid).maybeSingle(),
@@ -86,6 +87,7 @@ const Store = {
       const out = {prefs: (p.data && p.data.prefs) || null,
         decks: (d.data||[]).map(r=>({id:r.id, name:r.name, cards:r.cards||[], updated:Date.parse(r.updated_at)||0})),
         tournaments: (t.data||[]).map(r=>canonT({...r.data, id:r.id}))};
+      this.offline=false; this.applyOutbox(out); this.splitLive(out);
       if(!this.profile) await this.saveProfile({display_name: (this.user.email||'').split('@')[0], prefs: out.prefs||{}});
       // first sign-in on this browser: move what was stored locally into the account
       const loc = this.local();
@@ -96,28 +98,64 @@ const Store = {
         App.toast('Ho copiato sul tuo account i dati che avevi in questo browser.');
       }
       ls.set('hub.migrated.'+uid,true);
+      this.cache(out); setTimeout(()=>this.flush(),500);
       return out;
     }catch(e){
+      // no connection: the copy of the account kept in this browser, plus what is still waiting to be sent
+      const c=ls.get('pr.cache.'+uid,null);
+      if(c){ console.warn('offline: using the saved copy', e); this.mode='cloud'; this.offline=true;
+        const out={prefs:c.prefs||null, decks:c.decks||[], tournaments:(c.tournaments||[]).map(canonT)}; this.liveDecks=c.liveDecks||{}; this.applyOutbox(out); this.splitLive(out);
+        App.toast('Sei offline: uso i dati salvati su questo dispositivo. Le modifiche partono appena torna la rete.'); return out; }
       console.error(e); this.mode='local'; this.failed=true;
       App.toast('Non riesco a leggere i dati dal tuo account: per ora uso quelli di questo browser.');
       return this.local();
     }
   },
+  /* ---------- offline: what could not be sent waits in an outbox (in this browser) and leaves as soon as the network is back ---------- */
+  liveDecks:{}, offline:false,
+  _ob(){ return 'pr.outbox.'+(this.user?this.user.id:''); },
+  outbox(){ return ls.get(this._ob(),[]); },
+  pending(id){ return this.outbox().some(x=>x.id===id); },
+  queue(op){ const q=this.outbox().filter(x=>!(x.coll===op.coll && x.id===op.id)); q.push(op); ls.set(this._ob(),q); this.cacheSoon(); App.emit('sync'); },
+  applyOutbox(out){ this.outbox().forEach(op=>{ const L=out[op.coll]; if(!L) return; const i=L.findIndex(x=>x.id===op.id);
+    if(op.del){ if(i>=0) L.splice(i,1); } else if(i>=0) L[i]=op.coll==='tournaments'?canonT(op.obj):op.obj; else L.push(op.coll==='tournaments'?canonT(op.obj):op.obj); }); },
+  // the private copy of the deck of a live tournament is a hidden row of "decks" (only you can read your decks)
+  splitLive(out){ out.decks.filter(d=>String(d.id).startsWith('live:')).forEach(d=>{ this.liveDecks[d.id.slice(5)]={deckId:(d.cards||[])[0]||'', deckName:d.name||''}; });
+    out.decks=out.decks.filter(d=>!String(d.id).startsWith('live:')); },
+  cache(out){ if(this.mode!=='cloud'||!this.user) return; const D=out||App.data; ls.set('pr.cache.'+this.user.id,{prefs:D.prefs, decks:D.decks, tournaments:D.tournaments, liveDecks:this.liveDecks}); },
+  _ct:null, cacheSoon(){ clearTimeout(this._ct); this._ct=setTimeout(()=>this.cache(),400); },
+  async send(op){ const uid=this.user.id;
+    if(op.del){ const {error}=await sb.from(op.coll).delete().eq('user_id',uid).eq('id',op.id); return error; }
+    const obj=op.obj; let row;
+    if(op.coll==='decks') row={user_id:uid, id:obj.id, name:obj.name, cards:obj.cards, updated_at:new Date().toISOString()};
+    else { const {id, ...data} = clone(obj); row={user_id:uid, id, date:obj.date||null, data, updated_at:new Date().toISOString()}; }
+    const {error} = await sb.from(op.coll).upsert(row, {onConflict:'user_id,id'}); return error; },
+  _fl:false,
+  async flush(){ if(this.mode!=='cloud'||!this.user||this._fl) return; const q=this.outbox(); if(!q.length) return; this._fl=true; let sent=0;
+    for(const op of q){ let err; try{ err=await this.send(op); }catch(e){ err=e; }
+      if(err){ if(isNet(err)){ console.warn(err); continue; }   // still offline: try again later
+        op.tries=(op.tries||0)+1;   // refused by the server: a few more tries, then it is dropped (it would never go through)
+        if(op.tries<5){ ls.set(this._ob(), this.outbox().map(x=>x.coll===op.coll&&x.id===op.id&&x.at===op.at?{...x,tries:op.tries}:x)); console.warn(err); continue; }
+        console.error('dropped',op,err); }
+      sent++; ls.set(this._ob(), this.outbox().filter(x=>!(x.coll===op.coll&&x.id===op.id&&x.at===op.at))); }
+    this._fl=false; if(sent){ this.offline=false; App.emit('sync'); if(!this.outbox().length) App.toast('Sincronizzato: le modifiche fatte offline sono state inviate.'); } },
   async put(coll, obj){
     if(this.mode==='cloud'){
-      const uid=this.user.id; let row;
-      if(coll==='decks') row={user_id:uid, id:obj.id, name:obj.name, cards:obj.cards, updated_at:new Date().toISOString()};
-      else { const {id, ...data} = clone(obj); row={user_id:uid, id, date:obj.date||null, data, updated_at:new Date().toISOString()}; }
-      const {error} = await sb.from(coll).upsert(row, {onConflict:'user_id,id'});
-      if(error){ console.error(error); App.toast('Non sono riuscito a salvare: controlla la connessione e riprova.'); return false; }
+      this.cacheSoon();
+      let err; try{ err=await this.send({coll, id:obj.id, obj}); }catch(e){ err=e; }
+      if(err){ console.error(err); this.queue({coll, id:obj.id, obj:clone(obj), at:Date.now()});
+        if(isNet(err)) App.toast('Sei offline: salvato su questo dispositivo, lo invio appena torna la rete.');
+        else App.toast('Non sono riuscito a salvare: riprovo da solo tra poco.');
+        return 'queued'; }
       return true;
     }
     ls.set('hub.'+coll, App.data[coll]); return true;
   },
   async del(coll, id){
     if(this.mode==='cloud'){
-      const {error} = await sb.from(coll).delete().eq('user_id',this.user.id).eq('id',id);
-      if(error){ console.error(error); App.toast('Non sono riuscito a eliminare: riprova.'); return false; }
+      this.cacheSoon();
+      let err; try{ err=await this.send({coll, id, del:true}); }catch(e){ err=e; }
+      if(err){ console.error(err); this.queue({coll, id, del:true, at:Date.now()}); App.toast(isNet(err)?'Sei offline: lo elimino appena torna la rete.':'Non sono riuscito a eliminare: riprovo da solo tra poco.'); return 'queued'; }
       return true;
     }
     ls.set('hub.'+coll, App.data[coll]); return true;
@@ -390,6 +428,10 @@ $('#acct').addEventListener('click', accountDialog);
 App.accountDialog = accountDialog;
 
 /* ---------- boot ---------- */
+// send what waits offline as soon as the network is back (and from time to time)
+addEventListener('online',()=>Store.flush());
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) Store.flush(); });
+setInterval(()=>{ if(Store.outbox().length) Store.flush(); },30000);
 App.boot = async function(){
   App.data = Store.local(); renderAccount(); App.ready = true; App.emit('data');
   if(!sb) return;
