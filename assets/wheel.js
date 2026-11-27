@@ -5,7 +5,7 @@
 (function(){
 "use strict";
 const ITEMS = [   // clockwise from the bottom-left; Home fills the bottom
-  ['deck','i-grid','Mazzi'], ['meta','i-chart','Meta'], ['consigli','i-star','Consigli'], ['news','i-news','Notizie'],
+  ['deck','i-deck','Mazzi'], ['meta','i-chart','Meta'], ['consigli','i-star','Consigli'], ['news','i-news','Notizie'],
   ['tornei','i-trophy','Tornei'], ['gruppo','i-group','Gruppo'], ['metafy','i-coach','Metafy']];
 const HOME = ['home','i-home','Home'];
 const GAP = 90;                                  // degrees of the bottom slice (Home)
@@ -100,13 +100,19 @@ const SUB = {gruppo:{h:'Sezioni del gruppo', fn:()=>App.groupTab, L:[['over','Pa
   meta:{h:'Meta report', fn:()=>App.metaTab, L:[['arch','Archetipi'],['reg','Regional'],['trend','Tendenze']]},
   tornei:{h:'I miei tornei', fn:()=>App.tornTab, L:[['over','Riepilogo'],['decks','Mazzi'],['match','Matchup'],['hist','Storico']]}};
 function drawSub(){ const pg=pend||App.page, box=document.getElementById('whSub'), S=SUB[pg], fn=S&&S.fn();
-  if(!S || !fn){ box.innerHTML=''; return; } const cur=fn();
+  if(!S || !fn){ setSub(''); return; } const cur=fn();
   const here = pg===App.page;   // another section: nothing is marked yet, you choose where to land
-  box.innerHTML = `<div class="bsub-h">${S.h}</div><div class="bsub">${S.L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${here&&cur===k}">${l}</button>`).join('')}</div>`; }
+  setSub(`<div class="bsub-h">${S.h}</div><div class="bsub">${S.L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${here&&cur===k}">${l}</button>`).join('')}</div>`); }
+// the sub-menu fades out and back in when it changes (another section picked on the wheel); its buttons come in one after the other
+let subT=0;
+function setSub(html){ const box=document.getElementById('whSub'); clearTimeout(subT);
+  if(box.dataset.h===html) return; const had=!!box.dataset.h; box.dataset.h=html;
+  if(!had || !open){ box.classList.remove('swap'); box.innerHTML=html; return; }
+  box.classList.add('swap'); subT=setTimeout(()=>{ box.innerHTML=html; box.classList.remove('swap'); },150); }
 document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; const pg=pend||App.page, go2=pg!==App.page;
   SUB[pg].fn()(b.dataset.gtab); hide(); if(go2) location.hash=pg; else window.scrollTo({top:0,behavior:'smooth'}); });
 // closed button: the icon of the section you are on
-const ICON={home:'i-home',deck:'i-grid',meta:'i-chart',consigli:'i-star',news:'i-news',tornei:'i-trophy',gruppo:'i-group',metafy:'i-coach'};
+const ICON={home:'i-home',deck:'i-deck',meta:'i-chart',consigli:'i-star',news:'i-news',tornei:'i-trophy',gruppo:'i-group',metafy:'i-coach'};
 const setIcon=()=>fab.querySelector('use').setAttribute('href','#'+(ICON[App.page]||'i-home'));
 setIcon();
 mascots();

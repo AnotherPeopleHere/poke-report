@@ -138,7 +138,7 @@ function overview(rs, ts){
       <span class="hl-m">${who}</span><span class="hl-s src">${extra||sub(a)}</span>${a?w(a):''}</button>`;
   const H = [
     topP && card('data-hl="players"', 'i-star', 'Il più in forma', `<span class="arch">${av(topP.k)}<span class="t"><b>${esc(nameOf(topP.k))}</b></span></span>`, topP.a),
-    most && card(`data-hl="match" data-harch="${esc(most.k)}" data-hside="played"`, 'i-grid', 'Il mazzo del gruppo', archN(most.k, true), most.a),
+    most && card(`data-hl="match" data-harch="${esc(most.k)}" data-hside="played"`, 'i-deck', 'Il mazzo del gruppo', archN(most.k, true), most.a),
     topD && topD.k!==(most&&most.k) && card(`data-hl="match" data-harch="${esc(topD.k)}" data-hside="played"`, 'i-trophy', 'Il mazzo che vince di più', archN(topD.k, true), topD.a),
     bad && card(`data-hl="match" data-harch="${esc(bad.k)}" data-hside="faced"`, 'i-chart', 'La bestia nera', archN(bad.k, true), bad.a, `contro: ${sub(bad.a)}`),
     good && good.k!==(bad&&bad.k) && card(`data-hl="match" data-harch="${esc(good.k)}" data-hside="faced"`, 'i-chart', 'L’avversario preferito', archN(good.k, true), good.a, `contro: ${sub(good.a)}`),

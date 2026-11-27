@@ -418,7 +418,7 @@ const W = {
     return `<textarea class="wnote" id="wNote" maxlength="${NOTE_MAX}" placeholder="Scrivi qui le tue note: le ritrovi su ogni dispositivo.">${esc(t)}</textarea><div class="wnote-c src"><span id="wNoteS"></span><span id="wNoteN">${t.length}/${NOTE_MAX}</span></div>`; }},
   cp:{title:'Championship Points', desc:'I tuoi punti Play! Pokémon del GCC e l’obiettivo', go:null, render:cpWidget},
   quick:{title:'Accesso rapido', desc:'Scorciatoie alle sezioni del sito', go:null, render:()=>`<div class="qlinks">
-    <a href="#deck"><svg class="i"><use href="#i-grid"/></svg>I miei mazzi</a><a href="#tornei"><svg class="i"><use href="#i-trophy"/></svg>Registra un torneo</a>
+    <a href="#deck"><svg class="i"><use href="#i-deck"/></svg>I miei mazzi</a><a href="#tornei"><svg class="i"><use href="#i-trophy"/></svg>Registra un torneo</a>
     <a href="#meta"><svg class="i"><use href="#i-chart"/></svg>Meta report</a><a href="#news"><svg class="i"><use href="#i-news"/></svg>Notizie</a></div>`},
   deck:{title:'Mazzo in lavorazione', desc:'Il mazzo aperto nel deck builder e la sua legalità', go:'#deck', render:()=>{
     const d=DL.getDeck(), v=DL.validate(), cs=d.cards.map(k=>DL.BY_KEY.get(k)), p=cs.filter(c=>c.sup==='P').length, t=cs.filter(c=>c.sup==='T').length;
