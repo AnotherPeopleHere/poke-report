@@ -8,8 +8,23 @@ const $ = s => document.querySelector(s);
 const esc = App.esc, T = App.T;
 const today = () => new Date().toISOString().slice(0,10);
 const keyOf = id => 'pr.live.'+id;
-const getDeck = id => { try{ return JSON.parse(localStorage.getItem(keyOf(id))||'null')||{}; }catch(e){ return {}; } };
-const setDeck = (id,v) => { try{ v ? localStorage.setItem(keyOf(id), JSON.stringify(v)) : localStorage.removeItem(keyOf(id)); }catch(e){} };
+// the deck of a live tournament is private: kept in this browser and in a hidden row of your decks (only you can read it),
+// so you find it on every device, while friends see the tournament without it
+const getDeck = id => { try{ const v=JSON.parse(localStorage.getItem(keyOf(id))||'null'); if(v) return v; }catch(e){} return (App.Store.liveDecks||{})[id] || {}; };
+const setDeck = (id,v) => { try{ v ? localStorage.setItem(keyOf(id), JSON.stringify(v)) : localStorage.removeItem(keyOf(id)); }catch(e){}
+  const S=App.Store; if(S.mode!=='cloud') return; S.liveDecks=S.liveDecks||{};
+  if(v){ S.liveDecks[id]=v; S.put('decks',{id:'live:'+id, name:v.deckName||'', cards:[v.deckId||'']}); } else { delete S.liveDecks[id]; S.del('decks','live:'+id); } };
+const DL = window.DeckLab;
+// sprites of the deck you are playing (the saved deck's archetype, or the name you typed)
+function deckSpr(dk){ const d=App.data.decks.find(x=>x.id===dk.deckId); const n=dk.deckName||(d?d.name:'');
+  return (DL.archSprites && (DL.archSprites(n) || (d && DL.archOf && DL.archSprites(DL.archOf(d.cards, n))))) || ''; }
+
+/* ---------- round timer: counts down (50 minutes Bo3, 25 Bo1); kept in the tournament so the notification and other devices know it ---------- */
+const DUR = bo => (bo==='bo3'?50:25)*60000;
+const tmLeft = tm => !tm ? 0 : Math.max(0, tm.run ? tm.end-Date.now() : tm.left);
+const tmFmt = ms => { const s=Math.ceil(ms/1000), m=Math.floor(s/60); return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
+const tmNew = bo => ({dur:DUR(bo), left:DUR(bo), run:false, at:Date.now()});
+function tmToggle(tm){ const now=Date.now(); return tm.run ? {...tm, run:false, left:Math.max(0,tm.end-now), at:now} : {...tm, run:true, end:now+tmLeft(tm), at:now}; }
 const live = () => App.data.tournaments.filter(t=>t.ongoing);
 const GL = T.GL, pill = x => { const r=T.roundRes(x); return `<span class="res-pill ${r||'T'}${x.id||x.bye?' id':''}">${x.bye?'BYE':x.id?'ID':r?GL[r]:'·'}</span>`; };
 const dlg = $('#dlg2'), body = $('#dlg2Body');
@@ -59,52 +74,80 @@ function startForm(){
 }
 
 /* ---------- the live view ---------- */
-let cur=null, edit=-1;
+let cur=null, edit=-1, tick=0;
+// opponents to pick with one tap: the ones you meet most, then the strongest of the meta
+function oppChips(){ const cnt=new Map(); App.data.tournaments.forEach(x=>(x.rounds||[]).forEach(r=>{ const o=(r.opp||'').trim(); if(o) cnt.set(o,(cnt.get(o)||0)+1); }));
+  const mine=[...cnt].sort((a,b)=>b[1]-a[1]).map(x=>x[0]); const out=[]; [...mine, ...T.metaNames()].forEach(n=>{ if(out.length<8 && !out.some(o=>App.archKey(o)===App.archKey(n))) out.push(n); }); return out; }
 function view(id){
   const t=App.data.tournaments.find(x=>x.id===id); if(!t) return;
   if(edit<0 || edit>t.rounds.length) edit=t.rounds.length;
   const base = edit<t.rounds.length ? t.rounds[edit] : {opp:'', bo:t.bo||'bo1'};
-  cur = T.normRound({...base}); if(base.id) cur.id=true; if(base.bye) cur.bye=true;
-  const r=T.record(t), dk=getDeck(t.id);
+  cur = T.normRound({...base}); if(base.id) cur.id=true; if(base.bye) cur.bye=true; if(base.note) cur.note=base.note;
+  if(!t.timer) t.timer=tmNew(t.bo);
+  const r=T.record(t), dk=getDeck(t.id), sp=deckSpr(dk), wait=App.Store.pending && App.Store.pending(t.id);
   const opps=[...new Set([...T.metaNames(), ...App.data.tournaments.flatMap(x=>(x.rounds||[]).map(y=>y.opp)).filter(Boolean)])];
-  body.innerHTML = `<div class="dlg-h"><div><span class="live-badge">● In corso</span><h2>${esc(t.name)}</h2><p class="hint" style="margin:2px 0 0">${esc(T.fmtDate(t.date))}${dk.deckName?` · ${esc(dk.deckName)} <span title="Lo vedi solo tu finché il torneo è in corso">🔒</span>`:''}</p></div><button class="xclose" type="button" value="close" aria-label="Chiudi">✕</button></div>
+  body.innerHTML = `<div class="lv-head"><span class="live-badge">● In corso</span>${wait?'<span class="lv-wait" title="Salvato su questo dispositivo: parte appena torna la rete">⏳ in attesa di rete</span>':''}<button class="xclose" type="button" value="close" aria-label="Chiudi">✕</button></div>
+    <div class="lv-title"><div class="lv-tn"><h2>${esc(t.name)}</h2><p class="hint">${esc(T.fmtDate(t.date))}${t.type?' · '+esc(t.type):''}</p></div>
+      ${dk.deckName||sp?`<div class="lv-deck" title="Lo vedi solo tu finché il torneo è in corso"><span class="lv-dspr">${sp||'<span class="lv-dq">?</span>'}</span><small>${esc(dk.deckName||'')} 🔒</small></div>`:''}</div>
     <div class="lv-body">
       <div class="lv-sum"><b class="num">${T.recStr(r)}</b><div class="lv-pills">${t.rounds.map((x,i)=>`<button type="button" data-er="${i}" class="lv-r${i===edit?' on':''}" title="Round ${i+1}${x.opp?' contro '+esc(x.opp):''}">${pill(x)}<small>R${i+1}</small></button>`).join('')}<button type="button" data-er="${t.rounds.length}" class="lv-r add${edit===t.rounds.length?' on':''}"><span class="res-pill">+</span><small>R${t.rounds.length+1}</small></button></div></div>
+      <div class="lv-timer" id="lvTimer"></div>
       <div class="lv-round" id="lvRound"></div>
     </div>
-    <div class="row lv-foot"><button type="button" class="btn small" id="lvDrop">Annulla torneo</button><span></span><button type="button" class="btn" id="lvEnd">Termina torneo</button></div>
+    <div class="row lv-foot"><button type="button" class="btn small lv-drop" id="lvDrop">Annulla torneo</button><span></span><button type="button" class="btn lv-end" id="lvEnd">Termina torneo</button></div>
     <datalist id="lvOpps">${opps.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
   sheet('livedlg');
-  drawRound(t);
+  drawRound(t); drawTimer(t);
+  clearInterval(tick); tick=setInterval(()=>{ if(!dlg.open || !document.getElementById('lvTimer')){ clearInterval(tick); return; } drawTimer(t, true); },1000);
   body.querySelector('.lv-pills').onclick=e=>{ const b=e.target.closest('[data-er]'); if(!b) return; edit=+b.dataset.er; view(t.id); };
-  $('#lvEnd').onclick=()=>endForm(t);
-  $('#lvDrop').onclick=async e=>{ const b=e.currentTarget; if(!b.dataset.c){ b.dataset.c=1; b.textContent='Sicuro? Tocca di nuovo'; b.classList.add('danger'); return; }
-    App.data.tournaments=App.data.tournaments.filter(x=>x.id!==t.id); setDeck(t.id,null); dlg.close(); App.renderAll(); await App.Store.del('tournaments',t.id); App.toast('Torneo annullato'); notify(); };
+  // two taps: the first turns the button into a coloured "tap again" (red to cancel, green to close)
+  const twice=(b, label, go)=>{ if(!b.dataset.c){ b.dataset.c=1; b.textContent=label; b.classList.add('armed'); setTimeout(()=>{ if(b.isConnected && b.dataset.c){ delete b.dataset.c; b.classList.remove('armed'); b.textContent=b.id==='lvEnd'?'Termina torneo':'Annulla torneo'; } },4000); return; } go(); };
+  $('#lvEnd').onclick=e=>twice(e.currentTarget,'Confermi? Termina',()=>endForm(t));
+  $('#lvDrop').onclick=e=>twice(e.currentTarget,'Confermi? Annulla',async()=>{
+    App.data.tournaments=App.data.tournaments.filter(x=>x.id!==t.id); setDeck(t.id,null); dlg.close(); App.renderAll(); await App.Store.del('tournaments',t.id); App.toast('Torneo annullato'); notify(); });
+}
+function drawTimer(t, only){
+  const box=document.getElementById('lvTimer'); if(!box) return; const tm=t.timer, left=tmLeft(tm), over=tm.run && left<=0;
+  if(only){ const v=box.querySelector('.lt-v'); if(v){ v.textContent=over?'Tempo!':tmFmt(left); box.classList.toggle('over',over); } return; }
+  box.className='lv-timer'+(tm.run?' run':'')+(over?' over':'');
+  box.innerHTML=`<span class="lt-l">⏱ Round ${t.rounds.length+1}</span><b class="lt-v num">${over?'Tempo!':tmFmt(left)}</b>
+    <button type="button" class="lt-b" data-tm="go" aria-label="${tm.run?'Pausa':'Avvia il timer'}">${tm.run?'❚❚':'▶'}</button><button type="button" class="lt-b" data-tm="reset" aria-label="Azzera il timer">↺</button>`;
+  box.onclick=async e=>{ const b=e.target.closest('[data-tm]'); if(!b) return;
+    t.timer = b.dataset.tm==='go' ? tmToggle(t.timer) : tmNew(t.bo);
+    drawTimer(t); await save(t); notify(); };
 }
 function drawRound(t){
-  const x=cur, n=edit+1, box=$('#lvRound'), mode=x.bye?'bye':x.id?'id':x.bo;
-  box.innerHTML = `<h3>Round ${n}${edit<t.rounds.length?' <span class="src">· modifica</span>':''}</h3>
-    <input class="lv-opp" id="lvOpp" list="lvOpps" placeholder="${x.bye?'Nessun avversario (BYE)':'Archetipo avversario'}" value="${esc(x.opp||'')}" ${x.bye?'disabled':''} autocomplete="off">
+  const x=cur, n=edit+1, box=$('#lvRound'), mode=x.bye?'bye':x.id?'id':x.bo, isNew=edit>=t.rounds.length, quick=isNew && x.bo==='bo1' && !x.bye && !x.id;
+  const os=x.opp && DL.archSprites ? DL.archSprites(x.opp) : '';
+  box.innerHTML = `<h3>Round ${n}${!isNew?' <span class="src">· modifica</span>':''}</h3>
+    <div class="lv-oppw"><span class="lv-ospr">${os}</span><input class="lv-opp" id="lvOpp" list="lvOpps" placeholder="${x.bye?'Nessun avversario (BYE)':'Archetipo avversario'}" value="${esc(x.opp||'')}" ${x.bye?'disabled':''} autocomplete="off"></div>
+    ${x.bye?'':`<div class="lv-chips">${oppChips().map(o=>`<button type="button" data-o="${esc(o)}" aria-pressed="${App.archKey(o)===App.archKey(x.opp||'')}"><span class="sprs">${DL.archSprites?DL.archSprites(o):''}</span>${esc(o)}</button>`).join('')}</div>`}
     <div class="seg lv-mode">${[['bo1','Bo1'],['bo3','Bo3'],['id','ID'],['bye','BYE']].map(([k,l])=>`<button type="button" data-m="${k}" aria-pressed="${mode===k}">${l}</button>`).join('')}</div>
     ${x.bye||x.id ? `<p class="hint">${x.bye?'Turno senza avversario: vale come vittoria.':'Pareggio concordato: vale come pareggio.'}</p>` :
       x.games.map((g,j)=>`<div class="lv-g"><span class="src">${x.bo==='bo3'?'Game '+(j+1):'Partita'}</span>
         <div class="seg">${[['F','Primo'],['S','Secondo']].map(([k,l])=>`<button type="button" data-f="${j}:${k}" aria-pressed="${g.first===k}">${l}</button>`).join('')}</div>
         <div class="lv-wlt">${['W','L','T'].map(k=>`<button type="button" class="${k}" data-g="${j}:${k}" aria-pressed="${g.res===k}">${GL[k]}</button>`).join('')}</div></div>`).join('')}
-    <button type="button" class="btn primary lv-save" id="lvSave">${edit<t.rounds.length?'Salva modifiche':'Salva round '+n}</button>`;
+    <input class="lv-note" id="lvNote" placeholder="Nota (facoltativa): es. ha giocato Iono a 2 premi" value="${esc(x.note||'')}" autocomplete="off">
+    ${quick?'<p class="hint lv-qh">Tocca il risultato per salvare il round.</p>':`<button type="button" class="btn primary lv-save" id="lvSave">${!isNew?'Salva modifiche':'Salva round '+n}</button>`}`;
   box.onclick=e=>{
-    const m=e.target.closest('[data-m]'); if(m){ const k=m.dataset.m; x.id=k==='id'; x.bye=k==='bye'; if(k==='bo1'||k==='bo3'){ const o=x.opp; Object.assign(x, T.normRound({...x, bo:k})); x.opp=o; x.id=false; x.bye=false; } if(x.bye) x.opp=''; drawRound(t); return; }
+    const o=e.target.closest('[data-o]'); if(o){ x.opp=o.dataset.o; drawRound(t); return; }
+    const m=e.target.closest('[data-m]'); if(m){ const k=m.dataset.m; x.id=k==='id'; x.bye=k==='bye'; if(k==='bo1'||k==='bo3'){ const o=x.opp, nt=x.note; Object.assign(x, T.normRound({...x, bo:k})); x.opp=o; x.note=nt; x.id=false; x.bye=false; } if(x.bye) x.opp=''; drawRound(t); return; }
     const f=e.target.closest('[data-f]'); if(f){ const [j,k]=f.dataset.f.split(':'); const g=x.games[+j]; g.first=g.first===k?null:k; drawRound(t); return; }
-    const g=e.target.closest('[data-g]'); if(g){ const [j,k]=g.dataset.g.split(':'); const gm=x.games[+j]; gm.res=gm.res===k?null:k; drawRound(t); return; }
+    const g=e.target.closest('[data-g]'); if(g){ const [j,k]=g.dataset.g.split(':'); const gm=x.games[+j]; gm.res=gm.res===k?null:k; drawRound(t);
+      if(quick && gm.res) setTimeout(()=>saveRound(t),180); return; }   // Bo1: one tap on the result saves the round
     if(e.target.closest('#lvSave')) saveRound(t);
   };
-  box.oninput=e=>{ if(e.target.id==='lvOpp') x.opp=e.target.value; };
+  box.oninput=e=>{ if(e.target.id==='lvOpp'){ x.opp=e.target.value; const sp=box.querySelector('.lv-ospr'); if(sp) sp.innerHTML=x.opp&&DL.archSprites?DL.archSprites(x.opp):''; } if(e.target.id==='lvNote') x.note=e.target.value; };
 }
 async function saveRound(t){
   const x=cur; if(!x.bye && !x.id && !T.roundRes(x)){ App.toast('Segna il risultato di almeno una partita'); return; }
-  if(edit<t.rounds.length) t.rounds[edit]=clean(x); else t.rounds.push(clean(x));
+  const isNew=edit>=t.rounds.length;
+  if(!isNew) t.rounds[edit]=clean(x); else t.rounds.push(clean(x));
   if(x.bo==='bo3'||x.bo==='bo1') t.bo=x.bo;
+  if(isNew) t.timer=tmNew(t.bo);   // next round: a fresh timer, ready to start
   edit=t.rounds.length; await save(t); view(t.id); notify();
   if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
+  if(isNew) App.toast(`Round ${t.rounds.length} salvato: ${x.bye?'BYE':x.id?'ID':GL[T.roundRes(x)]||''}`);
 }
 
 /* ---------- close the tournament ---------- */
@@ -167,18 +210,39 @@ App.enableLiveNotify = async on => {
   await swReg(); try{ localStorage.setItem('pr.liveNotify','true'); }catch(e){} notify(); return true;
 };
 async function clearNotes(){ if(!canNotify()) return; const r=await navigator.serviceWorker.getRegistration(); if(!r) return; (await r.getNotifications()).filter(n=>String(n.tag).startsWith('pr-live')).forEach(n=>n.close()); }
+// the deck's sprites drawn into one small picture, for the notification icon (only on your phone)
+const iconCache={};
+async function deckIcon(t){ const dk=getDeck(t.id), k=dk.deckName||dk.deckId||''; if(!k) return 'assets/icon-192.png'; if(iconCache[k]) return iconCache[k];
+  const srcs=[...(deckSpr(dk).matchAll(/src="([^"]+)"/g))].map(m=>m[1]).slice(0,2); if(!srcs.length) return 'assets/icon-192.png';
+  try{ const imgs=await Promise.all(srcs.map(u=>new Promise((ok,ko)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=ko; im.src=u; })));
+    const c=document.createElement('canvas'); c.width=c.height=192; const g=c.getContext('2d'); g.imageSmoothingQuality='high';
+    if(imgs.length===1) g.drawImage(imgs[0],16,16,160,160); else { g.drawImage(imgs[0],0,40,112,112); g.drawImage(imgs[1],80,40,112,112); }
+    return iconCache[k]=c.toDataURL('image/png'); }catch(e){ return 'assets/icon-192.png'; } }
+// same text as the service worker writes when you use the buttons of the notification
+function noteOpts(t, icon){ const last=t.rounds[t.rounds.length-1], lr=last?T.roundRes(last):null, tm=t.timer||tmNew(t.bo);
+  const info={id:t.id, name:t.name, rec:T.recStr(T.record(t)), n:t.rounds.length+1, last:last?`${last.bye?'BYE':last.id?'ID':GL[lr]||'—'}${last.opp?' vs '+last.opp:''}`:'', timer:tm};
+  return {tag:'pr-live-'+t.id, renotify:false, silent:true, requireInteraction:true, data:info, icon, badge:'assets/favicon-64.png'}; }
 async function notify(){
   if(!canNotify() || !wantsNotify() || Notification.permission!=='granted') return;
   const r=await swReg(); if(!r) return; const L=live();
   (await r.getNotifications()).filter(n=>String(n.tag).startsWith('pr-live') && !L.some(t=>n.tag==='pr-live-'+t.id)).forEach(n=>n.close());
-  L.forEach(t=>{ const last=t.rounds[t.rounds.length-1], lr=last?T.roundRes(last):null;
-    r.showNotification(`● ${t.name} · Round ${t.rounds.length+1}`, {tag:'pr-live-'+t.id, renotify:false, silent:true, requireInteraction:true, data:{id:t.id},
-      icon:'assets/icon-192.png', badge:'assets/favicon-64.png',
-      body:`Record ${T.recStr(T.record(t))}${last?` · ultimo round: ${last.bye?'BYE':last.id?'ID':GL[lr]||'—'}${last.opp?' vs '+last.opp:''}`:''}\nTocca per segnare il prossimo round.`}); });
+  for(const t of L){ const o=noteOpts(t, await deckIcon(t)), d=o.data, tm=d.timer, l=tmLeft(tm), hm=ts=>new Date(ts).toTimeString().slice(0,5);
+    const time = tm.run ? (l>0 ? `⏱ ${tmFmt(l)} · fine alle ${hm(tm.end)}` : '⏱ Tempo scaduto') : (l<tm.dur ? `⏸ In pausa · ${tmFmt(l)}` : `⏱ ${tmFmt(l)} · timer fermo`);
+    await r.showNotification(`● LIVE · ${d.name} · Round ${d.n}`, {...o, body:`Record ${d.rec}${d.last?` · ultimo round: ${d.last}`:''}\n${time}`,
+      actions:[{action:'timer', title: tm.run ? '❚❚ Pausa' : '▶ Avvia timer'}, {action:'open', title:'Apri'}]}); }
 }
+// the notification is redrawn once a minute while the timer runs (with the app open); when closed it shows the end time, which stays right
+setInterval(()=>{ if(live().some(t=>t.timer&&t.timer.run)) notify(); },60000);
+// play/pause pressed in the notification: the service worker tells the app, or the app reads it when it opens again
+function adoptTimer(id, tm){ const t=App.data.tournaments.find(x=>x.id===id); if(!t || !tm || (t.timer && t.timer.at>=tm.at)) return;
+  t.timer=tm; save(t); if(dlg.open && dlg.classList.contains('livedlg')) drawTimer(t); }
+async function syncFromNotes(){ if(!canNotify()) return; const r=await navigator.serviceWorker.getRegistration(); if(!r) return;
+  (await r.getNotifications()).forEach(n=>{ const d=n.data||{}; if(String(n.tag).startsWith('pr-live') && d.id) adoptTimer(d.id, d.timer); }); }
+App.on(w=>{ if(w==='data') syncFromNotes(); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncFromNotes(); });
 App.on(w=>{ if(w==='data') notify(); });
 if(canNotify()){
-  navigator.serviceWorker.addEventListener('message',e=>{ if(e.data && e.data.type==='live'){ location.hash='tornei'; const id=e.data.id||(live()[0]||{}).id; if(id) setTimeout(()=>App.liveView(id),200); } });
+  navigator.serviceWorker.addEventListener('message',e=>{ if(e.data && e.data.type==='timer'){ adoptTimer(e.data.id, e.data.timer); return; } if(e.data && e.data.type==='live'){ location.hash='tornei'; const id=e.data.id||(live()[0]||{}).id; if(id) setTimeout(()=>App.liveView(id),200); } });
   if(wantsNotify()) swReg();
 }
 // opened from a notification while the app was closed
