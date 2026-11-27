@@ -190,7 +190,9 @@ function endForm(t){
 }
 
 /* ---------- "in progress" box on the Tornei page ---------- */
-App.renderLiveBox = () => { const box=$('#tLiveBox'); if(!box) return; const L=live();
+// the "in progress" box on the Tornei page is not shown any more: the Live pill at the top does the same job on every page
+// (to bring it back, remove the "return" below)
+App.renderLiveBox = () => { const box=$('#tLiveBox'); if(!box) return; box.innerHTML=''; box.hidden=true; return; const L=live();
   box.innerHTML = L.map(t=>`<div class="lv-box"><span class="live-badge">● In corso</span><div class="lv-bi"><b>${esc(t.name)}</b><span class="src">${T.recStr(T.record(t))} · ${t.rounds.length} round</span></div>
     <div class="lv-pills sm">${t.rounds.map(pill).join('')}</div><button type="button" class="btn primary small" data-live="${esc(t.id)}">Continua</button></div>`).join(''); };
 $('#tLiveBox').addEventListener('click',e=>{ const b=e.target.closest('[data-live]'); if(b){ edit=-1; view(b.dataset.live); } });
