@@ -201,21 +201,26 @@ App.liveView = id => { edit=-1; view(id); };
 /* ---------- moving around the app while a tournament is live ---------- */
 // a small pill on every page brings you back to the live tournament
 const pillEl=document.createElement('button'); pillEl.type='button'; pillEl.className='live-pill'; pillEl.hidden=true; document.body.appendChild(pillEl);
-const prev=document.createElement('div'); prev.className='live-prev'; prev.hidden=true; document.body.appendChild(prev);
-function showPrev(open){ const t=live()[0]; if(!open || !t){ prev.classList.remove('on'); setTimeout(()=>{ if(!prev.classList.contains('on')) prev.hidden=true; },180); clearInterval(prevT); return; }
+// the preview opens in the middle of the screen over a dimmed page that cannot be touched or scrolled until it closes
+const pov=document.createElement('div'); pov.className='live-pov'; pov.hidden=true; document.body.appendChild(pov);
+const prev=document.createElement('div'); prev.className='live-prev'; prev.setAttribute('role','dialog'); prev.setAttribute('aria-label','Anteprima del torneo in corso'); pov.appendChild(prev);
+pov.addEventListener('touchmove',e=>{ if(!e.target.closest('.lp-rounds')) e.preventDefault(); },{passive:false});
+function showPrev(open){ const t=live()[0]; if(!open || !t){ if(pov.hidden) return; pov.classList.remove('on'); document.documentElement.classList.remove('wheel-lock'); setTimeout(()=>{ if(!pov.classList.contains('on')) pov.hidden=true; },200); clearInterval(prevT); return; }
   const dk=getDeck(t.id), sp=deckSpr(dk), last=t.rounds[t.rounds.length-1], tm=t.timer;
   prev.innerHTML=`<div class="lp-h"><span class="live-badge">● In corso</span><span class="src">${esc(T.fmtDate(t.date))}</span></div>
     <div class="lp-t"><div><b>${esc(t.name)}</b><span class="src">${dk.deckName?esc(dk.deckName)+' 🔒':''}</span></div><span class="lv-dspr">${sp}</span></div>
-    <div class="lp-r"><b class="num">${T.recStr(T.record(t))}</b><div class="lv-pills sm">${t.rounds.map(pill).join('')}</div></div>
+    <div class="lp-r"><span class="src">Record</span><b class="num">${T.recStr(T.record(t))}</b></div>
+    ${t.rounds.length?`<ol class="lp-rounds">${t.rounds.map((x,i)=>`<li><span class="lp-rn num">R${i+1}</span><span class="sprs">${x.opp&&DL.archSprites?DL.archSprites(x.opp):''}</span><span class="lp-o">${x.bye?'<span class="src">Nessun avversario</span>':x.opp?esc(x.opp):'<span class="src">Avversario non segnato</span>'}</span>${pill(x)}</li>`).join('')}</ol>`:'<p class="src" style="margin:0">Nessun round registrato ancora.</p>'}
     <div class="lp-n"><span>Round ${t.rounds.length+1}${last&&last.opp?` <span class="src">· ultimo vs ${esc(last.opp)}</span>`:''}</span>${tm?`<b class="num lp-tm${tm.run?' run':''}">${lpTime(tm)}</b>`:''}</div>
     <button type="button" class="btn primary lp-go">Apri il torneo</button>`;
-  prev.hidden=false; requestAnimationFrame(()=>prev.classList.add('on'));
-  clearInterval(prevT); prevT=setInterval(()=>{ const e=prev.querySelector('.lp-tm'); if(!e || prev.hidden){ clearInterval(prevT); return; } const tt=live()[0]; if(tt&&tt.timer) e.textContent=lpTime(tt.timer); },1000); }
+  pov.hidden=false; document.documentElement.classList.add('wheel-lock'); requestAnimationFrame(()=>requestAnimationFrame(()=>pov.classList.add('on')));
+  clearInterval(prevT); prevT=setInterval(()=>{ const e=prev.querySelector('.lp-tm'); if(!e || pov.hidden){ clearInterval(prevT); return; } const tt=live()[0]; if(tt&&tt.timer) e.textContent=lpTime(tt.timer); },1000); }
 let prevT=0;
-const lpTime = tm => tm.run ? (tmLeft(tm)>0 ? tmFmt(tmLeft(tm)) : 'Tempo!') : '⏸ '+tmFmt(tmLeft(tm));
-pillEl.addEventListener('click',e=>{ e.stopPropagation(); showPrev(prev.hidden); });
+const lpTime = tm => tm.run ? (tmLeft(tm)>0 ? tmFmt(tmLeft(tm)) : 'Tempo!') : '❚❚ '+tmFmt(tmLeft(tm));
+pillEl.addEventListener('click',e=>{ e.stopPropagation(); showPrev(pov.hidden); });
 prev.addEventListener('click',e=>{ if(e.target.closest('.lp-go')){ const t=live()[0]; showPrev(false); if(t) App.liveView(t.id); } });
-document.addEventListener('click',e=>{ if(!prev.hidden && !e.target.closest('.live-prev,.live-pill')) showPrev(false); });
+pov.addEventListener('click',e=>{ if(e.target===pov) showPrev(false); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') showPrev(false); });
 App.on(w=>{ if(w==='page') showPrev(false); });
 function drawPill(){ const t=live()[0], open=dlg.open && dlg.classList.contains('livedlg');
   pillEl.hidden=!t || open; if(!t || open) showPrev(false); if(!t) return;
