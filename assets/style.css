@@ -1606,3 +1606,14 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
 .tc-grp{min-width:0}
 @media (max-width:980px){ .tc-cols{grid-template-columns:minmax(0,1fr)} }
 @media (max-width:760px){ html,body{overflow-x:clip} }
+
+/* wheel: smoother opening on phones. No animated blur of the page behind it (it redraws the whole page at every frame):
+   a dimmed layer that only fades. The shadow is drawn once on the ring, not recomputed on the SVG while it grows. */
+@media (max-width:760px){
+  .wheel{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:rgba(6,8,12,.62)!important;opacity:0;transition:opacity .22s ease}
+  .wheel.on{opacity:1}
+  .wh-ring{will-change:transform,opacity;border-radius:50%;box-shadow:0 14px 34px rgba(0,0,0,.45);contain:layout paint}
+  .wh-ring svg{filter:none}
+  .wh-sub{will-change:transform,opacity}
+  .wh-mon img{filter:none}
+}

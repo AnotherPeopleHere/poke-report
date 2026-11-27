@@ -42,7 +42,9 @@ async function monList(){ if(!DEX){ const r=await fetch('data/pokedex.json?v=1')
 function monImg(m){ const id=m.sd || String(m.n).toLowerCase().replace(/[^a-z0-9]/g,''), pid=m.id||m.dex;
   return `<img src="https://play.pokemonshowdown.com/sprites/ani/${id}.gif" alt="${App.esc(m.n)}" data-fb="https://play.pokemonshowdown.com/sprites/gen5/${id}.png" data-fb2="${pid?`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pid}.png`:''}"
     onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else if(this.dataset.fb2){this.src=this.dataset.fb2;this.dataset.fb2='';}else this.remove()">`; }
-function drawMon(){ const m=App.prefs().favMon, box=document.getElementById('whMon'); box.innerHTML = m ? monImg(m) : ''; ov.classList.toggle('has-mon', !!m); }
+// rebuilt only when the favourite changes: the animated sprite is not reloaded and decoded at every opening
+let monKey=null;
+function drawMon(){ const m=App.prefs().favMon, k=m?(m.sd||m.n):''; ov.classList.toggle('has-mon', !!m); if(k===monKey) return; monKey=k; document.getElementById('whMon').innerHTML = m ? monImg(m) : ''; }
 // desktop: the favourite Pokémon next to each page title; remembered for the opening animation too
 function mascots(){ const m=App.prefs().favMon;
   // remember it for the opening animation (only set here: prefs may not be loaded yet; the profile's "Togli" clears it)
@@ -55,7 +57,8 @@ App.monList=monList; App.monImg=monImg; App.drawMon=drawMon;
 const ring=ov.querySelector('.wh-ring'), sel=ov.querySelector('.wh-sel');
 let open=false, hot=-1;
 
-function show(){ if(open) return; open=true; fab.classList.remove('away'); ov.hidden=false; requestAnimationFrame(()=>ov.classList.add('on')); fab.classList.add('on'); fab.setAttribute('aria-expanded','true'); drawSub(); drawMon(); mark(); }
+function show(){ if(open) return; open=true; fab.classList.remove('away'); drawSub(); drawMon(); mark(); ov.hidden=false; fab.classList.add('on'); fab.setAttribute('aria-expanded','true');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('on'))); }   // contents ready before the first frame of the animation
 function hide(){ if(!open) return; open=false; ov.classList.remove('on'); fab.classList.remove('on'); fab.setAttribute('aria-expanded','false'); light(-1); setTimeout(()=>{ if(!open) ov.hidden=true; },260); }
 function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('hot',k===i));
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
