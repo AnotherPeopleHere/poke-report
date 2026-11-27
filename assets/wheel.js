@@ -57,17 +57,22 @@ App.monList=monList; App.monImg=monImg; App.drawMon=drawMon;
 const ring=ov.querySelector('.wh-ring'), sel=ov.querySelector('.wh-sel');
 let open=false, hot=-1;
 
-function show(){ if(open) return; open=true; fab.classList.remove('away'); drawSub(); drawMon(); mark(); ov.hidden=false; fab.classList.add('on'); fab.setAttribute('aria-expanded','true');
+function show(){ if(open) return; open=true; pend=null; lock(true); fab.classList.remove('away'); drawSub(); drawMon(); mark(); ov.hidden=false; fab.classList.add('on'); fab.setAttribute('aria-expanded','true');
   requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('on'))); }   // contents ready before the first frame of the animation
-function hide(){ if(!open) return; open=false; ov.classList.remove('on'); fab.classList.remove('on'); fab.setAttribute('aria-expanded','false'); light(-1); setTimeout(()=>{ if(!open) ov.hidden=true; },260); }
+function hide(){ if(!open) return; open=false; pend=null; lock(false); ov.classList.remove('on'); fab.classList.remove('on'); fab.setAttribute('aria-expanded','false'); light(-1); setTimeout(()=>{ if(!open) ov.hidden=true; },260); }
 function light(i){ if(i===hot) return; hot=i; ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('hot',k===i));
   ov.classList.toggle('picking', i>=0); sel.innerHTML = i>=0 ? `<svg class="i"><use href="#${slices[i].it[1]}"/></svg><b>${slices[i].it[2]}</b>` : '';
 }
-function mark(){ ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('cur', slices[k].it[0]===App.page)); }
+function mark(){ const p=pend||App.page; ov.querySelectorAll('.wh-s').forEach((g,k)=>g.classList.toggle('cur', slices[k].it[0]===p)); }
+// while the wheel is open the page behind stays still: no scrolling, no taps (the overlay already takes the taps)
+let pend=null;   // section picked on the wheel whose sub-menu is showing: the page changes only when a sub-section is chosen
+function lock(on){ document.documentElement.classList.toggle('wheel-lock', on); }
+ov.addEventListener('touchmove',e=>{ if(!e.target.closest('.wh-sub .bsub')) e.preventDefault(); },{passive:false});
+ov.addEventListener('wheel',e=>e.preventDefault(),{passive:false});
 const HAS_SUB = new Set(['gruppo','tornei','meta','consigli']);   // sections with their own sub-menu: the wheel stays open on it
 let keep=false;
 function go(i){ const p=slices[i].it[0];
-  if(HAS_SUB.has(p)){ light(-1); if(location.hash.replace('#','')!==p){ keep=true; location.hash=p; } else drawSub(); return; }
+  if(HAS_SUB.has(p)){ light(-1); pend=p; drawSub(); mark(); return; }   // show its sub-sections; the page opens when one is chosen
   hide(); if(location.hash.replace('#','')!==p) location.hash=p; else window.scrollTo({top:0,behavior:'smooth'}); }
 function sliceAt(x,y){
   const r=ring.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, dx=x-cx, dy=y-cy, d=Math.hypot(dx,dy)/(r.width/2);
@@ -94,10 +99,12 @@ const SUB = {gruppo:{h:'Sezioni del gruppo', fn:()=>App.groupTab, L:[['over','Pa
   consigli:{h:'Consigli', fn:()=>App.consTab, L:[['you','Per te'],['form','In forma'],['exotic','Esotiche'],['all','Tutti']]},
   meta:{h:'Meta report', fn:()=>App.metaTab, L:[['arch','Archetipi'],['reg','Regional'],['trend','Tendenze']]},
   tornei:{h:'I miei tornei', fn:()=>App.tornTab, L:[['over','Riepilogo'],['decks','Mazzi'],['match','Matchup'],['hist','Storico']]}};
-function drawSub(){ const box=document.getElementById('whSub'), S=SUB[App.page], fn=S&&S.fn();
+function drawSub(){ const pg=pend||App.page, box=document.getElementById('whSub'), S=SUB[pg], fn=S&&S.fn();
   if(!S || !fn){ box.innerHTML=''; return; } const cur=fn();
-  box.innerHTML = `<div class="bsub-h">${S.h}</div><div class="bsub">${S.L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${cur===k}">${l}</button>`).join('')}</div>`; }
-document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; SUB[App.page].fn()(b.dataset.gtab); hide(); window.scrollTo({top:0,behavior:'smooth'}); });
+  const here = pg===App.page;   // another section: nothing is marked yet, you choose where to land
+  box.innerHTML = `<div class="bsub-h">${S.h}</div><div class="bsub">${S.L.map(([k,l])=>`<button type="button" data-gtab="${k}" aria-pressed="${here&&cur===k}">${l}</button>`).join('')}</div>`; }
+document.getElementById('whSub').addEventListener('click',e=>{ const b=e.target.closest('[data-gtab]'); if(!b) return; const pg=pend||App.page, go2=pg!==App.page;
+  SUB[pg].fn()(b.dataset.gtab); hide(); if(go2) location.hash=pg; else window.scrollTo({top:0,behavior:'smooth'}); });
 // closed button: the icon of the section you are on
 const ICON={home:'i-home',deck:'i-grid',meta:'i-chart',consigli:'i-star',news:'i-news',tornei:'i-trophy',gruppo:'i-group',metafy:'i-coach'};
 const setIcon=()=>fab.querySelector('use').setAttribute('href','#'+(ICON[App.page]||'i-home'));

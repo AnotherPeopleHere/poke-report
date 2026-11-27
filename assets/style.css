@@ -1617,3 +1617,6 @@ dialog.livedlg #dlg2Body{flex:1;min-height:0;overflow:auto}
   .wh-sub{will-change:transform,opacity}
   .wh-mon img{filter:none}
 }
+/* wheel open: the page behind does not scroll */
+html.wheel-lock,html.wheel-lock body{overflow:hidden!important;overscroll-behavior:none}
+@media (max-width:760px){ .wheel{overscroll-behavior:contain;touch-action:none} .wh-sub .bsub{touch-action:pan-x} }
