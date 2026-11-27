@@ -20,7 +20,8 @@ function deckSpr(dk){ const d=App.data.decks.find(x=>x.id===dk.deckId); const n=
   return (DL.archSprites && (DL.archSprites(n) || (d && DL.archOf && DL.archSprites(DL.archOf(d.cards, n))))) || ''; }
 
 /* ---------- round timer: counts down (50 minutes Bo3, 25 Bo1); kept in the tournament so the notification and other devices know it ---------- */
-const DUR = bo => (bo==='bo3'?50:25)*60000;
+// minutes of a round: 50 Bo3 and 25 Bo1 unless you changed them (remembered on this device)
+const DUR = bo => { let m=0; try{ m=+localStorage.getItem('pr.tdur.'+(bo==='bo3'?'bo3':'bo1'))||0; }catch(e){} return (m || (bo==='bo3'?50:25))*60000; };
 const tmLeft = tm => !tm ? 0 : Math.max(0, tm.run ? tm.end-Date.now() : tm.left);
 const tmFmt = ms => { const s=Math.ceil(ms/1000), m=Math.floor(s/60); return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; };
 const tmNew = bo => ({dur:DUR(bo), left:DUR(bo), run:false, at:Date.now()});
@@ -74,7 +75,7 @@ function startForm(){
 }
 
 /* ---------- the live view ---------- */
-let cur=null, edit=-1, tick=0;
+let cur=null, edit=-1, tick=0, tmEdit=false;
 // opponents to pick with one tap: the ones you meet most, then the strongest of the meta
 function oppChips(){ const cnt=new Map(); App.data.tournaments.forEach(x=>(x.rounds||[]).forEach(r=>{ const o=(r.opp||'').trim(); if(o) cnt.set(o,(cnt.get(o)||0)+1); }));
   const mine=[...cnt].sort((a,b)=>b[1]-a[1]).map(x=>x[0]); const out=[]; [...mine, ...T.metaNames()].forEach(n=>{ if(out.length<8 && !out.some(o=>App.archKey(o)===App.archKey(n))) out.push(n); }); return out; }
@@ -108,13 +109,23 @@ function view(id){
 }
 function drawTimer(t, only){
   const box=document.getElementById('lvTimer'); if(!box) return; const tm=t.timer, left=tmLeft(tm), over=tm.run && left<=0;
-  if(only){ const v=box.querySelector('.lt-v'); if(v){ v.textContent=over?'Tempo!':tmFmt(left); box.classList.toggle('over',over); } return; }
-  box.className='lv-timer'+(tm.run?' run':'')+(over?' over':'');
-  box.innerHTML=`<span class="lt-l">⏱ Round ${t.rounds.length+1}</span><b class="lt-v num">${over?'Tempo!':tmFmt(left)}</b>
-    <button type="button" class="lt-b" data-tm="go" aria-label="${tm.run?'Pausa':'Avvia il timer'}">${tm.run?'❚❚':'▶'}</button><button type="button" class="lt-b" data-tm="reset" aria-label="Azzera il timer">↺</button>`;
-  box.onclick=async e=>{ const b=e.target.closest('[data-tm]'); if(!b) return;
-    t.timer = b.dataset.tm==='go' ? tmToggle(t.timer) : tmNew(t.bo);
-    drawTimer(t); await save(t); notify(); };
+  if(only){ const v=box.querySelector('.lt-v'); if(v){ v.textContent=over?'Tempo!':tmFmt(left); box.classList.toggle('over',over); } if(over) ring(t); return; }
+  box.className='lv-timer'+(tm.run?' run':'')+(over?' over':'')+(tmEdit?' edit':'');
+  const mins=Math.round(tm.dur/60000);
+  box.innerHTML=`<span class="lt-l">⏱ Round ${t.rounds.length+1}<small>${tm.run?'tocca ❚❚ per la pausa':'tocca il tempo per cambiarlo'}</small></span><button type="button" class="lt-v num" data-tm="edit" ${tm.run?'disabled':''} aria-label="Cambia la durata">${over?'Tempo!':tmFmt(left)}</button>
+    <button type="button" class="lt-b" data-tm="go" aria-label="${tm.run?'Pausa':'Avvia il timer'}">${tm.run?'❚❚':'▶'}</button><button type="button" class="lt-b" data-tm="reset" aria-label="Azzera il timer">↺</button>
+    ${tmEdit && !tm.run?`<div class="lt-ed"><span class="src">Durata del round</span><div class="lt-pre">${[20,25,30,40,50,60].map(m=>`<button type="button" data-min="${m}" aria-pressed="${m===mins}">${m}′</button>`).join('')}</div>
+      <div class="lt-fine"><button type="button" class="lt-b" data-step="-1" aria-label="Un minuto in meno">−</button><b class="num">${mins} min</b><button type="button" class="lt-b" data-step="1" aria-label="Un minuto in più">+</button></div>
+      <span class="src">Resta come durata predefinita per i ${t.bo==='bo3'?'Bo3':'Bo1'} su questo dispositivo.</span></div>`:''}`;
+  box.onclick=async e=>{
+    const mn=e.target.closest('[data-min]'), st=e.target.closest('[data-step]');
+    if(mn || st){ const m=Math.max(1,Math.min(120, mn ? +mn.dataset.min : Math.round(t.timer.dur/60000)+(+st.dataset.step)));
+      try{ localStorage.setItem('pr.tdur.'+(t.bo==='bo3'?'bo3':'bo1'), m); }catch(_){}
+      t.timer={dur:m*60000, left:m*60000, run:false, at:Date.now()}; drawTimer(t); await save(t); notify(); return; }
+    const b=e.target.closest('[data-tm]'); if(!b) return;
+    if(b.dataset.tm==='edit'){ tmEdit=!tmEdit; drawTimer(t); return; }
+    tmEdit=false; t.timer = b.dataset.tm==='go' ? tmToggle(t.timer) : tmNew(t.bo);
+    drawTimer(t); await save(t); notify(); armAlarm(); };
 }
 function drawRound(t){
   const x=cur, n=edit+1, box=$('#lvRound'), mode=x.bye?'bye':x.id?'id':x.bo, isNew=edit>=t.rounds.length, quick=isNew && x.bo==='bo1' && !x.bye && !x.id;
@@ -190,9 +201,24 @@ App.liveView = id => { edit=-1; view(id); };
 /* ---------- moving around the app while a tournament is live ---------- */
 // a small pill on every page brings you back to the live tournament
 const pillEl=document.createElement('button'); pillEl.type='button'; pillEl.className='live-pill'; pillEl.hidden=true; document.body.appendChild(pillEl);
-pillEl.addEventListener('click',()=>{ const t=live()[0]; if(t) App.liveView(t.id); });
+const prev=document.createElement('div'); prev.className='live-prev'; prev.hidden=true; document.body.appendChild(prev);
+function showPrev(open){ const t=live()[0]; if(!open || !t){ prev.classList.remove('on'); setTimeout(()=>{ if(!prev.classList.contains('on')) prev.hidden=true; },180); clearInterval(prevT); return; }
+  const dk=getDeck(t.id), sp=deckSpr(dk), last=t.rounds[t.rounds.length-1], tm=t.timer;
+  prev.innerHTML=`<div class="lp-h"><span class="live-badge">● In corso</span><span class="src">${esc(T.fmtDate(t.date))}</span></div>
+    <div class="lp-t"><div><b>${esc(t.name)}</b><span class="src">${dk.deckName?esc(dk.deckName)+' 🔒':''}</span></div><span class="lv-dspr">${sp}</span></div>
+    <div class="lp-r"><b class="num">${T.recStr(T.record(t))}</b><div class="lv-pills sm">${t.rounds.map(pill).join('')}</div></div>
+    <div class="lp-n"><span>Round ${t.rounds.length+1}${last&&last.opp?` <span class="src">· ultimo vs ${esc(last.opp)}</span>`:''}</span>${tm?`<b class="num lp-tm${tm.run?' run':''}">${lpTime(tm)}</b>`:''}</div>
+    <button type="button" class="btn primary lp-go">Apri il torneo</button>`;
+  prev.hidden=false; requestAnimationFrame(()=>prev.classList.add('on'));
+  clearInterval(prevT); prevT=setInterval(()=>{ const e=prev.querySelector('.lp-tm'); if(!e || prev.hidden){ clearInterval(prevT); return; } const tt=live()[0]; if(tt&&tt.timer) e.textContent=lpTime(tt.timer); },1000); }
+let prevT=0;
+const lpTime = tm => tm.run ? (tmLeft(tm)>0 ? tmFmt(tmLeft(tm)) : 'Tempo!') : '⏸ '+tmFmt(tmLeft(tm));
+pillEl.addEventListener('click',e=>{ e.stopPropagation(); showPrev(prev.hidden); });
+prev.addEventListener('click',e=>{ if(e.target.closest('.lp-go')){ const t=live()[0]; showPrev(false); if(t) App.liveView(t.id); } });
+document.addEventListener('click',e=>{ if(!prev.hidden && !e.target.closest('.live-prev,.live-pill')) showPrev(false); });
+App.on(w=>{ if(w==='page') showPrev(false); });
 function drawPill(){ const t=live()[0], open=dlg.open && dlg.classList.contains('livedlg');
-  pillEl.hidden=!t || open; if(!t) return;
+  pillEl.hidden=!t || open; if(!t || open) showPrev(false); if(!t) return;
   pillEl.innerHTML=`<span class="dot"></span><b>Live</b><span>${esc(t.name)}</span><span class="num">R${t.rounds.length+1} · ${T.recStr(T.record(t))}</span>`; }
 App.on(w=>{ if(w==='data'||w==='page') drawPill(); });
 dlg.addEventListener('close',()=>setTimeout(drawPill,260)); new MutationObserver(drawPill).observe(dlg,{attributes:true,attributeFilter:['open','class']});
@@ -231,11 +257,21 @@ async function notify(){
     await r.showNotification(`● LIVE · ${d.name} · Round ${d.n}`, {...o, body:`Record ${d.rec}${d.last?` · ultimo round: ${d.last}`:''}\n${time}`,
       actions:[{action:'timer', title: tm.run ? '❚❚ Pausa' : '▶ Avvia timer'}, {action:'open', title:'Apri'}]}); }
 }
+/* ---------- time is up: vibration, a notification with sound and a message (while the app is open or still alive in the background) ---------- */
+let alarmT=0; const rang=new Set();
+function armAlarm(){ clearTimeout(alarmT); let next=null;
+  live().forEach(t=>{ const tm=t.timer; if(tm && tm.run){ const ms=tm.end-Date.now(); if(ms>0 && (!next || ms<next.ms)) next={t, ms}; else if(ms<=0) ring(t); } });
+  if(next) alarmT=setTimeout(()=>{ ring(App.data.tournaments.find(x=>x.id===next.t.id)||next.t); armAlarm(); }, next.ms+200); }
+async function ring(t){ const tm=t&&t.timer; if(!tm || !tm.run || tmLeft(tm)>0) return; const k=t.id+':'+tm.end; if(rang.has(k)) return; rang.add(k);
+  if(navigator.vibrate) try{ navigator.vibrate([300,120,300,120,600]); }catch(e){}
+  App.toast(`⏰ Tempo scaduto · Round ${t.rounds.length+1}`);
+  if(canNotify() && wantsNotify() && Notification.permission==='granted'){ const r=await swReg(); if(r) r.showNotification(`⏰ Tempo scaduto · Round ${t.rounds.length+1}`, {tag:'pr-live-end-'+t.id, body:`${t.name}: si gioca il tempo supplementare. Tocca per segnare il round.`, vibrate:[300,120,300,120,600], silent:false, renotify:true, data:{id:t.id}, icon:'assets/icon-192.png', badge:'assets/favicon-64.png'}); } }
+App.on(w=>{ if(w==='data') armAlarm(); });
 // the notification is redrawn once a minute while the timer runs (with the app open); when closed it shows the end time, which stays right
 setInterval(()=>{ if(live().some(t=>t.timer&&t.timer.run)) notify(); },60000);
 // play/pause pressed in the notification: the service worker tells the app, or the app reads it when it opens again
 function adoptTimer(id, tm){ const t=App.data.tournaments.find(x=>x.id===id); if(!t || !tm || (t.timer && t.timer.at>=tm.at)) return;
-  t.timer=tm; save(t); if(dlg.open && dlg.classList.contains('livedlg')) drawTimer(t); }
+  t.timer=tm; save(t); if(dlg.open && dlg.classList.contains('livedlg')) drawTimer(t); armAlarm(); }
 async function syncFromNotes(){ if(!canNotify()) return; const r=await navigator.serviceWorker.getRegistration(); if(!r) return;
   (await r.getNotifications()).forEach(n=>{ const d=n.data||{}; if(String(n.tag).startsWith('pr-live') && d.id) adoptTimer(d.id, d.timer); }); }
 App.on(w=>{ if(w==='data') syncFromNotes(); });
