@@ -219,7 +219,7 @@ function recent(ts){
   // phone: compact rows that open on tap
   const mob = `<div class="gtl m-only">${list.map(t=>{ const r=T.record(t), [y,m,d]=String(t.date).split('-');
     return `<div class="gtl-i"><div class="gtl-h"><span class="gtl-d"><b>${+d}</b>${['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'][+m-1]||''}</span>
-        <span class="gtl-n"><b>${esc(t.name)}</b><span class="src">${esc(nameOf(t.user_id))}${t.placement?` · ${esc(t.placement)}°`:''}</span></span><b class="num">${T.recStr(r)}</b><span class="tchev">›</span></div>
+        <span class="gtl-n"><b>${esc(t.name)}</b><span class="src">${esc(nameOf(t.user_id))}${t.placement?` · ${esc(t.placement)}°`:''}${t.dropped?` · drop dopo R${+t.dropped}`:''}</span></span><b class="num">${T.recStr(r)}</b><span class="tchev">›</span></div>
       <div class="gtl-x"><span class="src">${esc(t.type||'')}</span>${t.deckName?archN(t.deckName):''}<div class="lv-pills sm">${(t.rounds||[]).map(x=>{ const q=T.roundRes(x); return `<span class="res-pill ${q||'T'}${x.id||x.bye?' id':''}" title="${x.opp?esc(x.opp):''}">${x.bye?'BYE':x.id?'ID':q?({W:'V',L:'S',T:'P'})[q]:'·'}</span>`; }).join('')}</div>
         ${Array.isArray(t.list)&&t.list.length?`<button type="button" class="btn small" data-tlist="${esc(t.id)}">Vedi lista</button>`:''}</div></div>`; }).join('')}</div>`;
   return list.length ? mob+`<div class="tbl-wrap d-only"><table class="tbl gtbl stack"><thead><tr><th>Torneo</th><th>Giocatore</th><th>Mazzo</th><th class="n">Record</th><th class="n">Pos.</th></tr></thead><tbody>${list.map(t=>{ const r=T.record(t);

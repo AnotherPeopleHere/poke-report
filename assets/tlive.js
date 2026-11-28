@@ -95,14 +95,18 @@ function view(id){
       <div class="lv-timer" id="lvTimer"></div>
       <div class="lv-round" id="lvRound"></div>
     </div>
-    <div class="row lv-foot"><button type="button" class="btn small lv-drop" id="lvDrop">Annulla torneo</button><span></span><button type="button" class="btn lv-end" id="lvEnd">Termina torneo</button></div>
+    <div class="row lv-foot"><button type="button" class="btn small lv-drop" id="lvDrop">Annulla torneo</button><span></span><button type="button" class="btn lv-quit" id="lvQuit" title="Ti ritiri: il torneo si chiude con il record attuale">Drop</button><button type="button" class="btn lv-end" id="lvEnd">Termina torneo</button></div>
     <datalist id="lvOpps">${opps.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`;
   sheet('livedlg');
   drawRound(t); drawTimer(t);
   clearInterval(tick); tick=setInterval(()=>{ if(!dlg.open || !document.getElementById('lvTimer')){ clearInterval(tick); return; } drawTimer(t, true); },1000);
   body.querySelector('.lv-pills').onclick=e=>{ const b=e.target.closest('[data-er]'); if(!b) return; edit=+b.dataset.er; view(t.id); };
   // two taps: the first turns the button into a coloured "tap again" (red to cancel, green to close)
-  const twice=(b, label, go)=>{ if(!b.dataset.c){ b.dataset.c=1; b.textContent=label; b.classList.add('armed'); setTimeout(()=>{ if(b.isConnected && b.dataset.c){ delete b.dataset.c; b.classList.remove('armed'); b.textContent=b.id==='lvEnd'?'Termina torneo':'Annulla torneo'; } },4000); return; } go(); };
+  const LBL={lvEnd:'Termina torneo', lvDrop:'Annulla torneo', lvQuit:'Drop'};
+  const disarm=b=>{ delete b.dataset.c; b.classList.remove('armed'); b.textContent=LBL[b.id]; };
+  const twice=(b, label, go)=>{ if(!b.dataset.c){ body.querySelectorAll('.lv-foot .armed').forEach(disarm);   // one at a time
+      b.dataset.c=1; b.textContent=label; b.classList.add('armed'); setTimeout(()=>{ if(b.isConnected && b.dataset.c) disarm(b); },4000); return; } go(); };
+  $('#lvQuit').onclick=e=>twice(e.currentTarget,'Confermi? Drop',()=>endForm(t, true));
   $('#lvEnd').onclick=e=>twice(e.currentTarget,'Confermi? Termina',()=>endForm(t));
   $('#lvDrop').onclick=e=>twice(e.currentTarget,'Confermi? Annulla',async()=>{
     App.data.tournaments=App.data.tournaments.filter(x=>x.id!==t.id); setDeck(t.id,null); dlg.close(); App.renderAll(); await App.Store.del('tournaments',t.id); App.toast('Torneo annullato'); notify(); });
@@ -162,13 +166,13 @@ async function saveRound(t){
 }
 
 /* ---------- close the tournament ---------- */
-function endForm(t){
+function endForm(t, drop){
   const dk=getDeck(t.id);
-  body.innerHTML = `<div class="dlg-h"><div><h2>Termina ${esc(t.name)}</h2><p class="hint" style="margin:2px 0 0">Record ${T.recStr(T.record(t))} in ${t.rounds.length} round. Dopo il salvataggio il torneo diventa normale e il gruppo vede anche il mazzo.</p></div><button class="xclose" type="button" value="close" aria-label="Chiudi">✕</button></div>
+  body.innerHTML = `<div class="dlg-h"><div><h2>${drop?'Drop da':'Termina'} ${esc(t.name)}</h2><p class="hint" style="margin:2px 0 0">${drop?`Ti ritiri dopo il round ${t.rounds.length}: il torneo si chiude con il record ${T.recStr(T.record(t))} e nello storico risulta il drop.`:`Record ${T.recStr(T.record(t))} in ${t.rounds.length} round.`} Dopo il salvataggio il torneo diventa normale e il gruppo vede anche il mazzo.</p></div><button class="xclose" type="button" value="close" aria-label="Chiudi">✕</button></div>
     <div class="form">
       <label>Posizione finale<input id="lvPlace" type="number" min="1" placeholder="es. 5"></label>
       <label>Giocatori<input id="lvPlayers" type="number" min="2" placeholder="es. 64"></label>
-      <label class="full">Top cut<span class="seg" id="lvCut">${[['none','Non c’era'],['missed','C’era, non passato'],['made','Passato']].map(([k,l])=>`<button type="button" data-cut="${k}" aria-pressed="${k==='none'}">${l}</button>`).join('')}</span></label>
+      <label class="full"${drop?' hidden':''}>Top cut<span class="seg" id="lvCut">${[['none','Non c’era'],['missed','C’era, non passato'],['made','Passato']].map(([k,l])=>`<button type="button" data-cut="${k}" aria-pressed="${k==='none'}">${l}</button>`).join('')}</span></label>
       <div class="full cut-more" id="lvCutMore" hidden>
         <label>Taglio<select id="lvCutSize"><option value="">—</option>${[4,8,16,32,64].map(n=>`<option value="${n}">Top ${n}</option>`).join('')}</select></label>
         <label>Primo round del top cut<select id="lvCutFrom"><option value="">—</option>${t.rounds.map((x,i)=>`<option value="${i+1}">R${i+1}${x.opp?' · vs '+esc(x.opp):''}</option>`).join('')}</select></label></div>
@@ -183,9 +187,10 @@ function endForm(t){
     const d=App.data.decks.find(x=>x.id===dk.deckId);
     Object.assign(t,{placement:$('#lvPlace').value, players:$('#lvPlayers').value, notes:$('#lvNotes').value.trim(), cut, topcut:cut==='made', deckId:dk.deckId||'', deckName:dk.deckName||(d?d.name:'')});
     if(cut==='made'){ t.cutSize=+$('#lvCutSize').value||''; t.cutFrom=+$('#lvCutFrom').value||''; }
+    if(drop) t.dropped=t.rounds.length; else delete t.dropped;
     if(d){ t.list=d.cards.slice(); t.listDate=today(); }
     delete t.ongoing; App.canonT(t);
-    await save(t); setDeck(t.id,null); dlg.close(); App.toast('Torneo salvato'); edit=-1; notify();
+    await save(t); setDeck(t.id,null); dlg.close(); App.toast(drop?'Drop registrato: torneo salvato':'Torneo salvato'); edit=-1; notify();
   };
 }
 

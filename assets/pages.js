@@ -227,7 +227,7 @@ function renderTornei(){
   $('#tLast').innerHTML = last.length ? `<ul class="tlast">${last.map(t=>{ const r=record(t), p=wr(r), n=games(r), [y,m,d]=t.date.split('-');
       return `<li><button type="button" data-goto-t="${esc(t.id)}" title="Apri nello storico">
         <span class="tl-d"><b>${+d}</b>${MONTHS[+m-1]}</span>
-        <span class="tl-m"><span class="tl-n">${esc(t.name)}</span><span class="tl-s">${archIcon(t.deckName||'—')}<span>${esc(t.deckName||'—')}</span>${t.placement?` · ${esc(t.placement)}°`:''}</span></span>
+        <span class="tl-m"><span class="tl-n">${esc(t.name)}</span><span class="tl-s">${archIcon(t.deckName||'—')}<span>${esc(t.deckName||'—')}</span>${t.placement?` · ${esc(t.placement)}°`:''}${t.dropped?' · drop':''}</span></span>
         <span class="tl-r ${!n?'':p>=.55?'good':p<.45?'bad':''}"><b class="num">${recStr(r)}</b><small>${n?pct(p,0):'—'}</small></span></button></li>`; }).join('')}</ul>
       <button type="button" class="btn small tl-all" id="tToList">Vai allo storico completo${list.length>LAST?` (${list.length})`:''} ↓</button>`
     : '<p class="src">Nessun torneo nel filtro scelto.</p>';
@@ -236,7 +236,7 @@ function renderTornei(){
     : '<tbody><tr><td class="src">Registra i round con l\'archetipo avversario per vedere i matchup.</td></tr></tbody>';
   $('#tList').innerHTML = list.map(t=>{ const r=record(t), [y,m,d]=t.date.split('-');
     return `<div class="trow" data-tid="${esc(t.id)}"><div class="date"><b>${+d}</b>${MONTHS[+m-1]} ${y.slice(2)}</div>
-      <div style="min-width:0"><h4>${esc(t.name)}</h4><div class="sub"><span class="badge">${esc(t.type)}</span>${archLink(t.deckName||'—','')}${t.placement?`<span>${esc(t.placement)}°${t.players?' su '+esc(t.players):''}</span>`:''}${cutOf(t)==='made'?`<span class="badge w">${esc(cutLabel(t))}</span>`:''}</div>
+      <div style="min-width:0"><h4>${esc(t.name)}</h4><div class="sub"><span class="badge">${esc(t.type)}</span>${archLink(t.deckName||'—','')}${t.placement?`<span>${esc(t.placement)}°${t.players?' su '+esc(t.players):''}</span>`:''}${cutOf(t)==='made'?`<span class="badge w">${esc(cutLabel(t))}</span>`:''}${t.dropped?`<span class="badge drop" title="Ritirato dopo il round ${+t.dropped}">Drop dopo R${+t.dropped}</span>`:''}</div>
         ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `${cutSep(t,i)}<span class="res-pill ${rr}${x.id||x.bye?' id':''}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${x.bye?'BYE (vittoria senza avversario)':x.id?'ID (pareggio concordato)':GL[rr]}${gt?' · '+esc(gt):''}">${resL(x)}</span>`; }).join('')}</div>`) : ''}
         ${t.notes?`<div class="sub tnote" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div><span class="tchev" aria-hidden="true">›</span>
       <div class="recbox"><div class="rec num">${recStr(r)}<small>${games(r)?pct(wr(r),0)+' vittorie':'nessuna partita'}</small></div>
