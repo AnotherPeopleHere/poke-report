@@ -1713,3 +1713,7 @@ dialog.livedlg .lv-foot .btn{white-space:nowrap}
 :root[data-theme="dark"] .badge.drop{color:#f0a656}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .badge.drop{color:#f0a656} }
 dialog.livedlg .lv-foot{gap:6px} dialog.livedlg .lv-foot .btn{padding-left:12px;padding-right:12px}
+
+/* tournament summary picture */
+.sh-prev{display:grid;place-items:center;min-height:200px;background:var(--sunk);border-radius:14px;padding:8px;margin:4px 0 12px}
+.sh-prev img{width:100%;max-width:420px;height:auto;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.3)}

@@ -191,6 +191,8 @@ function endForm(t, drop){
     if(d){ t.list=d.cards.slice(); t.listDate=today(); }
     delete t.ongoing; App.canonT(t);
     await save(t); setDeck(t.id,null); dlg.close(); App.toast(drop?'Drop registrato: torneo salvato':'Torneo salvato'); edit=-1; notify();
+    // straight after: the summary picture, ready to send to the group
+    if(App.shareTournament) setTimeout(()=>App.shareTournament(t, {title: drop?'Drop salvato: condividi il riepilogo':'Torneo salvato: condividi il riepilogo'}), 320);
   };
 }
 

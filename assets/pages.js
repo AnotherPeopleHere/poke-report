@@ -240,7 +240,7 @@ function renderTornei(){
         ${t.rounds&&t.rounds.length ? (t.type==='TCG Live' || t.rounds.some(x=>x.note) ? matchList(t) : `<div class="sub" style="margin-top:6px;gap:3px">${t.rounds.map((x,i)=>{ const rr=roundRes(x)||'T', gt=gameText(x); return `${cutSep(t,i)}<span class="res-pill ${rr}${x.id||x.bye?' id':''}" title="Round ${i+1}${x.bo==='bo3'?' (Bo3)':''} contro ${esc(x.opp||'?')}: ${x.bye?'BYE (vittoria senza avversario)':x.id?'ID (pareggio concordato)':GL[rr]}${gt?' · '+esc(gt):''}">${resL(x)}</span>`; }).join('')}</div>`) : ''}
         ${t.notes?`<div class="sub tnote" style="margin-top:4px">${esc(t.notes)}</div>`:''}</div><span class="tchev" aria-hidden="true">›</span>
       <div class="recbox"><div class="rec num">${recStr(r)}<small>${games(r)?pct(wr(r),0)+' vittorie':'nessuna partita'}</small></div>
-        <div class="ops"><button class="btn small" type="button" data-edit="${esc(t.id)}">Modifica</button><button class="btn small" type="button" data-del="${esc(t.id)}">Elimina</button></div></div></div>`; }).join('') || '<p class="src">Nessun torneo nel filtro scelto.</p>';
+        <div class="ops"><button class="btn small" type="button" data-share="${esc(t.id)}">Condividi</button><button class="btn small" type="button" data-edit="${esc(t.id)}">Modifica</button><button class="btn small" type="button" data-del="${esc(t.id)}">Elimina</button></div></div></div>`; }).join('') || '<p class="src">Nessun torneo nel filtro scelto.</p>';
 }
 ['#tFilter','#tPeriod'].forEach(s=>$(s).addEventListener('change',renderTornei));
 // phone: one section at a time (chosen from the wheel), filters behind a button, history rows that open on tap
@@ -259,6 +259,7 @@ $('#tLast').addEventListener('click',e=>{
 });
 $('#tList').addEventListener('click',async e=>{
   const ed=e.target.closest('[data-edit]'); if(ed){ openTournament(App.data.tournaments.find(t=>t.id===ed.dataset.edit)); return; }
+  const sh=e.target.closest('[data-share]'); if(sh){ const t=App.data.tournaments.find(x=>x.id===sh.dataset.share); if(t && App.shareTournament) App.shareTournament(t); return; }
   const de=e.target.closest('[data-del]'); if(!de) return;
   if(!de.dataset.confirm){ de.dataset.confirm='1'; de.textContent='Conferma'; de.classList.add('primary'); setTimeout(()=>{ if(de.isConnected){ delete de.dataset.confirm; de.textContent='Elimina'; de.classList.remove('primary'); } },4000); return; }
   const id=de.dataset.del; App.data.tournaments = App.data.tournaments.filter(t=>t.id!==id); renderAll(); await App.Store.del('tournaments', id); App.toast('Torneo eliminato');
